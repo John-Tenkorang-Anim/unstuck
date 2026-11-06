@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://templates/research.json",
+  "title": "research",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "field": {"type": "string"},
+    "hypothesis": {"type": "string"},
+    "method": {"type": "string"},
+    "sample_size": {"type": "integer"},
+    "analysis": {"type": "string"},
+    "limitations": {"type": "string"},
+    "doi": {"type": "string"},
+    "preregistration": {"type": "string"}
+  }
+}

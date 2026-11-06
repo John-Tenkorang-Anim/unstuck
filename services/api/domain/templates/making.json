@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://templates/making.json",
+  "title": "making",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "materials": {"type": "string"},
+    "tools": {"type": "string"},
+    "dimensions": {"type": "string"},
+    "process_steps": {"type": "string"},
+    "safety_notes": {"type": "string"}
+  }
+}

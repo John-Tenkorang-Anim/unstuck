@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://events/stats.updated.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "name", "same_count", "not_same_count", "worked_count", "didnt_work_count", "helped_count", "saved_count", "comment_count", "solved_for_count", "frozen"],
+  "properties": {
+    "v": {"const": 1},
+    "name": {"const": "stats.updated"},
+    "same_count": {"type": "integer"},
+    "not_same_count": {"type": "integer"},
+    "worked_count": {"type": "integer"},
+    "didnt_work_count": {"type": "integer"},
+    "helped_count": {"type": "integer"},
+    "saved_count": {"type": "integer"},
+    "comment_count": {"type": "integer"},
+    "solved_for_count": {"type": "integer"},
+    "frozen": {"type": "boolean"}
+  }
+}

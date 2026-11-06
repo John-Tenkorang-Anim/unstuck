@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://templates/software.json",
+  "title": "software",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "language": {"type": "string"},
+    "framework": {"type": "string"},
+    "versions": {"type": "string"},
+    "os": {"type": "string"},
+    "environment": {"type": "string"},
+    "error_output": {"type": "string"},
+    "repro_steps": {"type": "string"},
+    "code": {"type": "string"}
+  }
+}

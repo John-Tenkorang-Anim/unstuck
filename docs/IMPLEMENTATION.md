@@ -1,0 +1,63 @@
+# Implementation ledger
+
+The entire specification is **not yet implemented**. This ledger distinguishes
+working development behavior from infrastructure and release requirements that
+still need implementation. Nothing here constitutes production-readiness.
+
+## Implemented with the process-local development adapter
+
+| Area | Behavior | Verification |
+| --- | --- | --- |
+| Entries | Partial drafts, idempotent creation with payload conflicts, author-only editing/deletion/publication, optimistic versions, version snapshots | `test_core.py` |
+| Validation | Kind requirements, template field types, context keys and values, image alt text at publication | `test_core.py` |
+| Privacy | Opaque aliases scoped to each entry; private drafts; public history excludes draft versions; defensive response copies | `test_core.py` |
+| Reports | One current report per account/entry; replacement updates counts; concurrent reports serialize; absolute outbox counts | `test_core.py` |
+| Context/impact | Small-group context suppression, own-entry impact rejection, impact minimum cohort | `test_core.py` |
+| Discussion | Typed comments, escaped plain-text HTML, parent-entry validation, idempotent posting; problem answers update state | `test_core.py` |
+| Problems | Resolve with an answer or linked solution; author-only unmark with note; inactivity sweep | API acceptance flow in `test_core.py`; sweep still needs dedicated tests |
+| Links | Typed relations, solves validation, attempt-chain cycle rejection and public traversal | Implemented; dedicated tests still needed |
+| Why board | Promote hypotheses; weighted votes; immutable evidence links; support/dispute transitions; independent aged replications and reviewer verification; belief vs proof; why-status recomputation | `test_explanations.py` |
+| Knowledge | Source-checked claims, labeled AI proposals, independent human acceptance, stale-base conflict checks, supersession, computed strength | `test_knowledge.py` |
+| Search/feed | Development lexical matching, filters before ranking/pagination, published-only visibility, context matches | Visibility gate in `test_core.py`; not multilingual/vector search |
+| Media | Pilot upload admission, private tickets, exact HEAD checks, idempotent finalize/jobs, sanitized-output approval and public takedown | `test_media.py`, using fake storage and simulated clean worker results |
+| Intake wrapper | Shell-free invocation, resource limits, bounded stdout, timeout/process-group termination, typed reports, output-directory validation | `test_intake_wrapper.py` uses a subprocess double; real binary/sandbox integration remains |
+| Adapter fixes | Normalized fake embeddings, numeric stream-ID replay, expiring sliding rate windows | `test_adapter_contracts.py` |
+| API | Typed routes for the above workflows and problem-detail errors | In-process FastAPI acceptance flow |
+
+The new integration tests run in one process using memory. They do **not** prove
+Postgres transaction isolation, crash recovery, distributed concurrency, actual
+sanitization/scanning, CDN behavior, or production identity safety.
+
+## Remaining work from the specification
+
+1. **Persistence and infrastructure:** transactional Postgres repositories,
+   real adapter implementations and contract tests, Redis streams, S3-compatible
+   storage, migrations exercised against Postgres/pgvector, connection pools,
+   production dependency wiring, and idempotency retention/recovery policies.
+2. **Identity:** complete WebAuthn ceremonies, challenges and replay protection,
+   recovery codes, encrypted optional email, magic links, secure expiring sessions,
+   account deletion, CSRF/origin protection, and route rate limiting.
+3. **Media:** Rust intake binary, actual image/PDF/CSV/video pipelines, metadata
+   removal and fuzzing corpus, malware/hash and content scanners, annotations,
+   markers, SSRF-safe embeds, captions/OCR, CDN purge and retry-safe publish jobs.
+   Automatic approval stays disabled until all required scanners exist.
+4. **Workers and live events:** Redis consumer runtime, Python fallback relay,
+   Go relay and SSE gateway, replay/resync, bounded clients, deduplicated jobs,
+   retries/dead-letter queues, scheduler tasks, and drift recounts.
+5. **AI and multilingual:** real CPU embedding/LLM/translation adapters, model
+   configuration, schema-bound drafts and citation validation, plan check,
+   translation cache, voice drafting, summaries and required eval datasets.
+6. **Safety/community:** evaluated safety classifier (the current local scanner
+   is conservative heuristic screening only), moderation queues/actions/appeals,
+   reputation, notifications/digests, follows and settings, conflict-of-interest
+   coverage and high-stakes reviewer approval routes.
+7. **Frontend:** Next.js SSR application and all specified components, composer,
+   evidence/knowledge/media interfaces, six languages, Arabic RTL, accessibility,
+   lite mode, and JavaScript-disabled/browser tests.
+8. **Deployment and operations:** Compose, Caddy, sandbox isolation, CI, backups
+   and restore rehearsal, metrics/traces, load testing and performance budgets.
+9. **v1.1/v2 scope:** trials, spaces, challenges, collections, signed entries,
+   offline/read-aloud, exports/public API, Commune integration and later features.
+
+The original specification remains authoritative. Its required tests and evals
+are not replaced by the development tests above.

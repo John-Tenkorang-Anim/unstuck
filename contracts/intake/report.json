@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://intake/report.json",
+  "title": "IntakeReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "ok", "kind", "outputs", "removed"],
+  "properties": {
+    "v": {"const": 1},
+    "ok": {"type": "boolean"},
+    "kind": {"enum": ["image", "pdf", "csv", "av"]},
+    "detected_mime": {"type": ["string", "null"]},
+    "sha256": {"type": ["string", "null"]},
+    "width": {"type": ["integer", "null"]},
+    "height": {"type": ["integer", "null"]},
+    "pages": {"type": ["integer", "null"]},
+    "rows": {"type": ["integer", "null"]},
+    "outputs": {"type": "array", "items": {"type": "string"}},
+    "removed": {"type": "array", "items": {"type": "string"}},
+    "reject_reason": {
+      "type": ["string", "null"],
+      "enum": ["type_mismatch", "too_large", "too_many_pixels", "too_many_pages", "too_many_rows", "malformed", "encrypted", "unsupported", null]
+    }
+  }
+}

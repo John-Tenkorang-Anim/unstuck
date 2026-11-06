@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://templates/community.json",
+  "title": "community",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "group_size": {"type": "string"},
+    "setting": {"type": "string"},
+    "who_was_involved": {"type": "string"},
+    "what_changed": {"type": "string"}
+  }
+}

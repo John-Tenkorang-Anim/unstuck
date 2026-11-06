@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://ai/entry_draft.json",
+  "type": "object",
+  "required": ["kind", "template", "title", "goal", "missing", "lang"],
+  "properties": {
+    "kind": {"enum": ["experience", "problem", "solution", "idea", "discovery", "research"]},
+    "template": {"enum": ["everyday", "making", "farming_food", "software", "research", "work_business", "community"]},
+    "title": {"type": ["string", "null"], "maxLength": 160},
+    "goal": {"type": ["string", "null"]},
+    "approach": {"type": ["string", "null"]},
+    "result": {"type": ["string", "null"]},
+    "outcome": {"enum": ["worked", "failed", "mixed", "ongoing", null]},
+    "why_text": {"type": ["string", "null"]},
+    "advice": {"type": ["string", "null"]},
+    "context": {"type": "object", "additionalProperties": {"type": "string"}},
+    "type_fields": {"type": "object"},
+    "missing": {"type": "array", "items": {"type": "string"}},
+    "lang": {"type": "string"}
+  }
+}

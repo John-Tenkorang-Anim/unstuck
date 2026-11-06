@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://templates/everyday.json",
+  "title": "everyday",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "materials": {"type": "string"},
+    "cost_band": {"type": "string"},
+    "time_spent": {"type": "string"},
+    "people_involved": {"type": "string"}
+  }
+}

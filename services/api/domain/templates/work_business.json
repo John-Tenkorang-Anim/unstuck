@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://templates/work_business.json",
+  "title": "work_business",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "sector": {"type": "string"},
+    "market": {"type": "string"},
+    "team_size": {"type": "string"},
+    "budget_band": {"type": "string"},
+    "timeline": {"type": "string"},
+    "metric_affected": {"type": "string"}
+  }
+}

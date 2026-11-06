@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "unstuck://templates/farming_food.json",
+  "title": "farming_food",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "product": {"type": "string"},
+    "variety": {"type": "string"},
+    "season": {"type": "string"},
+    "soil": {"type": "string"},
+    "irrigation": {"type": "string"},
+    "storage_method": {"type": "string"},
+    "quantity_kg": {"type": "number"}
+  }
+}
