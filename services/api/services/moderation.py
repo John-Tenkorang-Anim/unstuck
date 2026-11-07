@@ -1,6 +1,6 @@
 """Moderation queue (F-20). Actions: hide, remove, warn, limit, suspend. Week 13."""
 from domain.errors import NotBuilt
-from services._actor import Account
+from domain.actor import Account
 
 
 class ModerationService:

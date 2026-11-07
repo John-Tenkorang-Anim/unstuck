@@ -21,7 +21,7 @@ from domain.models import (
 )
 
 
-from services._actor import Account
+from domain.actor import Account
 
 class TranslationService:
     async def get_or_queue(self, target_type: str, target_id: UUID, lang: str):

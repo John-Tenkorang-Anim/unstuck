@@ -4,7 +4,13 @@ The entire specification is **not yet implemented**. This ledger distinguishes
 working development behavior from infrastructure and release requirements that
 still need implementation. Nothing here constitutes production-readiness.
 
-## Implemented with the process-local development adapter
+## Implemented behavior
+
+The entry, discussion, outcome, link, problem, impact and search workflows now
+share a transaction interface with both memory and Postgres implementations.
+`test_persistence.py` runs the shared contracts against both and adds real-database
+concurrency, rollback, session and process-interruption tests. The Why board,
+knowledge and media write workflows below remain development-adapter only.
 
 | Area | Behavior | Verification |
 | --- | --- | --- |
@@ -14,8 +20,8 @@ still need implementation. Nothing here constitutes production-readiness.
 | Reports | One current report per account/entry; replacement updates counts; concurrent reports serialize; absolute outbox counts | `test_core.py` |
 | Context/impact | Small-group context suppression, own-entry impact rejection, impact minimum cohort | `test_core.py` |
 | Discussion | Typed comments, escaped plain-text HTML, parent-entry validation, idempotent posting; problem answers update state | `test_core.py` |
-| Problems | Resolve with an answer or linked solution; author-only unmark with note; inactivity sweep | API acceptance flow in `test_core.py`; sweep still needs dedicated tests |
-| Links | Typed relations, solves validation, attempt-chain cycle rejection and public traversal | Implemented; dedicated tests still needed |
+| Problems | Resolve with an answer or linked solution; author-only unmark with note; bounded inactivity sweep | `test_core.py`, real-database sweep/revival in `test_persistence.py` |
+| Links | Typed relations, solves validation, attempt-chain cycle rejection and public traversal | Concurrent cycle checks in `test_persistence.py` |
 | Why board | Promote hypotheses; weighted votes; immutable evidence links; support/dispute transitions; independent aged replications and reviewer verification; belief vs proof; why-status recomputation | `test_explanations.py` |
 | Knowledge | Source-checked claims, labeled AI proposals, independent human acceptance, stale-base conflict checks, supersession, computed strength | `test_knowledge.py` |
 | Search/feed | Development lexical matching, filters before ranking/pagination, published-only visibility, context matches | Visibility gate in `test_core.py`; not multilingual/vector search |
@@ -24,16 +30,20 @@ still need implementation. Nothing here constitutes production-readiness.
 | Adapter fixes | Normalized fake embeddings, numeric stream-ID replay, expiring sliding rate windows | `test_adapter_contracts.py` |
 | API | Typed routes for the above workflows and problem-detail errors | In-process FastAPI acceptance flow |
 
-The new integration tests run in one process using memory. They do **not** prove
-Postgres transaction isolation, crash recovery, distributed concurrency, actual
-sanitization/scanning, CDN behavior, or production identity safety.
+The original workflow tests use memory. The new persistent-core contracts use
+real Postgres/pgvector and independent connection pools, plus a separate writer
+process that terminates before commit. They prove the covered transaction and
+rollback behavior; they do **not** prove backup restoration, power-loss durability,
+failover, actual sanitization/scanning, CDN behavior, or production identity safety.
 
 ## Remaining work from the specification
 
-1. **Persistence and infrastructure:** transactional Postgres repositories,
-   real adapter implementations and contract tests, Redis streams, S3-compatible
-   storage, migrations exercised against Postgres/pgvector, connection pools,
-   production dependency wiring, and idempotency retention/recovery policies.
+1. **Persistence and infrastructure:** Postgres repositories for explanations,
+   knowledge, media and the remaining workflows; Redis streams, S3-compatible
+   storage, outbox delivery, retention cleanup, backup/restore rehearsal and load
+   testing. Core normalized Postgres storage, checked migrations, bounded pools,
+   atomic outbox writes, original-response retries and expiring session reads
+   are implemented. Postgres mode returns 501 for unported write workflows.
 2. **Identity:** complete WebAuthn ceremonies, challenges and replay protection,
    recovery codes, encrypted optional email, magic links, secure expiring sessions,
    account deletion, CSRF/origin protection, and route rate limiting.
@@ -90,7 +100,8 @@ omits actual media elements until consent. Unknown additive API fields are
 ignored, unsupported media versions are withheld, and malformed attachments do
 not hide valid written content. A backend outage is no longer a false 404.
 
-See `docs/architecture/0001-platform-foundations.md` for the deployed architecture,
+See `docs/architecture/0001-platform-foundations.md` for the intended architecture,
 limits and remaining gates. Actual encoding, durable cross-worker concurrency,
 object-store/CDN security, backup restoration, native playback and manual WCAG
-review remain incomplete.
+review remain incomplete. Core entry transactions are implemented as described in
+`docs/architecture/0002-durable-core.md`; durable media concurrency is still pending.

@@ -2,31 +2,28 @@
 from datetime import datetime, timezone
 from html import escape
 from uuid import uuid4
+from adapters.repository import CoreRepository
 from domain.enums import ProblemState
-from domain.errors import Conflict, ValidationFailed
+from domain.errors import ValidationFailed
 from domain.models import CommentView
-from services.alias import AliasService
 
 
 class DiscussionService:
-    def __init__(self, repo):
+    def __init__(self, repo: CoreRepository):
         self.repo = repo
 
     async def post(self, actor, entry_id, data, idem_key):
-        self.repo.active(actor)
         if not idem_key or len(idem_key) > 200:
             raise ValidationFailed('an idempotency key is required')
-        async with self.repo.lock:
-            entry = self.repo.entry(entry_id)
-            key = (actor.id, 'comment', idem_key)
-            payload = (entry_id, data.model_dump())
-            if key in self.repo.idempotency:
-                previous, comment_id = self.repo.idempotency[key]
-                if previous != payload:
-                    raise Conflict('idempotency key was used with a different request')
-                return self.repo.comments[comment_id]['view'].model_copy(deep=True)
+        async with self.repo.transaction() as tx:
+            actor = await tx.check_actor(actor)
+            payload = {'entry_id': str(entry_id), 'comment': data.model_dump(mode='json')}
+            replay = await tx.replay(actor.id, 'comment.create', idem_key, payload)
+            entry = (await tx.load_entry(entry_id, lock=True)).view
+            if replay is not None:
+                return CommentView.model_validate(replay)
             if data.parent_id:
-                parent = self.repo.comments.get(data.parent_id)
+                parent = await tx.get_comment(data.parent_id)
                 if parent is None or parent['entry_id'] != entry_id:
                     raise ValidationFailed('parent comment must belong to this entry')
             if data.type == 'answer' and entry.kind != 'problem':
@@ -37,21 +34,21 @@ class DiscussionService:
                 raise ValidationFailed('comment cannot be blank')
             view = CommentView(id=uuid4(), parent_id=data.parent_id, type=data.type,
                 body_html='<p>' + escape(data.body_md).replace('\n', '<br>') + '</p>', lang=data.lang,
-                author=await AliasService().person_ref(self.repo, actor.id, entry_id))
-            self.repo.comments[view.id] = {'entry_id': entry_id, 'owner': actor.id,
-                                         'view': view, 'data': data.model_copy(deep=True)}
-            self.repo.idempotency[key] = (payload, view.id)
+                author=await tx.person_ref(entry_id, actor.id))
+            await tx.insert_comment({'entry_id': entry_id, 'owner': actor.id,
+                                     'view': view, 'data': data.model_copy(deep=True)})
+            await tx.remember(actor.id, 'comment.create', idem_key, view.model_dump(mode='json'))
             entry.stats.comment_count += 1
             if data.type == 'answer' and entry.problem_state in ('open', 'stale'):
                 previous = entry.problem_state
                 entry.problem_state = ProblemState.ANSWERED
-                self.repo.state_events.append({'entity': 'problem', 'id': str(entry_id),
-                                               'from': previous, 'to': 'answered'})
-            self.repo.activity[entry_id] = datetime.now(timezone.utc)
-            self.repo.emit(entry)
+                await tx.event('problem', entry_id, previous, 'answered', actor)
+            await tx.touch(entry_id, datetime.now(timezone.utc))
+            await tx.save_entry(entry)
+            await tx.emit(entry)
             return view.model_copy(deep=True)
 
     async def list(self, entry_id):
-        self.repo.entry(entry_id)
-        return [c['view'].model_copy(deep=True) for c in self.repo.comments.values()
-                if c['entry_id'] == entry_id]
+        async with self.repo.transaction(readonly=True) as tx:
+            await tx.load_entry(entry_id)
+            return await tx.comments_for(entry_id)

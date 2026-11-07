@@ -22,6 +22,16 @@ class MediaService:
             raise NotFound('media not found')
         return item
 
+    async def patch(self, actor, media_id, alt_text):
+        async with self.repo.lock:
+            item = self.load(media_id)
+            self.repo.entry(item['entry_id'], actor, own=True)
+            if not alt_text.strip():
+                raise ValidationFailed('alt text cannot be blank')
+            item['view'].alt_text = alt_text
+            self.repo.emit(self.repo.entries[item['entry_id']])
+            return item['view'].model_copy(deep=True)
+
     async def request_upload(self, actor, entry_id, kind, size, mime, idem_key):
         self.repo.active(actor)
         if get_settings().UPLOADS_OPEN_TO != 'all' and actor.id not in self.repo.pilot_accounts:

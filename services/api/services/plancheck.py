@@ -21,7 +21,7 @@ from domain.models import (
 )
 
 
-from services._actor import Account
+from domain.actor import Account
 
 class PlanCheckService:
     async def check(self, plan: str, context: dict[str, str]):

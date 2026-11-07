@@ -3,7 +3,7 @@ import pytest
 from adapters.memory import MemoryRepository
 from domain.errors import Conflict, Forbidden, NotFound
 from domain.models import EntryCreate, OutcomeReportCreate, RevisionDraft
-from services._actor import Account
+from domain.actor import Account
 from services.entries import EntryService
 from services.knowledge import KnowledgeService
 from services.outcomes import OutcomeService

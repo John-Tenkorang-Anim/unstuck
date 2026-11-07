@@ -17,7 +17,8 @@ class SafetyService:
         text = '\n'.join(str(getattr(entry, key, '') or '') for key in
                          ('title', 'goal', 'approach', 'result', 'why_text', 'advice'))
         topics = {topic if isinstance(topic, str) else topic.slug for topic in entry.topics}
-        high_stakes = bool(topics & HIGH_STAKES_TOPICS or _HIGH_STAKES.search(text))
+        classified = any(getattr(topic, 'high_stakes', False) for topic in entry.topics)
+        high_stakes = bool(classified or topics & HIGH_STAKES_TOPICS or _HIGH_STAKES.search(text))
         pii = bool(_EMAIL.search(text))
         return {'status': 'flagged' if high_stakes or pii else 'clean',
                 'high_stakes': high_stakes,

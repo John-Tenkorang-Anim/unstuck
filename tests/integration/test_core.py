@@ -8,7 +8,7 @@ from adapters.memory import MemoryRepository
 from domain.errors import Conflict, Forbidden, NotFound, StaleVersion, ValidationFailed
 from domain.models import EntryCreate, EntryPatch, OutcomeReportCreate
 from main import create_app
-from services._actor import Account
+from domain.actor import Account
 from services.entries import EntryService
 from services.outcomes import OutcomeService
 

@@ -24,6 +24,43 @@ The default application uses **process-local memory and fake blob storage**. Sta
 is lost on restart and is not shared between processes. Run one process only.
 This configuration is for development and tests, not deployment.
 
+## Run the persistent core with Postgres
+
+Use a dedicated Postgres 16 database with pgvector 0.8 or newer available. After
+installing the Python dependencies, configure the database in your environment
+or an untracked `.env` file. Do not commit credentials.
+
+```sh
+export DATABASE_BACKEND=postgres
+export DATABASE_URL='postgresql://app:app@127.0.0.1:5432/unstuck'
+.venv/bin/python scripts/migrate_db.py
+.venv/bin/uvicorn main:app
+```
+
+Replace the example development credentials. Run migrations with a migration
+role; the runtime role needs only application DML and schema-version reads.
+The app checks the schema before serving requests and closes its pool on shutdown.
+`/readyz` reports database availability separately from process health.
+
+Entries, history, aliases, comments, tried-it reports, counts, problem resolutions,
+links and impact signals now persist in Postgres. Business changes and outbox
+events commit atomically. The Why board, knowledge revision and media write
+routes return HTTP 501 in this mode until their persistent integrations exist.
+See [the durable-core decision](docs/architecture/0002-durable-core.md).
+
+To run the real-database contracts, point the test runner at a **disposable test
+database** whose name contains `test`:
+
+```sh
+export UNSTUCK_TEST_DATABASE_URL='postgresql://app:app@127.0.0.1:5432/unstuck_test'
+.venv/bin/python -m pytest -q
+```
+
+Tests create and drop isolated schemas in that database. The test role requires
+extension/schema creation privileges. Without this variable, real Postgres tests
+are explicitly skipped; memory tests do not substitute for them. CI provisions
+its own Postgres/pgvector service and runs both.
+
 Authentication is deliberately fail-closed: tests inject session tokens into
 `MemoryRepository.sessions`; there is no public account-ID header or development
 login bypass. Passkey registration and login remain unimplemented. Uploads are
@@ -51,8 +88,9 @@ publishing awaits identity integration.
 Rendering and media architecture are documented in the
 [platform decision record](docs/architecture/0001-platform-foundations.md).
 The web client now validates versioned API/media contracts and renders approved
-photos and short videos with accessible, bandwidth-aware fallbacks. Media
-encoding, real object storage, persistent repositories and identity remain
+photos and short videos with accessible, bandwidth-aware fallbacks. Core
+transactional persistence is implemented; media encoding, real object storage,
+the remaining repositories and identity remain
 production prerequisites. `APP_ENV=production` refuses the development storage
 adapters instead of starting with data that would be lost on restart.
 

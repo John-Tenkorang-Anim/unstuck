@@ -2,6 +2,7 @@
 
 Routers validate, load the session, and call one service. They do not write SQL.
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -13,9 +14,26 @@ from routers import all_routers
 
 def create_app(repo=None, blob=None) -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title=settings.PRODUCT_NAME, version="0.1.0")
-
     from adapters.memory import MemoryRepository
+    if repo is None:
+        if settings.DATABASE_BACKEND == 'postgres':
+            from adapters.postgres import PostgresRepository
+            repo = PostgresRepository(settings.DATABASE_URL,
+                min_size=settings.DATABASE_POOL_MIN, max_size=settings.DATABASE_POOL_MAX,
+                timeout=settings.DATABASE_POOL_WAIT_SECONDS,
+                max_waiting=settings.DATABASE_POOL_MAX_WAITING)
+        else:
+            repo = MemoryRepository()
+
+    @asynccontextmanager
+    async def lifespan(app):
+        await app.state.repo.open()
+        try:
+            yield
+        finally:
+            await app.state.repo.close()
+
+    app = FastAPI(title=settings.PRODUCT_NAME, version="0.1.0", lifespan=lifespan)
     from services.entries import EntryService
     from services.outcomes import OutcomeService
     from services.search import SearchService
@@ -26,7 +44,7 @@ def create_app(repo=None, blob=None) -> FastAPI:
         repo is None or blob is None or isinstance(repo, MemoryRepository) or isinstance(blob, FakeBlobStore)
     ):
         raise RuntimeError('Production requires persistent repository and object-store adapters; development fakes cannot be used.')
-    app.state.repo = repo if repo is not None else MemoryRepository()
+    app.state.repo = repo
     app.state.entries = EntryService(app.state.repo)
     app.state.outcomes = OutcomeService(app.state.repo)
     app.state.search = SearchService(app.state.repo)
@@ -47,6 +65,10 @@ def create_app(repo=None, blob=None) -> FastAPI:
     app.state.blob = blob if blob is not None else FakeBlobStore()
     app.state.media = MediaService(app.state.repo, app.state.blob)
     app.state.media_review = MediaReviewService(app.state.repo, app.state.blob)
+    if not app.state.repo.supports_extended_workflows:
+        from services.unavailable import UnavailableWorkflow
+        for name in ('explanations', 'knowledge', 'media', 'media_review'):
+            setattr(app.state, name, UnavailableWorkflow(name))
 
     @app.exception_handler(DomainError)
     async def domain_error(_request: Request, exc: DomainError) -> JSONResponse:
@@ -65,6 +87,11 @@ def create_app(repo=None, blob=None) -> FastAPI:
     @app.get("/healthz", tags=["meta"])
     async def healthz() -> dict:
         return {"ok": True, "product": settings.PRODUCT_NAME}
+
+    @app.get('/readyz', tags=['meta'])
+    async def readyz():
+        ready = await app.state.repo.ready()
+        return JSONResponse({'ok': ready}, status_code=200 if ready else 503)
 
     app.include_router(core_router, prefix="/api/v1")
     implemented = {(route.path, method) for route in app.routes

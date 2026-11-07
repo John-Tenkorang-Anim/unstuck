@@ -1,6 +1,6 @@
 """Trials (F-09). Schema is in v1.0; behavior is v1.1."""
 from domain.errors import NotBuilt
-from services._actor import Account
+from domain.actor import Account
 
 
 class TrialService:

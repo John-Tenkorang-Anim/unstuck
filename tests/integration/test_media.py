@@ -4,7 +4,7 @@ from adapters.fakes import FakeBlobStore
 from adapters.memory import MemoryRepository
 from domain.errors import Forbidden, ValidationFailed
 from domain.models import EntryCreate
-from services._actor import Account
+from domain.actor import Account
 from services.entries import EntryService
 from services.media import MediaService
 from services.media_review import MediaReviewService

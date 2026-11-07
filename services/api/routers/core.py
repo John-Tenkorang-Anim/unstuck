@@ -1,4 +1,4 @@
-"""Typed routes for the working development core.
+"""Typed routes for the transactional entry core.
 
 Sessions are injected by identity integration or seeded by a test/development harness;
 no caller-supplied account identifier is accepted as authentication.
@@ -14,15 +14,17 @@ router = APIRouter(tags=['core'])
 
 async def actor(request: Request):
     token = request.cookies.get('session')
-    account = request.app.state.repo.sessions.get(token) if token else None
+    account = await request.app.state.repo.session_actor(token)
     if account is None:
         raise Forbidden('a valid session is required')
-    request.app.state.repo.active(account)
+    if account.status != 'active':
+        raise Forbidden('an active session is required')
     return account
 
 
-def optional_actor(request):
-    return request.app.state.repo.sessions.get(request.cookies.get('session'))
+async def optional_actor(request):
+    account = await request.app.state.repo.session_actor(request.cookies.get('session'))
+    return account if account is not None and account.status == 'active' else None
 
 
 @router.post('/entries', status_code=201)
@@ -33,7 +35,7 @@ async def create(data: EntryCreate, request: Request, account=Depends(actor),
 
 @router.get('/entries/{entry_id}')
 async def get(entry_id: UUID, request: Request):
-    return await request.app.state.entries.get(entry_id, optional_actor(request))
+    return await request.app.state.entries.get(entry_id, await optional_actor(request))
 
 
 @router.patch('/entries/{entry_id}')
@@ -59,7 +61,7 @@ async def delete(entry_id: UUID, request: Request, account=Depends(actor)):
 
 @router.get('/entries/{entry_id}/history')
 async def history(entry_id: UUID, request: Request):
-    return await request.app.state.entries.history(entry_id, optional_actor(request))
+    return await request.app.state.entries.history(entry_id, await optional_actor(request))
 
 
 @router.get('/entries/{entry_id}/compare')
@@ -116,7 +118,7 @@ class ResolutionNote(BaseModel):
 
 class ImpactCreate(BaseModel):
     kind: Literal['helped', 'saved']
-    saved_note: str | None = Field(default=None, max_length=2000)
+    saved_note: str | None = Field(default=None, max_length=280)
 
 
 @router.post('/entries/{entry_id}/comments', status_code=201)
@@ -248,15 +250,7 @@ async def finalize(media_id: UUID, request: Request, account=Depends(actor)):
 
 @router.patch('/media/{media_id}')
 async def patch_media(media_id: UUID, data: MediaPatch, request: Request, account=Depends(actor)):
-    repo = request.app.state.repo
-    async with repo.lock:
-        item = request.app.state.media.load(media_id)
-        repo.entry(item['entry_id'], account, own=True)
-        if not data.alt_text.strip():
-            raise ValidationFailed('alt text cannot be blank')
-        item['view'].alt_text = data.alt_text
-        repo.emit(repo.entries[item['entry_id']])
-        return item['view'].model_copy(deep=True)
+    return await request.app.state.media.patch(account, media_id, data.alt_text)
 
 
 @router.post('/mod/media/{media_id}/approve')

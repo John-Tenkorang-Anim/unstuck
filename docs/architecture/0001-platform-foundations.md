@@ -34,8 +34,10 @@ flowchart LR
   Public -->|responsive images / byte-range video / VTT| Client
 ```
 
-The diagram is the intended deployed architecture. Postgres, real storage,
-relay/queues, Rust intake and the full encoding pipeline remain unimplemented.
+The diagram is the intended deployed architecture. The entry core now has a
+transactional Postgres adapter; see [ADR 0002](0002-durable-core.md). The remaining
+persistent workflows, real storage, relay/queues, Rust intake and the full encoding
+pipeline remain unimplemented.
 The memory repository is a development adapter. `APP_ENV=production` now refuses
 memory repositories and fake object storage; this is a startup guard, not proof
 that a real adapter is production-ready.
@@ -150,8 +152,9 @@ assistive technology and p95 load targets remain release gates.
 
 ## Implementation order before a public pilot
 
-1. Persistent Postgres repositories, transaction/outbox delivery, migrations,
-   durable idempotency and session/identity integration. Prove restore from backup.
+1. Finish the remaining Postgres repositories and outbox delivery, then complete
+   identity integration and retention cleanup. Core transactions, migrations,
+   retry keys and session reads are implemented. Prove restore from backup.
 2. Real private/public storage, immutable upload versions, sandboxed intake,
    metadata stripping, real codecs, caption review and takedown/purge behavior.
 3. Connect the composer, uploads, reports and moderation to those services. Keep

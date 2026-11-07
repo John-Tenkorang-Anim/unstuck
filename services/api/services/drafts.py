@@ -21,7 +21,7 @@ from domain.models import (
 )
 
 
-from services._actor import Account
+from domain.actor import Account
 
 class DraftService:
     async def draft_entry(self, actor: Account, text: str | None, audio_media_id: UUID | None, kind_hint: EntryKind | None) -> EntryDraft:

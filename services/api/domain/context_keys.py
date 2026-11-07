@@ -1,4 +1,4 @@
-"""Standard context keys (F-03). Seeded by db/seed/context_keys.sql. Empty templates means every template."""
+"""Standard context keys (F-03), seeded by migration 0003. Empty templates means every template."""
 
 CONTEXT_KEYS: list[dict] = [
     {"key": "country", "value_type": "country", "allowed": None, "templates": []},

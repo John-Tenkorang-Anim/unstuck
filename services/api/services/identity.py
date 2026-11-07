@@ -21,7 +21,7 @@ from domain.models import (
 )
 
 
-from services._actor import Account
+from domain.actor import Account
 
 class IdentityService:
     """Accounts, passkeys, recovery codes, magic links and sessions (F-16)."""

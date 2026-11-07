@@ -6,7 +6,7 @@ where noted. Nothing else reads os.environ directly.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     PRODUCT_NAME: str = "Unstuck"
     BASE_URL: str = "http://localhost:3000"
     DATABASE_URL: str = "postgresql://app:app@localhost:5432/unstuck"
+    DATABASE_BACKEND: Literal['memory', 'postgres'] = 'memory'
+    DATABASE_POOL_MIN: int = Field(default=1, ge=1, le=8)
+    DATABASE_POOL_MAX: int = Field(default=8, ge=1, le=64)
+    DATABASE_POOL_WAIT_SECONDS: float = Field(default=5, gt=0, le=30)
+    DATABASE_POOL_MAX_WAITING: int = Field(default=64, ge=1, le=1000)
     REDIS_URL: str | None = None  # None → in-memory EventBus/queues (weeks 1–4)
     S3_ENDPOINT: str | None = None
     S3_PRIVATE_BUCKET: str = "unstuck-private"
@@ -58,6 +63,12 @@ class Settings(BaseSettings):
     INTAKE_MAX_PIXELS: int = 40_000_000
     INTAKE_MAX_PAGES: int = 200
     INTAKE_MAX_ROWS: int = 50_000
+
+    @model_validator(mode='after')
+    def pool_bounds(self):
+        if self.DATABASE_POOL_MIN > self.DATABASE_POOL_MAX:
+            raise ValueError('DATABASE_POOL_MIN must not exceed DATABASE_POOL_MAX')
+        return self
 
 
 @lru_cache

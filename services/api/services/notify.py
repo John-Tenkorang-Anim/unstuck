@@ -21,7 +21,7 @@ from domain.models import (
 )
 
 
-from services._actor import Account
+from domain.actor import Account
 
 class NotifyService:
     async def send(self, account_id: UUID, type: str, payload: dict, dedupe_key: str) -> None:

@@ -16,7 +16,7 @@ from services.problems import ProblemService
 from services.safety import SafetyService
 from services.search import SearchService
 from services.translation import TranslationService
-from services._actor import Account
+from domain.actor import Account
 
 __all__ = [
     "Account",

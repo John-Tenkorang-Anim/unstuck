@@ -5,7 +5,7 @@ import pytest
 from adapters.memory import MemoryRepository
 from domain.errors import Forbidden, ValidationFailed
 from domain.models import CommentCreate, EntryCreate
-from services._actor import Account
+from domain.actor import Account
 from services.discussion import DiscussionService
 from services.entries import EntryService
 from services.explanations import ExplanationService
