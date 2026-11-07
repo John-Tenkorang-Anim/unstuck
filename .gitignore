@@ -15,3 +15,8 @@ pgdata/
 deploy/models/
 coverage.xml
 htmlcov/
+
+# Frontend local state and build caches
+*.tsbuildinfo
+.env.*
+!.env.example

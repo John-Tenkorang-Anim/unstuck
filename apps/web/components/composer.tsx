@@ -1,0 +1,703 @@
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
+  Check,
+  ChevronRight,
+  Download,
+  Eye,
+  Feather,
+  FlaskConical,
+  HelpCircle,
+  Lightbulb,
+  LockKeyhole,
+  Save,
+  ScanEye,
+  Sprout,
+  Trash2,
+  Wrench,
+} from "lucide-react";
+import type { EntryKind, Outcome } from "@/lib/types";
+import { kindLabels } from "@/lib/data";
+import { useNotebook } from "./notebook-provider";
+
+const kinds = [
+  {
+    kind: "experience",
+    label: "An experience",
+    description: "Something you tried, and how it went.",
+    icon: BookOpen,
+  },
+  {
+    kind: "problem",
+    label: "An open question",
+    description: "Where you’re stuck. What you’ve tried.",
+    icon: HelpCircle,
+  },
+  {
+    kind: "solution",
+    label: "A way forward",
+    description: "Something that helped solve a problem.",
+    icon: Wrench,
+  },
+  {
+    kind: "idea",
+    label: "A little possibility",
+    description: "An untested idea worth exploring.",
+    icon: Lightbulb,
+  },
+  {
+    kind: "discovery",
+    label: "A discovery",
+    description: "Something you noticed along the way.",
+    icon: ScanEye,
+  },
+  {
+    kind: "research",
+    label: "A research note",
+    description: "A study, method, or unexpected result.",
+    icon: FlaskConical,
+  },
+] as const;
+const allowedOutcomes: Record<EntryKind, Outcome[]> = {
+  experience: ["worked", "failed", "mixed"],
+  problem: [],
+  solution: ["worked", "mixed"],
+  idea: [],
+  discovery: ["worked", "mixed", "ongoing"],
+  research: ["worked", "failed", "mixed"],
+};
+const templates = [
+  ["everyday", "Everyday life"],
+  ["making", "Making & fixing"],
+  ["farming_food", "Food & farming"],
+  ["software", "Software"],
+  ["research", "Research"],
+  ["work_business", "Work & business"],
+  ["community", "Community"],
+];
+type Draft = {
+  kind: EntryKind;
+  template: string;
+  title: string;
+  goal: string;
+  approach: string;
+  result: string;
+  outcome: string;
+  advice: string;
+  country: string;
+  method: string;
+  limitations: string;
+};
+const blank: Draft = {
+  kind: "experience",
+  template: "everyday",
+  title: "",
+  goal: "",
+  approach: "",
+  result: "",
+  outcome: "worked",
+  advice: "",
+  country: "",
+  method: "",
+  limitations: "",
+};
+const storageKey = "unstuck:draft:v1";
+export function Composer({
+  initialKind,
+  relates,
+}: {
+  initialKind?: string;
+  relates?: string;
+}) {
+  const [draft, setDraft] = useState<Draft>({
+    ...blank,
+    ...(kinds.some((k) => k.kind === initialKind)
+      ? {
+          kind: initialKind as EntryKind,
+          outcome: allowedOutcomes[initialKind as EntryKind][0] ?? "",
+        }
+      : {}),
+  });
+  const [step, setStep] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [savedAt, setSavedAt] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [complete, setComplete] = useState(false);
+  const { notice } = useNotebook();
+  useEffect(() => {
+    try {
+      const stored: unknown = JSON.parse(
+        localStorage.getItem(storageKey) ?? "null",
+      );
+      if (stored && typeof stored === "object") {
+        const candidate = stored as Record<string, unknown>;
+        if (
+          kinds.some((k) => k.kind === candidate.kind) &&
+          templates.some((t) => t[0] === candidate.template) &&
+          Object.keys(blank).every((key) => typeof candidate[key] === "string")
+        ) {
+          const next = Object.fromEntries(
+            Object.keys(blank).map((key) => [key, candidate[key]]),
+          ) as Draft;
+          setDraft(next);
+          setSavedAt("Your previous draft is here.");
+        }
+      }
+    } catch {
+      /* A new note remains available if storage cannot be read. */
+    }
+    setLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (!loaded || (!draft.title && !draft.goal && !draft.approach)) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(draft));
+        setSavedAt("Saved privately on this device");
+      } catch {
+        setSavedAt("Storage unavailable — export your draft to keep it.");
+      }
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [draft, loaded]);
+  function update(key: keyof Draft, value: string) {
+    setDraft((previous) => ({
+      ...previous,
+      [key]: value,
+      ...(key === "kind"
+        ? { outcome: allowedOutcomes[value as EntryKind][0] ?? "" }
+        : {}),
+    }));
+    setErrors((previous) => {
+      const next = { ...previous };
+      delete next[key];
+      return next;
+    });
+  }
+  function save() {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(draft));
+      setSavedAt("Saved privately on this device");
+      notice("Your words are safe here, on this device.");
+      return true;
+    } catch {
+      notice(
+        "Browser storage is unavailable. Export your draft to keep a copy.",
+      );
+      return false;
+    }
+  }
+  function next() {
+    if (step === 1) {
+      const nextErrors: Record<string, string> = {};
+      if (draft.title.trim().length < 6)
+        nextErrors.title = "Give your note a title of at least 6 characters.";
+      if (!draft.goal.trim())
+        nextErrors.goal = "A little context helps. What were you trying to do?";
+      if (
+        ["experience", "problem", "solution", "idea"].includes(draft.kind) &&
+        !draft.approach.trim()
+      )
+        nextErrors.approach =
+          "Tell us a little about what you tried or have in mind.";
+      if (
+        ["experience", "solution", "discovery"].includes(draft.kind) &&
+        !draft.result.trim()
+      )
+        nextErrors.result =
+          "What happened? An unfinished result is useful too.";
+      if (draft.kind === "research" && !draft.method.trim())
+        nextErrors.method =
+          "Describe the method so someone else can understand the test.";
+      if (draft.country && !/^[A-Z]{2}$/.test(draft.country))
+        nextErrors.country =
+          "Use a two-letter country code, for example GH or KE.";
+      setErrors(nextErrors);
+      if (Object.keys(nextErrors).length) {
+        requestAnimationFrame(() =>
+          document.getElementById(Object.keys(nextErrors)[0])?.focus(),
+        );
+        return;
+      }
+    }
+    setStep((value) => Math.min(2, value + 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function exportDraft() {
+    const payload = {
+      kind: draft.kind,
+      template: draft.kind === "research" ? "research" : draft.template,
+      title: draft.title.trim(),
+      goal: draft.goal,
+      approach: draft.approach || null,
+      result: draft.result || null,
+      outcome: allowedOutcomes[draft.kind].includes(draft.outcome as Outcome)
+        ? draft.outcome
+        : null,
+      advice: draft.advice || null,
+      lang: "en",
+      license: "CC-BY-4.0",
+      topics: [],
+      context: draft.country ? { country: draft.country } : {},
+      type_fields:
+        draft.kind === "research"
+          ? { method: draft.method, limitations: draft.limitations }
+          : {},
+    };
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "unstuck-field-note.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+  function discard() {
+    if (
+      !window.confirm(
+        "Clear the draft saved on this device? This cannot be undone.",
+      )
+    )
+      return;
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      /* Clear current state regardless. */
+    }
+    setDraft(blank);
+    setSavedAt("");
+    setStep(0);
+    setComplete(false);
+    setErrors({});
+  }
+  const field = (
+    key: keyof Draft,
+    label: string,
+    placeholder: string,
+    multiline = true,
+    optional = false,
+  ) => (
+    <div className="form-field">
+      <label htmlFor={key}>
+        {label}
+        {optional && <span>optional</span>}
+      </label>
+      {multiline ? (
+        <textarea
+          id={key}
+          value={draft[key]}
+          maxLength={10000}
+          placeholder={placeholder}
+          rows={4}
+          onChange={(e) => update(key, e.target.value)}
+          aria-invalid={!!errors[key]}
+          aria-describedby={errors[key] ? `${key}-error` : undefined}
+        />
+      ) : (
+        <input
+          id={key}
+          value={draft[key]}
+          maxLength={key === "title" ? 160 : 2}
+          placeholder={placeholder}
+          onChange={(e) =>
+            update(
+              key,
+              key === "country" ? e.target.value.toUpperCase() : e.target.value,
+            )
+          }
+          aria-invalid={!!errors[key]}
+          aria-describedby={errors[key] ? `${key}-error` : undefined}
+        />
+      )}
+      {errors[key] && (
+        <p className="field-error" id={`${key}-error`}>
+          {errors[key]}
+        </p>
+      )}
+      {key === "title" && (
+        <small className="field-counter">{draft.title.length} / 160</small>
+      )}
+    </div>
+  );
+  if (complete)
+    return (
+      <div className="page-container composer-success">
+        <span className="success-mark">
+          <Check size={34} />
+        </span>
+        <div className="eyebrow">EVERY ATTEMPT HAS SOMETHING TO TEACH.</div>
+        <h1>
+          A little knowledge,
+          <br />
+          <em>ready for its next chapter.</em>
+        </h1>
+        <p>
+          Your field note is saved privately on this device. You can return to
+          edit it or export a copy. It has not been published.
+        </p>
+        <div className="success-note">
+          <span className="section-kicker">{kindLabels[draft.kind]}</span>
+          <h2>{draft.title}</h2>
+          <p>{draft.goal}</p>
+        </div>
+        <div className="success-actions">
+          <button className="button button-dark" onClick={exportDraft}>
+            <Download size={16} /> Export your field note
+          </button>
+          <button
+            className="button button-outline"
+            onClick={() => setComplete(false)}
+          >
+            Keep editing <Feather size={16} />
+          </button>
+        </div>
+        <Link href="/" className="text-link">
+          Back to the open notebook <ArrowUpRight size={15} />
+        </Link>
+      </div>
+    );
+  return (
+    <div className="page-container composer-container">
+      <Link href="/" className="back-link">
+        <ArrowLeft size={15} /> Back to the notebook
+      </Link>
+      <header className="composer-heading">
+        <div>
+          <div className="eyebrow">
+            <Feather size={14} /> LEAVE SOMETHING USEFUL BEHIND
+          </div>
+          <h1>
+            Your experience.
+            <br />
+            <em>Someone’s next step.</em>
+          </h1>
+          <p>
+            It doesn’t have to be extraordinary. Just honest, specific, and
+            yours.
+          </p>
+        </div>
+        <div className="composer-privacy">
+          <LockKeyhole size={18} />
+          <strong>A safe place to start.</strong>
+          <span>
+            Your draft stays on this device.
+            <br />
+            You decide what to share.
+          </span>
+        </div>
+      </header>
+      <ol className="composer-steps" aria-label="Field note progress">
+        {[
+          "Find your starting point",
+          "Tell your story",
+          "Take a fresh look",
+        ].map((label, i) => (
+          <li
+            key={label}
+            className={
+              step === i ? "step-current" : step > i ? "step-done" : ""
+            }
+            aria-current={step === i ? "step" : undefined}
+          >
+            <span>{step > i ? <Check size={14} /> : `0${i + 1}`}</span>
+            {label}
+            {i < 2 && <ChevronRight size={15} />}
+          </li>
+        ))}
+      </ol>
+      {relates && (
+        <div className="related-note">
+          <BookOpen size={16} /> A new perspective on a field note.{" "}
+          <Link href={`/entries/${encodeURIComponent(relates)}`}>
+            Revisit the original <ArrowUpRight size={12} />
+          </Link>
+        </div>
+      )}
+      <div className="composer-workspace">
+        <div className="composer-main">
+          {step === 0 ? (
+            <>
+              <div className="section-kicker">01 / THE STARTING POINT</div>
+              <h2>
+                What are you bringing
+                <br />
+                to the notebook?
+              </h2>
+              <p className="section-description">
+                Successes, wrong turns, and unfinished ideas. They all belong.
+              </p>
+              <div className="kind-grid">
+                {kinds.map((item) => (
+                  <button
+                    key={item.kind}
+                    onClick={() => update("kind", item.kind)}
+                    aria-pressed={draft.kind === item.kind}
+                    className={`kind-option ${draft.kind === item.kind ? "kind-selected" : ""}`}
+                  >
+                    <item.icon size={23} />
+                    <strong>{item.label}</strong>
+                    <span>{item.description}</span>
+                    <span className="kind-check">
+                      {draft.kind === item.kind && <Check size={12} />}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : step === 1 ? (
+            <>
+              <div className="section-kicker">
+                02 / THE STORY ONLY YOU CAN TELL
+              </div>
+              <h2>Start with what happened.</h2>
+              <p className="section-description">
+                Write like you’re telling someone who is about to try the same
+                thing.
+              </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  next();
+                }}
+                noValidate
+              >
+                {field(
+                  "title",
+                  "Give your note a useful title",
+                  "A small change that made a difference",
+                  false,
+                )}
+                <div className="form-field">
+                  <label htmlFor="template">
+                    Which field does it belong in?
+                  </label>
+                  <select
+                    id="template"
+                    value={
+                      draft.kind === "research" ? "research" : draft.template
+                    }
+                    onChange={(e) => update("template", e.target.value)}
+                    disabled={draft.kind === "research"}
+                  >
+                    {templates.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {field(
+                  "goal",
+                  draft.kind === "problem"
+                    ? "Where are you stuck?"
+                    : "What were you trying to do?",
+                  "A little background goes a long way…",
+                )}
+                {field(
+                  "approach",
+                  draft.kind === "idea"
+                    ? "What is the idea?"
+                    : "What did you try?",
+                  "The steps, materials, or choices that mattered…",
+                  true,
+                  !["experience", "problem", "solution", "idea"].includes(
+                    draft.kind,
+                  ),
+                )}
+                {draft.kind === "research" && (
+                  <>
+                    {field(
+                      "method",
+                      "How did you run the test?",
+                      "Enough detail for someone to understand or repeat the method…",
+                    )}
+                    {field(
+                      "limitations",
+                      "What are the limitations?",
+                      "What should someone know before drawing a conclusion?",
+                      true,
+                      true,
+                    )}
+                  </>
+                )}
+                {!["problem", "idea"].includes(draft.kind) && (
+                  <>
+                    {field(
+                      "result",
+                      "What happened?",
+                      "What changed? What didn’t? What surprised you?",
+                      true,
+                      draft.kind === "research",
+                    )}
+                    <fieldset className="outcome-options">
+                      <legend>How would you describe the result?</legend>
+                      {allowedOutcomes[draft.kind].map((value) => (
+                        <label
+                          key={value}
+                          className={
+                            draft.outcome === value ? "outcome-selected" : ""
+                          }
+                        >
+                          <input
+                            type="radio"
+                            name="outcome"
+                            value={value}
+                            checked={draft.outcome === value}
+                            onChange={() => update("outcome", value)}
+                          />
+                          <span>
+                            {
+                              {
+                                worked: "It worked",
+                                failed: "It didn’t work",
+                                mixed: "A mixed result",
+                                ongoing: "Still learning",
+                              }[value]
+                            }
+                          </span>
+                        </label>
+                      ))}
+                    </fieldset>
+                  </>
+                )}
+                {field(
+                  "advice",
+                  "What would you tell the next person?",
+                  "A useful detail, a pitfall, or what you would try differently…",
+                  true,
+                  true,
+                )}
+                {field(
+                  "country",
+                  "Where did this happen? (country code)",
+                  "GH",
+                  false,
+                  true,
+                )}
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="section-kicker">03 / A FRESH PAIR OF EYES</div>
+              <h2>
+                A small story.
+                <br />A useful starting point.
+              </h2>
+              <p className="section-description">
+                Read it once as someone who wasn’t there. What would they need
+                to know?
+              </p>
+              <article className="draft-preview">
+                <span className="draft-stamp">PRIVATE DRAFT</span>
+                <span className="category">{kindLabels[draft.kind]}</span>
+                <h3>{draft.title}</h3>
+                {[
+                  ["The goal", draft.goal],
+                  ["What I tried", draft.approach],
+                  ...(draft.kind === "research"
+                    ? [
+                        ["The method", draft.method],
+                        ["Limitations", draft.limitations],
+                      ]
+                    : []),
+                  ["What happened", draft.result],
+                  ["For the next person", draft.advice],
+                ]
+                  .filter(([, body]) => body)
+                  .map(([label, body]) => (
+                    <section key={label}>
+                      <h4>{label}</h4>
+                      <p>{body}</p>
+                    </section>
+                  ))}
+                {draft.country && (
+                  <div className="draft-country">Context: {draft.country}</div>
+                )}
+              </article>
+              <button className="text-link draft-export" onClick={exportDraft}>
+                <Download size={14} /> Export a private copy
+              </button>
+              <div className="publishing-note">
+                <LockKeyhole size={18} />
+                <p>
+                  <strong>Your words, your choice.</strong> This note will stay
+                  private on your device. Community publishing will be available
+                  when accounts open.
+                </p>
+              </div>
+            </>
+          )}
+          <div className="composer-footer">
+            <button
+              className="quiet-link"
+              onClick={step ? () => setStep(step - 1) : save}
+            >
+              {step ? <ArrowLeft size={15} /> : <Save size={15} />}
+              {step ? "Go back" : "Save draft"}
+            </button>
+            <button
+              className="button button-dark"
+              onClick={
+                step < 2
+                  ? next
+                  : () => {
+                      if (save()) setComplete(true);
+                    }
+              }
+            >
+              {step === 0
+                ? "Let’s tell the story"
+                : step === 1
+                  ? "Review your note"
+                  : "Save finished draft"}
+              {step === 2 ? <Check size={16} /> : <ArrowRight size={16} />}
+            </button>
+          </div>
+          <div className="draft-save-status" role="status">
+            <span className="status-dot" />
+            {savedAt || "Your words, your pace."}
+          </div>
+        </div>
+        <aside className="composer-aside">
+          <span className="tiny-asterisk">✳</span>
+          <h3>
+            A useful note is
+            <br />
+            an honest one.
+          </h3>
+          <p>
+            Tell us what actually happened. The messy middle is often where the
+            most useful learning lives.
+          </p>
+          <div className="writing-tip">
+            <Sprout size={19} />
+            <strong>Context is a gift.</strong>
+            <p>
+              Place, tools, budget, timing. A detail that feels small to you can
+              make all the difference to someone else.
+            </p>
+          </div>
+          <div className="writing-tip">
+            <Eye size={19} />
+            <strong>Keep people private.</strong>
+            <p>
+              Leave out names, emails, faces, and other details someone hasn’t
+              agreed to share.
+            </p>
+          </div>
+          <button className="discard-button" onClick={discard}>
+            <Trash2 size={14} /> Clear this draft
+          </button>
+        </aside>
+      </div>
+    </div>
+  );
+}

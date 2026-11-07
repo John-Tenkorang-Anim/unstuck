@@ -51,9 +51,12 @@ sanitization/scanning, CDN behavior, or production identity safety.
    is conservative heuristic screening only), moderation queues/actions/appeals,
    reputation, notifications/digests, follows and settings, conflict-of-interest
    coverage and high-stakes reviewer approval routes.
-7. **Frontend:** Next.js SSR application and all specified components, composer,
-   evidence/knowledge/media interfaces, six languages, Arabic RTL, accessibility,
-   lite mode, and JavaScript-disabled/browser tests.
+7. **Frontend:** the initial Next.js application now implements discovery,
+   search/filtering, field-note reading, local bookmarks, a private draft composer,
+   explanatory evidence displays, and light reading mode. See `apps/web/README.md`.
+   Remaining: accounts and publication, tried-it submission, knowledge authoring,
+   moderation/media controls, six-language translation/Arabic RTL, voice/live/offline
+   integration, browser visual QA, and measured performance/accessibility budgets.
 8. **Deployment and operations:** Compose, Caddy, sandbox isolation, CI, backups
    and restore rehearsal, metrics/traces, load testing and performance budgets.
 9. **v1.1/v2 scope:** trials, spaces, challenges, collections, signed entries,
@@ -61,3 +64,11 @@ sanitization/scanning, CDN behavior, or production identity safety.
 
 The original specification remains authoritative. Its required tests and evals
 are not replaced by the development tests above.
+
+## Frontend verification
+
+The component suite covers search and compound filters, sorting, bookmarks and
+storage recovery, composer validation/review/restoration, light reading, and a
+structural axe audit. These tests use JSDOM, not a browser. HTTP tests inspect
+server-rendered documents without executing scripts. Browser visual QA and
+Lighthouse/transfer-budget measurements remain outstanding.

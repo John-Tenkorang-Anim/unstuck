@@ -29,6 +29,22 @@ login bypass. Passkey registration and login remain unimplemented. Uploads are
 limited to accounts explicitly enrolled in `MemoryRepository.pilot_accounts`.
 The fake blob upload tickets are test objects, not network-accessible upload URLs.
 
+## Run the frontend
+
+Requires Node.js 24. The frontend has a custom responsive interface, searchable
+field notes, open questions, saved entries, and a private draft composer.
+
+```sh
+cd apps/web
+npm ci
+npm run dev -- --port 3100
+```
+
+Open http://127.0.0.1:3100. See [the web README](apps/web/README.md) for backend
+connection, production commands, and tests. The default notebook uses labeled
+fictional examples. Bookmarks and drafts stay on the current device; community
+publishing awaits identity integration.
+
 ## Implementation status
 
 See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for tested behavior and the
