@@ -34,9 +34,15 @@ for (const path of [
 if (!server)
   throw new Error("Build the frontend with npm run build before starting it.");
 const destination = dirname(server);
-await cp(resolve(root, "public"), resolve(destination, "public"), {
-  recursive: true,
-});
+try {
+  await access(resolve(root, "public"));
+  await cp(resolve(root, "public"), resolve(destination, "public"), {
+    recursive: true,
+  });
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+  // Next.js does not require a public directory; Git omits empty directories.
+}
 await cp(resolve(root, ".next/static"), resolve(destination, ".next/static"), {
   recursive: true,
 });
