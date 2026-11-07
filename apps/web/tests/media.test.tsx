@@ -136,6 +136,51 @@ describe("versioned media contracts", () => {
 });
 
 describe("bandwidth and accessible rendering", () => {
+  it("recovers an image that failed before hydration attached handlers", () => {
+    vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(
+      true,
+    );
+    vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(
+      0,
+    );
+    render(
+      <NotebookProvider>
+        <ResponsiveImage media={imageMedia} />
+      </NotebookProvider>,
+    );
+    expect(
+      screen.getByText(
+        "The image couldn’t load. Its description is still available.",
+      ),
+    ).toBeVisible();
+  });
+  it("recovers native video errors that predate hydration", () => {
+    // JSDOM does not implement MediaError; model the native pre-hydration state.
+    const descriptor = Object.getOwnPropertyDescriptor(
+      HTMLMediaElement.prototype,
+      "error",
+    );
+    Object.defineProperty(HTMLMediaElement.prototype, "error", {
+      configurable: true,
+      get: () => ({ code: 2, message: "test media failure" }),
+    });
+    try {
+      render(
+        <NotebookProvider>
+          <AccessibleVideo media={videoMedia} />
+        </NotebookProvider>,
+      );
+      expect(
+        screen.getByText(
+          "The video couldn’t load. You can still read its transcript.",
+        ),
+      ).toBeVisible();
+    } finally {
+      if (descriptor)
+        Object.defineProperty(HTMLMediaElement.prototype, "error", descriptor);
+      else Reflect.deleteProperty(HTMLMediaElement.prototype, "error");
+    }
+  });
   it("honors explicit reading choices before network hints", () => {
     expect(readingPolicy("full", "on", "2g")).toEqual({
       mode: "full",

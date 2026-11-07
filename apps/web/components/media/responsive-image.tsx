@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Image as ImageIcon, RotateCcw } from "lucide-react";
 import type { ImageManifest } from "@/lib/contracts/media-v1";
 import { formatBytes, imageSources, mediaUrl } from "@/lib/media/delivery";
@@ -16,11 +16,22 @@ export function ResponsiveImage({
   const [requested, setRequested] = useState(false);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const image = useRef<HTMLImageElement>(null);
   const sources = imageSources(media.sources);
   const largest = sources.at(-1)!;
   const selected = lite ? [sources[0]] : sources;
   const fallback = selected.find((s) => s.mime === "image/jpeg") ?? selected[0];
   const allowed = !lite || requested;
+  useEffect(() => {
+    // SSR media may finish or fail before hydration attaches React event handlers.
+    if (
+      allowed &&
+      !failed &&
+      image.current?.complete &&
+      image.current.naturalWidth === 0
+    )
+      setFailed(true);
+  }, [allowed, failed, attempt]);
   return (
     <figure className="media-figure media-image" aria-label="Image attachment">
       {!allowed ? (
@@ -75,6 +86,7 @@ export function ResponsiveImage({
             },
           )}
           <img
+            ref={image}
             src={mediaUrl(fallback.path, origin)}
             width={largest.width}
             height={largest.height}

@@ -27,6 +27,9 @@ export function AccessibleVideo({
       ? media.described_source
       : (variants.find((s) => s.path === quality) ?? variants[0]);
   useEffect(() => {
+    if (allowed && video.current?.error) setFailed(true);
+  }, [allowed, attempt, source.path]);
+  useEffect(() => {
     function pauseWhenHidden() {
       if (document.hidden) video.current?.pause();
     }
