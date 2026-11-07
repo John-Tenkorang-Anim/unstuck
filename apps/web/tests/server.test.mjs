@@ -700,12 +700,18 @@ test("people start and join communities, and ask a question there only", async (
 test("the discussion opens beside the note from a shareable address", async () => {
   const closed = await documentAt("/entries/two-pots-one-small-breakthrough");
   assert.ok(closed.document.querySelector(".disc-pane").hasAttribute("hidden"));
-  assert.ok(closed.document.querySelector('a.disc-launch[href="?discuss=1"]'));
+  assert.ok(
+    closed.document.querySelector(
+      'a.note-toggle[href="?discuss=1"][aria-expanded="false"]',
+    ),
+  );
   const open = await documentAt(
     "/entries/two-pots-one-small-breakthrough?discuss=1",
   );
   assert.ok(!open.document.querySelector(".disc-pane").hasAttribute("hidden"));
   assert.ok(open.document.querySelector(".is-discussing #why"));
+  // The same toggle stays in place to close it again.
+  assert.ok(open.document.querySelector('a.note-toggle[aria-expanded="true"]'));
 });
 
 test("questions, communities and the notebook are separate, linked places", async () => {

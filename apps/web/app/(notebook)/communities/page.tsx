@@ -1,3 +1,4 @@
+import { spectralClass } from "@/lib/communities";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Search } from "lucide-react";
@@ -46,7 +47,8 @@ export default async function Communities({
       <header className="section-hero">
         <p className="label">Communities</p>
         <h1>
-          Find the people who’ve <span className="tint-brand">been there.</span>
+          Find the people who’ve{" "}
+          <span className="tint-accent">been there.</span>
         </h1>
         <p className="page-lede">
           Open groups around one kind of problem. Anyone can read, join and
@@ -113,7 +115,11 @@ export default async function Communities({
             return (
               <li key={c.slug} className="community-card">
                 <div className="community-card-top">
-                  <span className="community-mark" aria-hidden="true">
+                  <span
+                    className="community-mark"
+                    data-class={spectralClass(c.slug)}
+                    aria-hidden="true"
+                  >
                     {c.name.slice(0, 1)}
                   </span>
                   <JoinButton

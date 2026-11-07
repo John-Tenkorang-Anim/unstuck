@@ -1,23 +1,26 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { MessagesSquare, PanelLeftClose } from "lucide-react";
+import { MessagesSquare, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 const number = (n: number) => n.toLocaleString("en");
 
 /**
- * The note reads on its own. The discussion opens beside it, on the left, only
- * when someone asks for it. The address keeps `?discuss=1` so the open state
- * can be shared and works without JavaScript.
+ * The note reads on its own. A bar pinned under the top bar holds one toggle
+ * that opens the discussion beside the note, on the left, and closes it again.
+ * The toggle never moves or disappears. The address keeps `?discuss=1` so the
+ * open state can be shared and works without JavaScript.
  */
 export function EntryLayout({
   initialOpen,
   discussion,
   children,
+  title,
   stats,
 }: {
   initialOpen: boolean;
   discussion: ReactNode;
   children: ReactNode;
+  title: string;
   stats: {
     responses: number;
     explanations: number;
@@ -26,11 +29,16 @@ export function EntryLayout({
   };
 }) {
   const [open, setOpen] = useState(initialOpen);
+  const [scrolled, setScrolled] = useState(false);
   const pane = useRef<HTMLElement>(null);
-  const opener = useRef<HTMLAnchorElement>(null);
+  const toggleRef = useRef<HTMLAnchorElement>(null);
   useEffect(() => {
     // Older links point straight at the discussion with #why.
     if (location.hash === "#why") setOpen(true);
+    const onScroll = () => setScrolled(window.scrollY > 260);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
   function toggle(next: boolean) {
     setOpen(next);
@@ -42,7 +50,7 @@ export function EntryLayout({
     requestAnimationFrame(() =>
       next
         ? pane.current?.focus({ preventScroll: true })
-        : opener.current?.focus({ preventScroll: true }),
+        : toggleRef.current?.focus({ preventScroll: true }),
     );
   }
   useEffect(() => {
@@ -60,18 +68,21 @@ export function EntryLayout({
     document.addEventListener("keydown", close);
     return () => document.removeEventListener("keydown", close);
   });
-  const summary = [
-    stats.responses
-      ? `${number(stats.responses)} ${stats.responses === 1 ? "response" : "responses"}`
-      : "No responses yet",
+  const meta = [
     stats.explanations
       ? `${number(stats.explanations)} ${stats.explanations === 1 ? "explanation" : "explanations"}`
       : "",
-  ].filter(Boolean);
+    stats.unanswered
+      ? `${number(stats.unanswered)} unanswered ${stats.unanswered === 1 ? "question" : "questions"}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <div className={`entry-layout ${open ? "is-discussing" : ""}`}>
       <aside
         ref={pane}
+        id="discussion-pane"
         className="disc-pane"
         aria-label="Discussion"
         tabIndex={-1}
@@ -97,36 +108,40 @@ export function EntryLayout({
         <div className="disc-pane-body">{discussion}</div>
       </aside>
       <div className="note-pane">
-        {children}
-        {!open && (
-          <div className="disc-launch-dock">
-            <a
-              ref={opener}
-              href="?discuss=1"
-              className="disc-launch"
-              aria-expanded={false}
-              onClick={(event) => {
-                event.preventDefault();
-                toggle(true);
-              }}
-            >
-              <MessagesSquare size={17} aria-hidden="true" />
-              <span className="disc-launch-label">
-                <strong>Discussion</strong>
-                <span>{summary.join(" · ")}</span>
+        <div className="note-bar" data-scrolled={scrolled || undefined}>
+          <a
+            ref={toggleRef}
+            href={open ? "?" : "?discuss=1"}
+            className="note-toggle"
+            aria-expanded={open}
+            aria-controls="discussion-pane"
+            onClick={(event) => {
+              event.preventDefault();
+              toggle(!open);
+            }}
+          >
+            {open ? (
+              <PanelLeftClose size={16} aria-hidden="true" />
+            ) : (
+              <PanelLeftOpen size={16} aria-hidden="true" />
+            )}
+            {open ? "Hide discussion" : "Discussion"}
+            <span className="note-toggle-count">
+              {number(stats.responses)}
+              <span className="sr-only">
+                {stats.responses === 1 ? " response" : " responses"}
               </span>
-              {stats.fresh ? (
-                <span className="disc-launch-badge">
-                  {number(stats.fresh)} new
-                </span>
-              ) : stats.unanswered ? (
-                <span className="disc-launch-badge">
-                  {number(stats.unanswered)} unanswered
-                </span>
-              ) : null}
-            </a>
-          </div>
-        )}
+            </span>
+            {stats.fresh ? (
+              <span className="note-toggle-new">{number(stats.fresh)} new</span>
+            ) : null}
+          </a>
+          <span className="note-bar-title" aria-hidden="true">
+            {title}
+          </span>
+          {meta && <span className="note-bar-meta">{meta}</span>}
+        </div>
+        {children}
       </div>
     </div>
   );

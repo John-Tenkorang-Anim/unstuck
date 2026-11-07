@@ -1,3 +1,4 @@
+import { spectralClass } from "@/lib/communities";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Discovery } from "@/components/discovery";
@@ -76,7 +77,11 @@ export default async function Home({
                 {shelf.map((c) => (
                   <li key={c.slug}>
                     <Link href={`/communities/${c.slug}`}>
-                      <span className="community-mark" aria-hidden="true">
+                      <span
+                        className="community-mark"
+                        data-class={spectralClass(c.slug)}
+                        aria-hidden="true"
+                      >
                         {c.name.slice(0, 1)}
                       </span>
                       <strong>{c.name}</strong>

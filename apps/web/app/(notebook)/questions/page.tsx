@@ -55,7 +55,7 @@ export default async function Questions({
       <header className="section-hero">
         <p className="label">Questions</p>
         <h1>
-          Someone is stuck. <span className="tint-brand">You might know.</span>
+          Someone is stuck. <span className="tint-accent">You might know.</span>
         </h1>
         <p className="page-lede">
           Open problems from everyone, newest activity first. Answer one, or ask

@@ -11,7 +11,7 @@ import { JoinButton } from "@/components/community-actions";
 import { AskBar, Library, QuestionList } from "@/components/question-list";
 import { ReportButton } from "@/components/report-button";
 import { currentAccount } from "@/lib/auth.server";
-import { isQuestion } from "@/lib/communities";
+import { isQuestion, spectralClass } from "@/lib/communities";
 import { communityBySlug, communityStats } from "@/lib/communities.server";
 import { hasDatabase } from "@/lib/db.server";
 import {
@@ -89,6 +89,7 @@ export default async function CommunityPage({
       <header className="community-head">
         <span
           className="community-mark community-mark-large"
+          data-class={spectralClass(community.slug)}
           aria-hidden="true"
         >
           {community.name.slice(0, 1)}

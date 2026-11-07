@@ -9,11 +9,13 @@ needed to render the interface.
 - **Type:** Space Grotesk for headlines and figures, IBM Plex Sans for reading
   and interface text. Both are bundled locally. Light reading uses system fonts
   and never downloads them.
-- **Colour:** one signature colour, Cherenkov Blue `#2F5BFF`, for brand accents,
-  primary buttons and links. It meets 4.5:1 as text on white and with white text
-  on it. Dark backgrounds use starlight `#9BB0FF` and dark mode uses `#8EA6FF`.
-  The outcome colours appear only where they encode results, each with its own
-  glyph shape.
+- **Colour:** Cherenkov Blue `#2F5BFF` is the signature, for primary buttons,
+  links and the logo. H-alpha Magenta `#C2399B` is a second accent for
+  people, communities and new activity. Community icons take the colours of
+  stellar spectral classes. Outcome colours appear only where they encode
+  results, always with a glyph and a label. They were checked for every common
+  kind of colour blindness, including blue-yellow: worked `#00A37A`, didn't
+  work `#B8321A`, mixed `#E0A800`, and still being tested in the brand blue.
 - **Motion:** entrance and scroll reveals are CSS only, so content never depends
   on scripts to appear. Page and filter changes use React's `ViewTransition`.
   Reduced-motion and light reading turn all of it off.

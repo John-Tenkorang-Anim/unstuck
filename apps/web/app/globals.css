@@ -31,22 +31,26 @@
   --shadow-soft: none;
   --shadow-float:
     0 2px 6px rgb(0 0 0 / 0.08), 0 30px 80px -20px rgb(0 0 0 / 0.35);
-  --worked: #008f86;
-  --failed: #c93a12;
-  --mixed: #cc9900;
-  --ongoing: #3158d4;
+  --worked: #00a37a;
+  --failed: #b8321a;
+  --mixed: #e0a800;
+  --ongoing: #2f5bff;
   --open: #636366;
-  --worked-text: #006f68;
-  --failed-text: #b0300c;
+  --worked-text: #00775a;
+  --failed-text: #a32b15;
   --mixed-text: #7f5d00;
-  --ongoing-text: #2a4fc4;
+  --ongoing-text: #2346f0;
   --open-text: #636366;
   --link: #2f5bff;
-  --invert-accent: #3fd0b8;
-  --worked-solid: #006f68;
-  --failed-solid: #b0300c;
+  --invert-accent: #4fd6ae;
+  /* H-alpha Magenta: people, communities and new activity. Never an outcome. */
+  --accent: #a52c83;
+  --accent-solid: #c2399b;
+  --accent-wash: #fbeaf4;
+  --worked-solid: #00775a;
+  --failed-solid: #a32b15;
   --mixed-solid: #7f5d00;
-  --ongoing-solid: #2a4fc4;
+  --ongoing-solid: #2346f0;
   --open-solid: #48484a;
   --sans:
     "IBM Plex Sans Variable", ui-sans-serif, system-ui, "Helvetica Neue", Arial,
@@ -83,17 +87,20 @@
     --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.04);
     --shadow-float:
       0 0 0 1px rgb(255 255 255 / 0.08), 0 30px 80px -20px rgb(0 0 0 / 0.8);
-    --worked: #0e9e86;
-    --failed: #cc3f1a;
-    --mixed: #b08e1a;
-    --ongoing: #6d7ff2;
+    --worked: #1fae84;
+    --failed: #e0492a;
+    --mixed: #c99300;
+    --ongoing: #5b7cff;
     --open: #98989d;
-    --worked-text: #3fd0b8;
+    --worked-text: #4fd6ae;
     --failed-text: #ff8d6b;
     --mixed-text: #e4bf4a;
     --ongoing-text: #9db0ff;
     --open-text: #98989d;
     --link: #8ea6ff;
+    --accent: #f29bd6;
+    --accent-solid: #c2399b;
+    --accent-wash: rgb(194 57 155 / 0.2);
   }
 }
 :root[data-theme="dark"] {
@@ -118,17 +125,20 @@
   --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.04);
   --shadow-float:
     0 0 0 1px rgb(255 255 255 / 0.08), 0 30px 80px -20px rgb(0 0 0 / 0.8);
-  --worked: #0e9e86;
-  --failed: #cc3f1a;
-  --mixed: #b08e1a;
-  --ongoing: #6d7ff2;
+  --worked: #1fae84;
+  --failed: #e0492a;
+  --mixed: #c99300;
+  --ongoing: #5b7cff;
   --open: #98989d;
-  --worked-text: #3fd0b8;
+  --worked-text: #4fd6ae;
   --failed-text: #ff8d6b;
   --mixed-text: #e4bf4a;
   --ongoing-text: #9db0ff;
   --open-text: #98989d;
   --link: #8ea6ff;
+  --accent: #f29bd6;
+  --accent-solid: #c2399b;
+  --accent-wash: rgb(194 57 155 / 0.2);
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -643,12 +653,12 @@ main:focus {
   --fill: rgb(255 255 255 / 0.07);
   --fill-strong: rgb(255 255 255 / 0.14);
   --rule: rgb(255 255 255 / 0.14);
-  --worked: #0e9e86;
-  --failed: #cc3f1a;
-  --mixed: #b08e1a;
-  --ongoing: #6d7ff2;
+  --worked: #1fae84;
+  --failed: #e0492a;
+  --mixed: #c99300;
+  --ongoing: #5b7cff;
   --open: #8e8e93;
-  --worked-text: #3fd0b8;
+  --worked-text: #4fd6ae;
   --failed-text: #ff8d6b;
   --mixed-text: #e4bf4a;
   --ongoing-text: #9db0ff;
@@ -6161,12 +6171,12 @@ mark {
   margin-top: 16px;
   padding: 16px 18px;
   border-radius: var(--r-m);
-  background: var(--brand-wash);
+  background: var(--accent-wash);
 }
 .disc-insights-title {
   font-size: 13px;
   font-weight: 700;
-  color: var(--brand);
+  color: var(--accent);
 }
 .disc-insights dl {
   display: grid;
@@ -6592,7 +6602,7 @@ mark {
 .you-new {
   padding: 1px 8px;
   border-radius: 980px;
-  background: var(--brand-solid);
+  background: var(--accent-solid);
   color: #fff;
   font-weight: 700;
 }
@@ -6640,15 +6650,24 @@ mark {
 }
 
 /* Note and discussion ---------------------------------------------------- */
+/* The pane is fixed to the left edge so it always fills the window, even at
+   the end of the page; the note and footer make room for it. */
+.entry-layout {
+  --pane: clamp(360px, 30vw, 440px);
+}
 .entry-layout.is-discussing {
-  display: grid;
-  grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
-  align-items: start;
+  padding-left: var(--pane);
+}
+body:has(.entry-layout.is-discussing) .site-footer {
+  padding-left: clamp(360px, 30vw, 440px);
 }
 .disc-pane {
-  position: sticky;
+  position: fixed;
   top: var(--bar);
-  height: calc(100dvh - var(--bar));
+  bottom: 0;
+  left: 0;
+  z-index: 21;
+  width: var(--pane);
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -6721,87 +6740,103 @@ mark {
 .dossier-head .posted-to a {
   padding: 3px 10px;
   border-radius: 980px;
-  background: var(--brand-wash);
-  color: var(--brand);
+  background: var(--accent-wash);
+  color: var(--accent);
   font-weight: 500;
 }
 .dossier-head .posted-to a:hover {
-  background: var(--brand);
+  background: var(--accent-solid);
   color: #fff;
 }
 .toc-discuss {
   color: var(--brand) !important;
 }
-.disc-launch-dock {
+/* The note bar: one place for the discussion toggle, pinned under the top bar. */
+.note-bar {
   position: sticky;
-  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  top: var(--bar);
   z-index: 20;
   display: flex;
-  justify-content: center;
-  margin-top: 40px;
-  padding-inline: var(--gutter);
-  pointer-events: none;
-}
-.disc-launch {
-  pointer-events: auto;
-  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  max-width: 100%;
-  padding: 10px 12px 10px 18px;
+  gap: 14px;
+  min-height: 52px;
+  padding: 8px var(--gutter);
+  background: var(--chrome);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid var(--rule);
+}
+.note-toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  padding: 0 8px 0 14px;
   border-radius: 980px;
   background: var(--ink);
   color: var(--bg);
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
-  transition:
-    transform 220ms var(--ease),
-    background 220ms var(--ease);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s;
 }
-.disc-launch:hover {
-  transform: translateY(-2px);
+.note-toggle:hover {
   background: var(--brand-solid);
   color: #fff;
 }
-.disc-launch > svg {
-  flex: none;
+.note-toggle[aria-expanded="true"] {
+  background: var(--brand-wash);
+  color: var(--brand);
 }
-.disc-launch-label {
-  display: grid;
-  min-width: 0;
-  line-height: 1.2;
-}
-.disc-launch-label strong {
-  font-size: 14.5px;
-}
-.disc-launch-label span {
-  overflow: hidden;
+.note-toggle-count {
+  padding: 2px 8px;
+  border-radius: 980px;
+  background: rgb(255 255 255 / 0.18);
   font-size: 12.5px;
-  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+.note-toggle[aria-expanded="true"] .note-toggle-count {
+  background: var(--brand-solid);
+  color: #fff;
+}
+.note-toggle-new {
+  padding: 2px 8px;
+  border-radius: 980px;
+  background: var(--accent-solid);
+  color: #fff;
+  font-size: 12.5px;
+}
+.note-bar-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
   white-space: nowrap;
   text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.25s;
 }
-.disc-launch-badge {
+.note-bar[data-scrolled] .note-bar-title {
+  opacity: 1;
+}
+.note-bar-meta {
   flex: none;
-  padding: 4px 10px;
-  border-radius: 980px;
-  background: var(--brand-solid);
-  color: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-.disc-launch:hover .disc-launch-badge {
-  background: #fff;
-  color: var(--brand-solid);
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ink-3);
 }
 @media (max-width: 880px) {
-  .entry-layout.is-discussing {
-    display: block;
+  .entry-layout.is-discussing,
+  body:has(.entry-layout.is-discussing) .site-footer {
+    padding-left: 0;
   }
   /* On phones the discussion is a sheet over the note. */
   .disc-pane {
     position: fixed;
     inset: var(--bar) 0 0;
     z-index: 25;
+    width: auto;
     height: auto;
     border-right: 0;
     animation-name: sheet-in;
@@ -6992,8 +7027,8 @@ mark {
   justify-items: center;
   padding: 8px 4px;
   border-radius: var(--r-s);
-  background: var(--brand-wash);
-  color: var(--brand);
+  background: var(--accent-wash);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 .q-row[data-answered] .q-count {
@@ -7040,12 +7075,12 @@ mark {
 .q-community {
   padding: 2px 9px;
   border-radius: 980px;
-  background: var(--brand-wash);
-  color: var(--brand);
+  background: var(--accent-wash);
+  color: var(--accent);
   font-weight: 500;
 }
 .q-community:hover {
-  background: var(--brand);
+  background: var(--accent-solid);
   color: #fff;
 }
 .q-answer {
@@ -7113,6 +7148,9 @@ mark {
   padding-bottom: 80px;
 }
 .community-mark {
+  --hot: var(--star);
+  --core: var(--brand-solid);
+  --deep: #0b1a5e;
   display: inline-grid;
   place-items: center;
   width: 40px;
@@ -7120,11 +7158,11 @@ mark {
   border-radius: 12px;
   background: radial-gradient(
     circle at 30% 25%,
-    var(--star),
-    var(--brand-solid) 55%,
-    #0b1a5e
+    var(--hot),
+    var(--core) 55%,
+    var(--deep)
   );
-  color: #fff;
+  color: var(--mark-ink, #fff);
   font-family: var(--display);
   font-size: 18px;
   font-weight: 700;
@@ -7348,10 +7386,10 @@ mark {
   min-width: 220px;
   padding: 14px 16px;
   border-radius: var(--r-m);
-  background: var(--brand-wash);
+  background: var(--accent-wash);
 }
 .yours-row strong {
-  color: var(--brand);
+  color: var(--accent);
 }
 .yours-row span {
   font-size: 13px;
@@ -7631,4 +7669,55 @@ mark {
   .home-ask {
     padding-inline: 14px;
   }
+}
+
+/* Second accent and star classes ------------------------------------------- */
+.tint-accent {
+  color: var(--accent-solid);
+}
+/* Community icons take the colour of a stellar spectral class. */
+.community-mark[data-class="O"] {
+  --hot: #c9d6ff;
+  --core: #2f5bff;
+  --deep: #0b1a5e;
+}
+.community-mark[data-class="B"] {
+  --hot: #e3e9ff;
+  --core: #5a7bff;
+  --deep: #23308a;
+}
+.community-mark[data-class="A"] {
+  --hot: #ffffff;
+  --core: #b9c9ff;
+  --deep: #6e86d8;
+  --mark-ink: #101a4a;
+}
+.community-mark[data-class="F"] {
+  --hot: #fffaf0;
+  --core: #ffe7bf;
+  --deep: #d9a25a;
+  --mark-ink: #4a2c00;
+}
+.community-mark[data-class="G"] {
+  --hot: #fff6c4;
+  --core: #ffd23f;
+  --deep: #b47f00;
+  --mark-ink: #3d2a00;
+}
+.community-mark[data-class="K"] {
+  --hot: #ffe0bf;
+  --core: #ff8a3d;
+  --deep: #a8400a;
+  --mark-ink: #2e1000;
+}
+.community-mark[data-class="M"] {
+  --hot: #ffb199;
+  --core: #d93a3a;
+  --deep: #5e0e14;
+}
+.home-door:nth-child(even) svg {
+  color: var(--accent-solid);
+}
+.home-door:nth-child(even):hover {
+  background: var(--accent-wash);
 }

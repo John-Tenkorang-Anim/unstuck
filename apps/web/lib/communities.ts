@@ -83,3 +83,14 @@ export function slugify(name: string) {
 }
 /** Entry kinds that ask for help. Everything else can go in a library. */
 export const isQuestion = (kind: string) => kind === "problem";
+
+/**
+ * Each community's icon takes the colour of a stellar spectral class, O to M,
+ * picked from its address so it never changes.
+ */
+export const spectralClasses = ["O", "B", "A", "F", "G", "K", "M"] as const;
+export function spectralClass(slug: string) {
+  let hash = 0;
+  for (const char of slug) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return spectralClasses[hash % spectralClasses.length];
+}

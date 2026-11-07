@@ -72,6 +72,7 @@ export default async function EntryPage({
   return (
     <EntryLayout
       initialOpen={query.discuss === "1"}
+      title={entry.title}
       stats={{
         responses: summary.total,
         explanations: summary.explanations.length,
