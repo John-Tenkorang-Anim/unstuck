@@ -126,7 +126,7 @@ test("home discovery does not load media files and omits full entry bodies", asy
     if (new URL(request.url()).pathname.startsWith("/m/"))
       requests.push(request.url());
   });
-  await page.goto("/");
+  await page.goto("/discover");
   await expect(page.getByRole("article")).toHaveCount(1);
   expect(requests).toEqual([]);
   expect(await page.content()).not.toContain(

@@ -121,7 +121,7 @@ describe("the outcome atlas", () => {
       }),
     ).toHaveAttribute(
       "href",
-      "/?topic=Food+%26+farming&outcome=worked#discover",
+      "/discover?topic=Food+%26+farming&outcome=worked#discover",
     );
     expect(
       within(screen.getByRole("table")).getAllByText("Nothing recorded").length,

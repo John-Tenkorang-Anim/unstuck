@@ -43,11 +43,13 @@ export default async function EntryPage({
   return (
     <div className="dossier frame">
       <nav className="crumbs" aria-label="Breadcrumb">
-        <Link href="/#discover" className="back-link">
+        <Link href="/discover" className="back-link">
           <ArrowLeft size={14} /> All entries
         </Link>
         <span aria-hidden="true">/</span>
-        <Link href={`/?topic=${encodeURIComponent(entry.topic)}#discover`}>
+        <Link
+          href={`/discover?topic=${encodeURIComponent(entry.topic)}#discover`}
+        >
           {entry.topic}
         </Link>
         <span aria-hidden="true">/</span>

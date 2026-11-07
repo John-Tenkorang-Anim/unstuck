@@ -11,7 +11,7 @@ async function documentAt(path) {
 }
 
 test("discovery content is present in the HTML without running JavaScript", async () => {
-  const { response, document } = await documentAt("/");
+  const { response, document } = await documentAt("/discover");
   assert.equal(response.status, 200);
   assert.match(
     document.querySelector("main h1").textContent,
@@ -437,7 +437,7 @@ test("field notes can be published with a photo and appear in the feed and searc
   );
   assert.equal(document.querySelectorAll(".story-body > section").length, 4);
   assert.ok(document.querySelector(".story-photo img, #photo img"));
-  const { document: home } = await documentAt("/");
+  const { document: home } = await documentAt("/discover");
   assert.match(
     home.querySelector(".tiles").textContent,
     /Shade cloth saved my seedlings/,

@@ -34,6 +34,10 @@ npm run start -- --port 3100
 
 ## What works
 
+- A landing page at `/` that introduces Unstuck, with "Get started" leading to
+  the platform at `/discover` and "Sign in" leading to `/account`. The sign-in
+  form will move onto the landing page later.
+
 - Responsive discovery with an outcome atlas that filters the ledger, search,
   outcome filters, field filters, sorting, empty states, shareable filter
   addresses, a `/` keyboard shortcut, and a `⌘K` search palette.

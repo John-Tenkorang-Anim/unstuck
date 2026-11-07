@@ -22,7 +22,7 @@ type Command = {
   outcome?: Outcome | "open";
 };
 const fixed: Command[] = [
-  { id: "discover", group: "Go to", label: "Discover", href: "/" },
+  { id: "discover", group: "Go to", label: "Discover", href: "/discover" },
   { id: "search", group: "Go to", label: "Search everything", href: "/search" },
   {
     id: "critique",
@@ -55,7 +55,7 @@ const fixed: Command[] = [
     id: `field-${topic}`,
     group: "Fields",
     label: topic,
-    href: `/?topic=${encodeURIComponent(topic)}#discover`,
+    href: `/discover?topic=${encodeURIComponent(topic)}#discover`,
   })),
 ];
 let cached: IndexEntry[] | undefined;

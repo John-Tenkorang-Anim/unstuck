@@ -22,7 +22,7 @@ const CommandPalette = dynamic(() => import("./command-palette"), {
 
 export function Brand() {
   return (
-    <Link href="/" className="brand" aria-label="Unstuck home">
+    <Link href="/discover" className="brand" aria-label="Unstuck home">
       <LogoMark />
       Unstuck
     </Link>
@@ -126,8 +126,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const navigation = [
     {
       label: "Discover",
-      href: "/",
-      active: path === "/" || path.startsWith("/entries"),
+      href: "/discover",
+      active: path === "/discover" || path.startsWith("/entries"),
     },
     { label: "Search", href: "/search", active: path === "/search" },
     {
@@ -251,7 +251,7 @@ export function Shell({ children }: { children: ReactNode }) {
               {topics.map((topic) => (
                 <Link
                   key={topic}
-                  href={`/?topic=${encodeURIComponent(topic)}#discover`}
+                  href={`/discover?topic=${encodeURIComponent(topic)}#discover`}
                   onClick={() => setOpen(false)}
                 >
                   {topic}

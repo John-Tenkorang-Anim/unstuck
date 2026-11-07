@@ -10,7 +10,7 @@ export default function NotFound() {
       <p className="label">404</p>
       <h1>Nothing recorded here.</h1>
       <p>We couldn’t find that entry. There are other paths worth exploring.</p>
-      <Link href="/" className="button button-dark">
+      <Link href="/discover" className="button button-dark">
         <ArrowLeft size={15} /> Back to all entries
       </Link>
     </main>

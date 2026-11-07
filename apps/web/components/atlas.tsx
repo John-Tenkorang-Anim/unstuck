@@ -25,7 +25,7 @@ function href({ topic, outcome }: AtlasSelection) {
   if (topic) query.set("topic", topic);
   if (outcome !== "all") query.set("outcome", outcome);
   const text = query.toString();
-  return `/${text ? `?${text}` : ""}#discover`;
+  return `/discover${text ? `?${text}` : ""}#discover`;
 }
 
 /**

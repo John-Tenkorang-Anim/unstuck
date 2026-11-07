@@ -473,7 +473,7 @@ export function Composer({
           >
             Keep editing
           </button>
-          <Link href="/" className="text-link">
+          <Link href="/discover" className="text-link">
             Back to all entries <ArrowUpRight size={14} />
           </Link>
         </div>
@@ -482,7 +482,7 @@ export function Composer({
   return (
     <div className="composer frame">
       <header className="composer-head">
-        <Link href="/" className="back-link">
+        <Link href="/discover" className="back-link">
           <ArrowLeft size={14} /> All entries
         </Link>
         <h1>

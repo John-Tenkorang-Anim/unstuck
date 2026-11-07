@@ -151,7 +151,7 @@ export function Discovery({
     window.history.replaceState(
       null,
       "",
-      `/${text ? `?${text}` : ""}#discover`,
+      `/discover${text ? `?${text}` : ""}#discover`,
     );
     document.getElementById("discover")?.scrollIntoView?.();
   }
@@ -334,7 +334,7 @@ export function Discovery({
             <p>
               We couldn’t reach the shared notebook. Please try again shortly.
             </p>
-            <a href="/" className="button button-dark">
+            <a href="/discover" className="button button-dark">
               Try again <ArrowRight size={15} />
             </a>
           </div>
@@ -355,7 +355,7 @@ export function Discovery({
                 : "Nothing matches these filters. Try a broader question or another field."}
             </p>
             {savedOnly && !query && !topic ? (
-              <Link href="/" className="button button-dark">
+              <Link href="/discover" className="button button-dark">
                 Find your first entry <ArrowRight size={15} />
               </Link>
             ) : (
