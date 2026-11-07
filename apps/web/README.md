@@ -1,8 +1,22 @@
 # Unstuck web
 
-A Next.js App Router frontend with a custom field-notebook design system.
-Use Node.js 24 and npm. Fonts are bundled locally; no external font or image
-service is needed to render the interface.
+A Next.js App Router frontend with a custom design system inspired by Apple's
+interface language. Use Node.js 24 and npm. No external font or image service is
+needed to render the interface.
+
+## Design system
+
+- **Type:** Space Grotesk for headlines and figures, IBM Plex Sans for reading
+  and interface text. Both are bundled locally. Light reading uses system fonts
+  and never downloads them.
+- **Colour:** neutral with small accents. Outcome colours pass the colour vision
+  checks in both themes, and each outcome also has its own glyph shape. Coloured
+  text uses separate `--*-text` tokens that meet a 4.5:1 contrast ratio.
+- **Motion:** entrance and scroll reveals are CSS only, so content never depends
+  on scripts to appear. Page and filter changes use React's `ViewTransition`.
+  Reduced-motion and light reading turn all of it off.
+- **Primitives:** Radix provides the search dialog and the field filter popover.
+  Styles live in `app/globals.css` as tokens, and there is no component kit.
 
 ## Run
 
@@ -20,8 +34,10 @@ npm run start -- --port 3100
 
 ## What works
 
-- Responsive discovery feed with search, outcome tabs, field filters, sorting,
-  empty states, and a `/` keyboard shortcut.
+- Responsive discovery with an outcome atlas that filters the ledger, search,
+  outcome filters, field filters, sorting, empty states, shareable filter
+  addresses, a `/` keyboard shortcut, and a `⌘K` search palette.
+- Light and dark themes that follow the system, with a remembered override.
 - Server-rendered field notes with context, outcome labels, explanations,
   source sections, sharing, and saved-entry controls.
 - Open questions and a personal notebook with persistent device-local bookmarks.

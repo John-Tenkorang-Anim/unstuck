@@ -3,23 +3,13 @@ import { getMediaOrigin } from "@/lib/media/reading-policy.server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUpRight,
-  BookOpen,
-  Check,
-  Clock3,
-  MapPin,
-  MessageCircle,
-  ShieldCheck,
-  Sprout,
-} from "lucide-react";
+import { ViewTransition } from "react";
+import { ArrowLeft, ArrowUpRight, ShieldCheck } from "lucide-react";
 import { getEntry } from "@/lib/api";
 import { kindLabels } from "@/lib/data";
-import { Artwork } from "@/components/artwork";
 import { EntryActions } from "@/components/entry-actions";
 import { OutcomeBadge } from "@/components/entry-card";
+import { OutcomeGlyph } from "@/components/glyph";
 export async function generateMetadata({
   params,
 }: {
@@ -38,23 +28,32 @@ export default async function EntryPage({
 }) {
   const entry = await getEntry((await params).id);
   if (!entry) notFound();
+  const contextRows = Object.entries(entry.context);
   return (
-    <div className="page-container detail-container">
-      <Link href="/#discover" className="back-link">
-        <ArrowLeft size={15} /> Back to the open notebook
-      </Link>
+    <div className="dossier frame">
+      <nav className="crumbs" aria-label="Breadcrumb">
+        <Link href="/#discover" className="back-link">
+          <ArrowLeft size={14} /> All entries
+        </Link>
+        <span aria-hidden="true">/</span>
+        <Link href={`/?topic=${encodeURIComponent(entry.topic)}#discover`}>
+          {entry.topic}
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span>{kindLabels[entry.kind]}</span>
+      </nav>
       {entry.example && (
         <div className="sample-banner">
-          <BookOpen size={16} />
-          <div>
+          <span className="example-tag">Sample data</span>
+          <p>
             <strong>A fictional field note.</strong> This story and its evidence
             are examples of how Unstuck works.
-          </div>
+          </p>
         </div>
       )}
       {entry.highStakes && (
         <div className="safety-banner">
-          <ShieldCheck size={20} />
+          <ShieldCheck size={18} aria-hidden="true" />
           <div>
             <strong>A topic that deserves extra care.</strong>
             <p>
@@ -64,41 +63,66 @@ export default async function EntryPage({
           </div>
         </div>
       )}
-      <div className="detail-heading">
-        <div className="eyebrow">
-          {entry.topic} <span> / </span> {kindLabels[entry.kind]}
+      <header className="dossier-head" data-outcome={entry.outcome ?? "open"}>
+        <div className="dossier-verdict">
+          <OutcomeGlyph outcome={entry.outcome ?? "open"} size={18} />
+          <OutcomeBadge outcome={entry.outcome} />
         </div>
-        <h1>{entry.title}</h1>
+        <ViewTransition name={`title-${entry.id}`} share="morph" default="none">
+          <h1>{entry.title}</h1>
+        </ViewTransition>
         <p>{entry.excerpt}</p>
-        <div className="detail-meta">
-          <span className="author-avatar">{entry.alias[0].toUpperCase()}</span>
-          <span>
-            <strong>{entry.alias}</strong>
-            <small>A different alias. The same human curiosity.</small>
-          </span>
-          <span className="meta-spacer" />
-          <span>
-            <MapPin size={14} />
-            {entry.place}
-          </span>
-          <span>
-            <Clock3 size={14} />
-            {entry.readingMinutes} min read
-          </span>
+      </header>
+      <dl className="readout readout-wide">
+        <div>
+          <dt>Tried it</dt>
+          <dd>{entry.tried}</dd>
         </div>
-      </div>
-      <div className="detail-layout">
+        <div>
+          <dt>Helped</dt>
+          <dd>{entry.helped}</dd>
+        </div>
+        <div>
+          <dt>Replies</dt>
+          <dd>{entry.comments}</dd>
+        </div>
+        <div>
+          <dt>Reading time</dt>
+          <dd>
+            {entry.readingMinutes}
+            <small> min</small>
+          </dd>
+        </div>
+        <div className="readout-text">
+          <dt>Where</dt>
+          <dd>{entry.place}</dd>
+        </div>
+        <div className="readout-text">
+          <dt>Recorded by</dt>
+          <dd>{entry.alias}</dd>
+        </div>
+      </dl>
+      <div className="dossier-grid">
+        <nav className="toc" aria-label="In this field note">
+          <span className="label">Contents</span>
+          {entry.sections.map((s, i) => (
+            <a key={s.title} href={`#section-${i}`}>
+              <span>{String(i + 1).padStart(2, "0")}</span>
+              {s.title}
+            </a>
+          ))}
+          <a href="#why">
+            <span>{String(entry.sections.length + 1).padStart(2, "0")}</span>
+            Why it happened
+          </a>
+        </nav>
         <article className="detail-story">
-          <div className="detail-illustration">
-            <Artwork type={entry.illustration} />
-            <div className="detail-art-badge">
-              <OutcomeBadge outcome={entry.outcome} />
-            </div>
-          </div>
           <div className="story-body">
             {entry.sections.map((section, i) => (
               <section key={section.title} id={`section-${i}`}>
-                <div className="story-number">0{i + 1}</div>
+                <div className="story-number" aria-hidden="true">
+                  {String(i + 1).padStart(2, "0")}
+                </div>
                 <div>
                   <h2>{section.title}</h2>
                   <p>{section.body}</p>
@@ -110,40 +134,34 @@ export default async function EntryPage({
             attachments={entry.media ?? []}
             origin={getMediaOrigin()}
           />
-          <div className="story-ending">
-            <span>✳</span>
-            <p>
-              One person’s experience.
-              <br />
-              <strong>A starting point for your own questions.</strong>
-            </p>
-          </div>
+          <p className="story-ending">
+            One person’s experience, and a starting point for your own
+            questions.
+          </p>
           <EntryActions id={entry.id} />
           <section className="why-board" id="why">
-            <div className="section-kicker">THE WHY BOARD</div>
-            <h2>
-              The result is a beginning.
-              <br />
-              <em>Let’s understand the why.</em>
-            </h2>
-            <p className="section-description">
-              Possible explanations, grounded in what people observed. Support
-              is evidence, not a vote.
-            </p>
+            <div className="why-head">
+              <h2>Why it happened</h2>
+              <p>
+                Possible explanations, grounded in what people observed. Support
+                is evidence, not a vote.
+              </p>
+            </div>
             {entry.evidence.length ? (
-              entry.evidence.map((evidence, i) => (
-                <div key={evidence.label} className="evidence-row">
-                  <span className="evidence-number">
-                    {String(i + 1).padStart(2, "0")}
+              entry.evidence.map((evidence) => (
+                <div
+                  key={evidence.label}
+                  className="evidence-row"
+                  data-state={evidence.state}
+                >
+                  <span className="evidence-state">
+                    <span className="evidence-dot" aria-hidden="true" />
+                    {evidence.state}
                   </span>
                   <div>
                     <h3>{evidence.label}</h3>
                     <p>{evidence.detail}</p>
                   </div>
-                  <span className={`evidence-state state-${evidence.state}`}>
-                    {evidence.state === "supported" && <Check size={12} />}
-                    {evidence.state}
-                  </span>
                 </div>
               ))
             ) : (
@@ -155,78 +173,47 @@ export default async function EntryPage({
               href={`/new?kind=experience&relates=${encodeURIComponent(entry.id)}`}
               className="text-link"
             >
-              Bring another perspective <ArrowUpRight size={15} />
+              Bring another perspective <ArrowUpRight size={14} />
             </Link>
-          </section>
-          <section className="discussion-invite">
-            <MessageCircle size={25} />
-            <div>
-              <h3>The conversation is part of the knowledge.</h3>
-              <p>
-                A careful question, a different context, or a result of your own
-                can move the story forward.
-              </p>
-              <Link
-                href={`/new?relates=${encodeURIComponent(entry.id)}`}
-                className="text-link"
-              >
-                Start a related field note <ArrowRight size={15} />
-              </Link>
-            </div>
           </section>
         </article>
         <aside className="detail-aside">
           <div className="context-panel">
-            <Sprout size={22} />
-            <span className="section-kicker">CONTEXT IS EVERYTHING</span>
-            <h2>
-              Would it work
-              <br />
-              <em>where you are?</em>
-            </h2>
-            <p>A result makes more sense when you know where it came from.</p>
-            <dl>
-              {Object.entries(entry.context).map(([key, value]) => (
-                <div key={key}>
-                  <dt>{key.replaceAll("_", " ")}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="context-footnote">
+            <span className="label">Conditions</span>
+            <h2>Would it work where you are?</h2>
+            {contextRows.length ? (
+              <dl>
+                {contextRows.map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{key.replaceAll("_", " ")}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p>No conditions were recorded for this entry.</p>
+            )}
+            <p className="context-footnote">
               Different conditions can tell a different story.
-            </div>
+            </p>
           </div>
-          <div className="toc">
-            <span className="sidebar-label">IN THIS FIELD NOTE</span>
-            {entry.sections.map((s, i) => (
-              <a key={s.title} href={`#section-${i}`}>
-                <span>0{i + 1}</span>
-                {s.title}
-              </a>
-            ))}
-            <a href="#why">
-              <span>↗</span>The Why board
-            </a>
-          </div>
-          <div className="detail-contribute">
+          <Link
+            className="detail-contribute"
+            href={`/new?relates=${encodeURIComponent(entry.id)}`}
+          >
             <span>Been somewhere similar?</span>
-            <Link href={`/new?relates=${encodeURIComponent(entry.id)}`}>
-              Your experience belongs here. <ArrowUpRight size={18} />
-            </Link>
-          </div>
+            <strong>
+              Add your experience <ArrowUpRight size={15} />
+            </strong>
+          </Link>
+          <p className="detail-license">
+            {entry.example
+              ? "Example field note."
+              : `Shared under ${entry.license ?? "the author’s chosen license"}.`}{" "}
+            Aliases change with every entry.
+          </p>
         </aside>
       </div>
-      <footer className="page-footer">
-        <span>
-          {entry.example
-            ? "Example field note · Keep curiosity moving."
-            : `Shared under ${entry.license ?? "the author’s chosen license"} · Keep knowledge moving.`}
-        </span>
-        <Link href="/about">
-          Our principles <ArrowUpRight size={12} />
-        </Link>
-      </footer>
     </div>
   );
 }

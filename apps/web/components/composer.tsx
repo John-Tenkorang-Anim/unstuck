@@ -7,17 +7,13 @@ import {
   ArrowUpRight,
   BookOpen,
   Check,
-  ChevronRight,
   Download,
-  Eye,
-  Feather,
   FlaskConical,
   HelpCircle,
   Lightbulb,
   LockKeyhole,
   Save,
   ScanEye,
-  Sprout,
   Trash2,
   Wrench,
 } from "lucide-react";
@@ -332,79 +328,67 @@ export function Composer({
       )}
     </div>
   );
+  const needsResult = !["problem", "idea"].includes(draft.kind);
+  const checks = [
+    { label: "A specific title", done: draft.title.trim().length >= 6 },
+    { label: "The goal", done: !!draft.goal.trim() },
+    { label: "The attempt", done: !!draft.approach.trim() },
+    ...(needsResult
+      ? [{ label: "The result", done: !!draft.result.trim() }]
+      : []),
+    ...(draft.kind === "research"
+      ? [{ label: "The method", done: !!draft.method.trim() }]
+      : []),
+    { label: "Where it happened", done: !!draft.country },
+    { label: "Advice for the next person", done: !!draft.advice.trim() },
+  ];
+  const doneCount = checks.filter((check) => check.done).length;
   if (complete)
     return (
-      <div className="page-container composer-success">
-        <span className="success-mark">
-          <Check size={34} />
-        </span>
-        <div className="eyebrow">EVERY ATTEMPT HAS SOMETHING TO TEACH.</div>
-        <h1>
-          A little knowledge,
-          <br />
-          <em>ready for its next chapter.</em>
-        </h1>
-        <p>
+      <div className="composer-success frame">
+        <p className="label">Saved privately</p>
+        <h1>Ready for its next chapter.</h1>
+        <p className="page-lede">
           Your field note is saved privately on this device. You can return to
           edit it or export a copy. It has not been published.
         </p>
         <div className="success-note">
-          <span className="section-kicker">{kindLabels[draft.kind]}</span>
+          <span className="label">{kindLabels[draft.kind]}</span>
           <h2>{draft.title}</h2>
           <p>{draft.goal}</p>
         </div>
         <div className="success-actions">
           <button className="button button-dark" onClick={exportDraft}>
-            <Download size={16} /> Export your field note
+            <Download size={15} /> Export your field note
           </button>
           <button
             className="button button-outline"
             onClick={() => setComplete(false)}
           >
-            Keep editing <Feather size={16} />
+            Keep editing
           </button>
+          <Link href="/" className="text-link">
+            Back to all entries <ArrowUpRight size={14} />
+          </Link>
         </div>
-        <Link href="/" className="text-link">
-          Back to the open notebook <ArrowUpRight size={15} />
-        </Link>
       </div>
     );
   return (
-    <div className="page-container composer-container">
-      <Link href="/" className="back-link">
-        <ArrowLeft size={15} /> Back to the notebook
-      </Link>
-      <header className="composer-heading">
-        <div>
-          <div className="eyebrow">
-            <Feather size={14} /> LEAVE SOMETHING USEFUL BEHIND
-          </div>
-          <h1>
-            Your experience.
-            <br />
-            <em>Someone’s next step.</em>
-          </h1>
-          <p>
-            It doesn’t have to be extraordinary. Just honest, specific, and
-            yours.
-          </p>
-        </div>
-        <div className="composer-privacy">
-          <LockKeyhole size={18} />
-          <strong>A safe place to start.</strong>
-          <span>
-            Your draft stays on this device.
-            <br />
-            You decide what to share.
-          </span>
-        </div>
+    <div className="composer frame">
+      <header className="composer-head">
+        <Link href="/" className="back-link">
+          <ArrowLeft size={14} /> All entries
+        </Link>
+        <h1>
+          Your experience.{" "}
+          <span className="tint-worked">Someone’s next step.</span>
+        </h1>
+        <p className="page-lede">
+          It doesn’t have to be extraordinary. Just honest, specific, and yours.
+        </p>
       </header>
       <ol className="composer-steps" aria-label="Field note progress">
-        {[
-          "Find your starting point",
-          "Tell your story",
-          "Take a fresh look",
-        ].map((label, i) => (
+        {["Choose a type", "Tell the story", "Review"].map((label, i) => (
           <li
             key={label}
             className={
@@ -412,15 +396,17 @@ export function Composer({
             }
             aria-current={step === i ? "step" : undefined}
           >
-            <span>{step > i ? <Check size={14} /> : `0${i + 1}`}</span>
+            <span>
+              {step > i ? <Check size={13} /> : String(i + 1).padStart(2, "0")}
+            </span>
             {label}
-            {i < 2 && <ChevronRight size={15} />}
           </li>
         ))}
       </ol>
       {relates && (
         <div className="related-note">
-          <BookOpen size={16} /> A new perspective on a field note.{" "}
+          <BookOpen size={15} aria-hidden="true" /> A new perspective on an
+          existing entry.{" "}
           <Link href={`/entries/${encodeURIComponent(relates)}`}>
             Revisit the original <ArrowUpRight size={12} />
           </Link>
@@ -430,27 +416,25 @@ export function Composer({
         <div className="composer-main">
           {step === 0 ? (
             <>
-              <div className="section-kicker">01 / THE STARTING POINT</div>
-              <h2>
-                What are you bringing
-                <br />
-                to the notebook?
-              </h2>
-              <p className="section-description">
-                Successes, wrong turns, and unfinished ideas. They all belong.
+              <h2>What are you bringing?</h2>
+              <p className="composer-lede">
+                <strong className="tint-worked">Successes</strong>,{" "}
+                <strong className="tint-failed">wrong turns</strong>, and{" "}
+                <strong className="tint-ongoing">unfinished ideas</strong>. They
+                all belong.
               </p>
-              <div className="kind-grid">
+              <div className="kind-list">
                 {kinds.map((item) => (
                   <button
                     key={item.kind}
                     onClick={() => update("kind", item.kind)}
                     aria-pressed={draft.kind === item.kind}
-                    className={`kind-option ${draft.kind === item.kind ? "kind-selected" : ""}`}
+                    className="kind-option"
                   >
-                    <item.icon size={23} />
+                    <item.icon size={18} aria-hidden="true" />
                     <strong>{item.label}</strong>
                     <span>{item.description}</span>
-                    <span className="kind-check">
+                    <span className="kind-check" aria-hidden="true">
                       {draft.kind === item.kind && <Check size={12} />}
                     </span>
                   </button>
@@ -459,11 +443,8 @@ export function Composer({
             </>
           ) : step === 1 ? (
             <>
-              <div className="section-kicker">
-                02 / THE STORY ONLY YOU CAN TELL
-              </div>
               <h2>Start with what happened.</h2>
-              <p className="section-description">
+              <p className="composer-lede">
                 Write like you’re telling someone who is about to try the same
                 thing.
               </p>
@@ -591,18 +572,11 @@ export function Composer({
             </>
           ) : (
             <>
-              <div className="section-kicker">03 / A FRESH PAIR OF EYES</div>
-              <h2>
-                A small story.
-                <br />A useful starting point.
-              </h2>
-              <p className="section-description">
-                Read it once as someone who wasn’t there. What would they need
-                to know?
-              </p>
+              <h2>Read it as someone who wasn’t there.</h2>
+              <p className="composer-lede">What would they need to know?</p>
               <article className="draft-preview">
                 <span className="draft-stamp">PRIVATE DRAFT</span>
-                <span className="category">{kindLabels[draft.kind]}</span>
+                <span className="label">{kindLabels[draft.kind]}</span>
                 <h3>{draft.title}</h3>
                 {[
                   ["The goal", draft.goal],
@@ -631,7 +605,7 @@ export function Composer({
                 <Download size={14} /> Export a private copy
               </button>
               <div className="publishing-note">
-                <LockKeyhole size={18} />
+                <LockKeyhole size={16} aria-hidden="true" />
                 <p>
                   <strong>Your words, your choice.</strong> This note will stay
                   private on your device. Community publishing will be available
@@ -672,34 +646,53 @@ export function Composer({
           </div>
         </div>
         <aside className="composer-aside">
-          <span className="tiny-asterisk">✳</span>
-          <h3>
-            A useful note is
-            <br />
-            an honest one.
-          </h3>
-          <p>
-            Tell us what actually happened. The messy middle is often where the
-            most useful learning lives.
-          </p>
+          <div className="signal">
+            <div className="signal-head">
+              <span className="label">Note completeness</span>
+              <span className="signal-count">
+                {doneCount}/{checks.length}
+              </span>
+            </div>
+            <div className="signal-meter" aria-hidden="true">
+              {checks.map((check) => (
+                <i key={check.label} className={check.done ? "is-done" : ""} />
+              ))}
+            </div>
+            <ul>
+              {checks.map((check) => (
+                <li key={check.label} className={check.done ? "is-done" : ""}>
+                  {check.done ? <Check size={12} /> : <i />}
+                  {check.label}
+                  <span className="sr-only">
+                    {check.done ? ", done" : ", not yet"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
           <div className="writing-tip">
-            <Sprout size={19} />
             <strong>Context is a gift.</strong>
             <p>
-              Place, tools, budget, timing. A detail that feels small to you can
-              make all the difference to someone else.
+              Place, tools, budget, timing. A small detail can make all the
+              difference to someone else.
             </p>
           </div>
           <div className="writing-tip">
-            <Eye size={19} />
             <strong>Keep people private.</strong>
             <p>
               Leave out names, emails, faces, and other details someone hasn’t
               agreed to share.
             </p>
           </div>
+          <div className="writing-tip">
+            <strong>
+              <LockKeyhole size={13} aria-hidden="true" /> Your draft stays
+              here.
+            </strong>
+            <p>It is stored on this device. You decide what to share.</p>
+          </div>
           <button className="discard-button" onClick={discard}>
-            <Trash2 size={14} /> Clear this draft
+            <Trash2 size={13} /> Clear this draft
           </button>
         </aside>
       </div>

@@ -1,17 +1,10 @@
 "use client";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Bookmark,
-  Check,
-  FlaskConical,
-  MapPin,
-  MessageCircle,
-  MoveUpRight,
-} from "lucide-react";
-import { Artwork } from "./artwork";
+import { ArrowUpRight, Bookmark } from "lucide-react";
+import { ViewTransition } from "react";
 import { kindLabels, outcomeLabels } from "@/lib/data";
 import type { EntrySummary as Entry } from "@/lib/types";
+import { OutcomeGlyph } from "./glyph";
 import { useNotebook } from "./notebook-provider";
 
 export function SaveButton({
@@ -25,101 +18,70 @@ export function SaveButton({
   const active = saved.includes(id);
   return (
     <button
-      className={`save-button ${active ? "is-saved" : ""} ${compact ? "save-compact" : ""}`}
+      className={`save-button ${active ? "is-saved" : ""} ${compact ? "save-compact" : "button button-outline"}`}
       aria-label={active ? "Remove from notebook" : "Save to notebook"}
       aria-pressed={active}
       onClick={() => toggleSaved(id)}
     >
-      <Bookmark size={17} fill={active ? "currentColor" : "none"} />
+      <Bookmark size={15} fill={active ? "currentColor" : "none"} />
       {!compact && <span>{active ? "Saved" : "Save for later"}</span>}
     </button>
   );
 }
 export function OutcomeBadge({ outcome }: { outcome: Entry["outcome"] }) {
   return (
-    <span className={`outcome-badge outcome-${outcome ?? "question"}`}>
-      {outcome === "worked" ? (
-        <Check size={12} />
-      ) : outcome === "failed" ? (
-        <span className="badge-x">×</span>
-      ) : outcome === "ongoing" ? (
-        <FlaskConical size={12} />
-      ) : (
-        <span className="badge-dot" />
-      )}
-      {outcome ? outcomeLabels[outcome] : "Let’s figure it out"}
+    <span className="outcome-badge" data-outcome={outcome ?? "open"}>
+      <OutcomeGlyph outcome={outcome ?? "open"} />
+      {outcome ? outcomeLabels[outcome] : "Open"}
     </span>
   );
 }
-export function EntryCard({
+/**
+ * One story in the mosaic. The lead story is a full-colour tile; the rest are
+ * tinted by outcome. The whole tile is the link target; Save sits above it.
+ */
+export function EntryTile({
   entry,
-  featured = false,
+  size = "standard",
+  span,
 }: {
   entry: Entry;
-  featured?: boolean;
+  size?: "lead" | "side" | "standard";
+  span?: number;
 }) {
   return (
-    <article className={`entry-card ${featured ? "entry-featured" : ""}`}>
-      <div className="card-art-wrap">
-        <Link href={`/entries/${entry.id}`} tabIndex={-1} aria-hidden="true">
-          <Artwork type={entry.illustration} />
-        </Link>
-        <span className="card-kind">{kindLabels[entry.kind]}</span>
-        <div className="card-save">
+    <article
+      className="tile"
+      data-outcome={entry.outcome ?? "open"}
+      data-size={size}
+      style={span ? ({ "--span": span } as React.CSSProperties) : undefined}
+    >
+      <div className="tile-top">
+        <OutcomeBadge outcome={entry.outcome} />
+        <span className="tile-field">{entry.topic}</span>
+        <div className="tile-save">
           <SaveButton id={entry.id} compact />
         </div>
-        {featured && (
-          <span className="editor-pick">
-            <span>✳</span> A SMALL IDEA, A BIG POSSIBILITY
-          </span>
-        )}
       </div>
-      <div className="card-content">
-        <div className="card-topline">
-          <span className={`category category-${entry.illustration}`}>
-            {entry.topic}
-          </span>
-          <OutcomeBadge outcome={entry.outcome} />
-        </div>
+      <ViewTransition name={`title-${entry.id}`} share="morph" default="none">
         <h3>
-          <Link href={`/entries/${entry.id}`}>
+          <Link href={`/entries/${entry.id}`} className="tile-link">
             {entry.title}
-            <ArrowUpRight size={22} className="card-title-arrow" />
           </Link>
         </h3>
-        <p className="card-excerpt">{entry.excerpt}</p>
-        <div className="card-context">
-          <MapPin size={12} />
+      </ViewTransition>
+      <p className="tile-excerpt">{entry.excerpt}</p>
+      <div className="tile-foot">
+        <p className="tile-tried">
+          <span className="tile-figure">{entry.tried}</span>
+          <span>{entry.tried ? "tried it" : "No attempts yet"}</span>
+        </p>
+        <p className="tile-meta">
+          <span>{entry.helped} helped</span>
+          <span>{entry.comments} replies</span>
           <span>{entry.place}</span>
-          <span className="context-separator">·</span>
-          <span>{entry.readingMinutes} min read</span>
-        </div>
-        <div className="card-footer">
-          <span className="tried-count">
-            <span className="little-avatars" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </span>
-            {entry.tried ? (
-              <>
-                <strong>{entry.tried}</strong> tried it
-              </>
-            ) : (
-              "Your perspective could help"
-            )}
-          </span>
-          <span className="card-comment">
-            <MessageCircle size={14} /> {entry.comments}
-          </span>
-          <Link
-            href={`/entries/${entry.id}`}
-            className="card-open"
-            aria-label={`Read ${entry.title}`}
-          >
-            <MoveUpRight size={17} />
-          </Link>
-        </div>
+        </p>
+        <ArrowUpRight size={20} className="tile-arrow" aria-hidden="true" />
       </div>
     </article>
   );

@@ -1,113 +1,127 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import {
-  ArrowUpRight,
-  Fingerprint,
-  FlaskConical,
-  Globe2,
-  HeartHandshake,
-  Sprout,
-} from "lucide-react";
-import { LearningLoop } from "@/components/artwork";
+import { ArrowUpRight } from "lucide-react";
 export const metadata: Metadata = { title: "A little more about Unstuck" };
+const loop = [
+  [
+    "Someone hits a problem",
+    "An experience, a failure or a question becomes an entry, in plain words.",
+  ],
+  [
+    "Others contribute",
+    "Answers, attempts and explanations collect around it.",
+  ],
+  [
+    "People test it",
+    "Tried-it reports add context: where, when, with what, and what happened.",
+  ],
+  [
+    "Knowledge forms",
+    "Claims gather evidence and citations, so you can see why they’re believed.",
+  ],
+  [
+    "Others get unstuck",
+    "New questions come out of it, and the loop starts again.",
+  ],
+];
+const principles = [
+  [
+    "Evidence over applause.",
+    "Votes can help us find an idea. Careful observation, testing, and independent evidence help us understand it.",
+  ],
+  [
+    "Context changes everything.",
+    "A result in one climate, budget, or version may look different in another. The conditions belong in the story.",
+  ],
+  [
+    "Privacy is the starting point.",
+    "A different alias on each entry keeps the attention on what was learned. Follow a question or a topic, not a person.",
+  ],
+  [
+    "Every attempt counts.",
+    "A wrong turn is useful knowledge. An unfinished idea is an invitation. You don’t need a perfect result to contribute.",
+  ],
+];
 export default function About() {
   return (
-    <div className="page-container about-container">
-      <section className="hero">
-        <div className="hero-copy">
-          <div className="eyebrow">✳ A LITTLE MORE ABOUT US</div>
-          <h1>
-            Knowledge grows
-            <br />
-            <em>when we share it.</em>
-          </h1>
+    <>
+      <section className="about-hero frame">
+        <p className="label">About Unstuck</p>
+        <h1>
+          Somewhere, someone has tried the thing you’re{" "}
+          <span className="tint-worked">trying to figure out.</span>
+        </h1>
+        <div className="about-columns">
           <p>
-            Unstuck is an open notebook of human experience. A place for the
-            things that worked, the things that didn’t, and the questions that
-            keep us curious.
+            A farmer finding a way to store a harvest. A maker repairing
+            something worth keeping. A researcher sharing a result that didn’t
+            fit the hypothesis. A small detail from their experience might
+            change yours.
           </p>
-          <Link href="/new" className="hero-link">
-            Your experience belongs here <ArrowUpRight size={15} />
-          </Link>
+          <p>
+            Unstuck is an open record of those attempts. It keeps{" "}
+            <strong className="tint-worked">what worked</strong>,{" "}
+            <strong className="tint-failed">what didn’t</strong>, and the{" "}
+            <strong className="tint-ongoing">questions still open</strong>, and
+            it makes the evidence behind them easy to read.
+          </p>
         </div>
-        <LearningLoop />
       </section>
-      <section className="about-manifesto">
-        <span className="section-kicker">A SIMPLE BELIEF</span>
-        <h2>
-          Somewhere, someone has tried
-          <br />
-          the thing you’re trying to figure out.
-        </h2>
-        <p>
-          A farmer finding a way to store a harvest. A maker repairing something
-          worth keeping. A researcher sharing a result that didn’t fit the
-          hypothesis. A small detail from their experience might change yours.
-        </p>
-        <p>
-          We’re making those connections easier to find—and making the evidence
-          behind them easier to understand.
-        </p>
+      <section className="frame about-section" aria-labelledby="loop-title">
+        <h2 id="loop-title">How knowledge moves</h2>
+        <ol className="loop">
+          {loop.map(([title, text], index) => (
+            <li key={title}>
+              <span className="loop-index">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <strong>{title}</strong>
+              <p>{text}</p>
+            </li>
+          ))}
+        </ol>
       </section>
-      <section id="principles" className="about-principles">
-        <div className="section-heading">
-          <div>
-            <span className="section-kicker">THE THINGS WE BUILD AROUND</span>
-            <h2>A few things we believe.</h2>
-          </div>
-        </div>
-        <div className="principles-grid">
-          {[
-            {
-              icon: FlaskConical,
-              title: "Evidence over applause.",
-              text: "Votes can help us find an idea. Careful observation, testing, and independent evidence help us understand it.",
-            },
-            {
-              icon: Sprout,
-              title: "Context changes everything.",
-              text: "A result in one climate, budget, or version may look different in another. The conditions belong in the story.",
-            },
-            {
-              icon: Fingerprint,
-              title: "Privacy is the starting point.",
-              text: "A different alias on each entry keeps the attention on what was learned. Follow a question or a topic, not a person.",
-            },
-            {
-              icon: HeartHandshake,
-              title: "Every attempt counts.",
-              text: "A wrong turn is useful knowledge. An unfinished idea is an invitation. You don’t need a perfect result to contribute.",
-            },
-          ].map((item) => (
-            <article key={item.title}>
-              <item.icon size={26} />
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
+      <section
+        id="principles"
+        className="frame about-section"
+        aria-labelledby="principles-title"
+      >
+        <h2 id="principles-title">What we build around</h2>
+        <div className="principles">
+          {principles.map(([title, text], index) => (
+            <article key={title}>
+              <span className="loop-index">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <h3>{title}</h3>
+              <p>{text}</p>
             </article>
           ))}
         </div>
       </section>
-      <div className="about-preview-note">
-        <Globe2 size={24} />
-        <div>
-          <h3>You’re exploring an early chapter.</h3>
+      <div className="frame">
+        <div className="sample-banner about-note">
+          <span className="example-tag">Early access</span>
           <p>
             The sample stories are fictional. Saved entries and drafts live on
             your device. When community accounts open, people will be able to
-            contribute, test, and grow this notebook together.
+            contribute, test, and grow it together.
           </p>
         </div>
       </div>
       <section className="contribute-banner">
-        <div>
-          <span className="section-kicker">A LITTLE WISER, TOGETHER.</span>
-          <h2>What have you learned lately?</h2>
-          <p>It could be the beginning of someone else’s breakthrough.</p>
+        <div className="frame contribute-inner">
+          <h2>
+            What have you <span className="tint-invert">learned lately?</span>
+          </h2>
+          <div>
+            <p>It could be the beginning of someone else’s breakthrough.</p>
+            <Link href="/new" className="button button-invert">
+              Leave a field note <ArrowUpRight size={15} />
+            </Link>
+          </div>
         </div>
-        <Link href="/new" className="button button-dark">
-          Leave a field note <ArrowUpRight size={16} />
-        </Link>
       </section>
-    </div>
+    </>
   );
 }

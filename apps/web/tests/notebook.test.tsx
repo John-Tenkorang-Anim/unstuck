@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
@@ -7,6 +7,12 @@ import { Composer } from "@/components/composer";
 import { NotebookProvider } from "@/components/notebook-provider";
 import { Shell } from "@/components/shell";
 import { examples } from "@/lib/data";
+
+const push = vi.fn();
+vi.mock("next/navigation", async (original) => ({
+  ...(await original<typeof import("next/navigation")>()),
+  useRouter: () => ({ push }),
+}));
 
 const notebook = { entries: examples, mode: "examples" as const };
 function discover(props = {}) {
@@ -106,6 +112,53 @@ describe("finding a way forward", () => {
   });
 });
 
+describe("the outcome atlas", () => {
+  it("states every recorded cell in words and offers no target for a gap", () => {
+    discover();
+    expect(
+      screen.getByRole("link", {
+        name: "Food & farming, it worked: 1 note, 24 tried",
+      }),
+    ).toHaveAttribute(
+      "href",
+      "/?topic=Food+%26+farming&outcome=worked#discover",
+    );
+    expect(
+      within(screen.getByRole("table")).getAllByText("Nothing recorded").length,
+    ).toBeGreaterThan(0);
+  });
+  it("filters the ledger from a cell, and a second selection clears it", async () => {
+    const user = userEvent.setup();
+    discover();
+    const name = "Software, it didn’t work: 1 note, 18 tried";
+    await user.click(screen.getByRole("link", { name }));
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByRole("link", { name })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    expect(window.location.search).toBe("?topic=Software&outcome=failed");
+    await user.click(screen.getByRole("link", { name }));
+    expect(screen.getAllByRole("article")).toHaveLength(6);
+    expect(window.location.search).toBe("");
+  });
+  it("restores a filter from a shared address and ignores unknown outcomes", () => {
+    const shared = discover({ initialOutcome: "mixed" });
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    shared.unmount();
+    discover({ initialOutcome: "not-an-outcome" });
+    expect(screen.getAllByRole("article")).toHaveLength(6);
+  });
+  it("exposes all six outcome filters with visible state, and names only their label", () => {
+    discover();
+    const group = screen.getByRole("group", { name: "Filter by outcome" });
+    expect(within(group).getAllByRole("button")).toHaveLength(6);
+    expect(
+      within(group).getByRole("button", { name: "Everything" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
 describe("private contribution", () => {
   it("validates, previews, saves and restores a complete field note without pretending to publish", async () => {
     const user = userEvent.setup();
@@ -197,6 +250,60 @@ describe("private contribution", () => {
 });
 
 describe("accessible navigation", () => {
+  it("opens search with the keyboard, finds an entry, and returns focus on close", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          entries: [
+            {
+              id: "the-cache-was-not-the-problem",
+              title: "The cache wasn’t broken.",
+              topic: "Software",
+              outcome: "failed",
+            },
+          ],
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    render(
+      <NotebookProvider>
+        <Shell>
+          <button>Before</button>
+        </Shell>
+      </NotebookProvider>,
+    );
+    const before = screen.getByRole("button", { name: "Before" });
+    before.focus();
+    await user.keyboard("{Meta>}k{/Meta}");
+    const input = await screen.findByRole("combobox");
+    await user.type(input, "cache");
+    const option = await screen.findByRole("option", { name: /The cache/ });
+    expect(option).toHaveAttribute("aria-selected", "true");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(before).toHaveFocus());
+    await user.keyboard("{Meta>}k{/Meta}");
+    await user.type(await screen.findByRole("combobox"), "cache{Enter}");
+    expect(push).toHaveBeenCalledWith("/entries/the-cache-was-not-the-problem");
+    vi.unstubAllGlobals();
+  });
+  it("switches theme and remembers the choice", async () => {
+    const user = userEvent.setup();
+    render(
+      <NotebookProvider>
+        <Shell>
+          <p>Content</p>
+        </Shell>
+      </NotebookProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: /Switch to dark/ }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem("unstuck:theme")).toBe("dark");
+    await user.click(screen.getByRole("button", { name: /Switch to light/ }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+    delete document.documentElement.dataset.theme;
+  });
   it("toggles the persisted light reading mode", async () => {
     const user = userEvent.setup();
     render(

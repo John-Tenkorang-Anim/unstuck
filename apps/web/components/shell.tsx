@@ -1,41 +1,89 @@
 "use client";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Leaf, Menu, Moon, Plus, Search, Sun, X } from "lucide-react";
 import {
-  ArrowUpRight,
-  Bookmark,
-  Compass,
-  Feather,
-  HelpCircle,
-  Leaf,
-  Menu,
-  MoveUpRight,
-  NotebookPen,
-  Plus,
-  X,
-} from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+  useEffect,
+  useRef,
+  useState,
+  ViewTransition,
+  type ReactNode,
+} from "react";
+import { topics } from "@/lib/data";
+import { LogoMark } from "./glyph";
 import { useNotebook } from "./notebook-provider";
+
+const CommandPalette = dynamic(() => import("./command-palette"), {
+  ssr: false,
+});
 
 export function Brand() {
   return (
     <Link href="/" className="brand" aria-label="Unstuck home">
-      <span className="brand-mark" aria-hidden="true">
-        <MoveUpRight size={22} strokeWidth={3} />
-      </span>
-      unstuck<span className="brand-period">.</span>
+      <LogoMark />
+      Unstuck
     </Link>
+  );
+}
+function currentTheme() {
+  const chosen = document.documentElement.dataset.theme;
+  if (chosen === "dark" || chosen === "light") return chosen;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+function ThemeButton() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  useEffect(() => setTheme(currentTheme()), []);
+  function toggle() {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    setTheme(next);
+    try {
+      localStorage.setItem("unstuck:theme", next);
+    } catch {
+      /* The theme still applies for this visit. */
+    }
+  }
+  return (
+    <button
+      className="icon-button"
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      onClick={toggle}
+    >
+      {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+    </button>
   );
 }
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "";
   const [open, setOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteUsed, setPaletteUsed] = useState(false);
+  const paletteReturn = useRef<HTMLElement | null>(null);
   const drawer = useRef<HTMLElement>(null);
   const menu = useRef<HTMLButtonElement>(null);
   const { saved, lite, toggleLite } = useNotebook();
+  function showPalette() {
+    paletteReturn.current = document.activeElement as HTMLElement | null;
+    setPaletteUsed(true);
+    setPaletteOpen(true);
+  }
   useEffect(() => {
     setOpen(false);
   }, [path]);
+  useEffect(() => {
+    function shortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        showPalette();
+      }
+    }
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const previous = menu.current;
@@ -77,37 +125,55 @@ export function Shell({ children }: { children: ReactNode }) {
     {
       label: "Discover",
       href: "/",
-      icon: Compass,
       active: path === "/" || path.startsWith("/entries"),
     },
     {
       label: "Open questions",
       href: "/questions",
-      icon: HelpCircle,
       active: path === "/questions",
     },
-    {
-      label: "Your notebook",
-      href: "/notebook",
-      icon: Bookmark,
-      active: path === "/notebook",
-    },
+    { label: "Notebook", href: "/notebook", active: path === "/notebook" },
+    { label: "About", href: "/about", active: path === "/about" },
   ];
+  const links = navigation.map((item) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      className="nav-item"
+      aria-current={item.active ? "page" : undefined}
+      onClick={() => setOpen(false)}
+    >
+      {item.label}
+      {item.href === "/notebook" && saved.length > 0 && (
+        <span className="nav-count">
+          <span className="sr-only">, </span>
+          {saved.length}
+          <span className="sr-only"> saved</span>
+        </span>
+      )}
+    </Link>
+  ));
   return (
     <>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
       <header className="topbar" inert={open || undefined}>
-        <div className="topbar-brand">
-          <Brand />
-        </div>
-        <div className="topbar-middle">
-          <span className="status-dot" /> A little wiser, together.
-        </div>
+        <Brand />
+        {!open && (
+          <nav aria-label="Main navigation" className="topnav">
+            {links}
+          </nav>
+        )}
+        <button className="palette-trigger" onClick={showPalette}>
+          <Search size={15} aria-hidden="true" />
+          <span className="palette-trigger-label">Search everything</span>
+          <span className="sr-only">, command palette</span>
+          <kbd aria-hidden="true">⌘K</kbd>
+        </button>
         <div className="topbar-actions">
           <button
-            className={`icon-button reading-button ${lite ? "is-active" : ""}`}
+            className={`icon-button ${lite ? "is-active" : ""}`}
             title={
               lite
                 ? "Turn off light reading mode"
@@ -117,128 +183,99 @@ export function Shell({ children }: { children: ReactNode }) {
             aria-pressed={lite}
             onClick={toggleLite}
           >
-            <Leaf size={19} />
+            <Leaf size={16} />
           </button>
+          <ThemeButton />
           <Link
             href="/new"
             className="button button-dark topbar-share"
             aria-label="Share what you learned"
             title="Share what you learned"
           >
-            <Plus size={17} />
-            <span className="share-label">Share what you learned</span>
+            <Plus size={15} />
+            <span className="share-label">New note</span>
           </Link>
           <button
             ref={menu}
             className="icon-button menu-button"
             aria-label={open ? "Close navigation" : "Open navigation"}
             aria-expanded={open}
-            aria-controls="sidebar"
+            aria-controls={open ? "sidebar" : undefined}
             onClick={() => setOpen(!open)}
           >
-            {open ? <X /> : <Menu />}
+            {open ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </header>
       {open && (
-        <button
-          className="sidebar-backdrop"
-          aria-label="Close navigation"
-          onClick={() => setOpen(false)}
+        <>
+          <button
+            className="sidebar-backdrop"
+            aria-label="Close navigation"
+            onClick={() => setOpen(false)}
+          />
+          <aside
+            ref={drawer}
+            id="sidebar"
+            className="sidebar"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="navigation-title"
+          >
+            <div className="sidebar-head">
+              <span className="label" id="navigation-title">
+                Navigate
+              </span>
+              <button
+                className="icon-button"
+                aria-label="Close navigation drawer"
+                onClick={() => setOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <nav aria-label="Main navigation" className="sidebar-nav">
+              {links}
+            </nav>
+            <span className="label">Fields</span>
+            <nav aria-label="Fields of knowledge" className="sidebar-fields">
+              {topics.map((topic) => (
+                <Link
+                  key={topic}
+                  href={`/?topic=${encodeURIComponent(topic)}#discover`}
+                  onClick={() => setOpen(false)}
+                >
+                  {topic}
+                </Link>
+              ))}
+            </nav>
+          </aside>
+        </>
+      )}
+      <main id="main" tabIndex={-1} inert={open || undefined}>
+        <ViewTransition>{children}</ViewTransition>
+      </main>
+      <footer className="site-footer" inert={open || undefined}>
+        <div className="frame site-footer-inner">
+          <span className="brand brand-quiet">
+            <LogoMark size={18} /> Unstuck
+          </span>
+          <p>
+            Everything the world has tried: what worked, what didn’t, and why.
+          </p>
+          <nav aria-label="Footer">
+            <Link href="/about#principles">Principles</Link>
+            <Link href="/new">Contribute</Link>
+          </nav>
+        </div>
+      </footer>
+      {paletteUsed && (
+        <CommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          returnFocus={paletteReturn}
         />
       )}
-      <aside
-        ref={drawer}
-        id="sidebar"
-        className={`sidebar ${open ? "sidebar-open" : ""}`}
-        role={open ? "dialog" : undefined}
-        aria-modal={open || undefined}
-        aria-labelledby={open ? "navigation-title" : undefined}
-      >
-        {open && (
-          <button
-            className="icon-button sidebar-close"
-            aria-label="Close navigation drawer"
-            onClick={() => setOpen(false)}
-          >
-            <X size={18} />
-          </button>
-        )}
-        <div className="sidebar-label" id="navigation-title">
-          A PLACE TO GET UNSTUCK
-        </div>
-        <nav aria-label="Main navigation">
-          {navigation.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item ${item.active ? "nav-active" : ""}`}
-              aria-current={item.active ? "page" : undefined}
-              onClick={() => setOpen(false)}
-            >
-              <item.icon size={19} />
-              <span>{item.label}</span>
-              {item.href === "/notebook" && saved.length > 0 && (
-                <span className="nav-count">{saved.length}</span>
-              )}
-              {item.active && <span className="nav-active-dot" />}
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-divider" />
-        <div className="sidebar-label">FOLLOW YOUR CURIOSITY</div>
-        <nav aria-label="Fields of knowledge" className="topic-nav">
-          {[
-            ["Food & farming", "sage"],
-            ["Making & fixing", "clay"],
-            ["Software", "blue"],
-            ["Everyday life", "yellow"],
-            ["Research", "lavender"],
-            ["Community", "rose"],
-          ].map(([topic, color]) => (
-            <Link
-              key={topic}
-              href={`/?topic=${encodeURIComponent(topic)}#discover`}
-              onClick={() => setOpen(false)}
-            >
-              <span className={`topic-dot dot-${color}`} />
-              {topic}
-              <ArrowUpRight size={13} />
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <Link href="/about" className="sidebar-note">
-            <span className="tiny-asterisk">✳</span>
-            <strong>Progress doesn’t happen alone.</strong>
-            <p>Your small discovery could be someone’s way forward.</p>
-            <span className="text-link">
-              Meet Unstuck <ArrowUpRight size={14} />
-            </span>
-          </Link>
-          <div className="sidebar-foot">
-            <span>
-              <NotebookPen size={13} /> An open notebook for everyone.
-            </span>
-            <Link href="/about#principles">
-              Our principles <ArrowUpRight size={11} />
-            </Link>
-          </div>
-        </div>
-      </aside>
-      <main
-        id="main"
-        className="main-content"
-        tabIndex={-1}
-        inert={open || undefined}
-      >
-        {children}
-      </main>
-      <div className="mobile-create" inert={open || undefined}>
-        <Link href="/new" aria-label="Create a field note">
-          <Feather size={22} />
-        </Link>
-      </div>
     </>
   );
 }

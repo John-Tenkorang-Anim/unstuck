@@ -15,7 +15,7 @@ export function MediaGallery({
       className="media-gallery"
       aria-label="Photos and videos from this field note"
     >
-      <h2 className="section-kicker">A CLOSER LOOK</h2>
+      <h2 className="section-kicker">A closer look</h2>
       {attachments.map((attachment) => {
         if (attachment.state === "ready" && attachment.manifest)
           return attachment.manifest.kind === "image" ? (

@@ -11,6 +11,7 @@ export default async function Home({
       notebook={await getNotebook()}
       initialTopic={typeof params.topic === "string" ? params.topic : ""}
       initialQuery={typeof params.q === "string" ? params.q : ""}
+      initialOutcome={typeof params.outcome === "string" ? params.outcome : ""}
     />
   );
 }
