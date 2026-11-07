@@ -15,11 +15,15 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Play,
   Search,
   SlidersHorizontal,
   X,
 } from "lucide-react";
 import { Atlas, type AtlasSelection } from "./atlas";
+import { SessionCard } from "./session-card";
+import { clock } from "@/lib/search";
+import type { Session } from "@/lib/sessions";
 import { EntryTile } from "./entry-card";
 import { OutcomeGlyph, type OutcomeKey } from "./glyph";
 import { topics } from "@/lib/data";
@@ -48,8 +52,10 @@ export function Discovery({
   initialOutcome = "",
   questions = false,
   savedOnly = false,
+  sessions = [],
 }: {
   notebook: Notebook;
+  sessions?: Session[];
   initialTopic?: string;
   initialQuery?: string;
   initialOutcome?: string;
@@ -152,59 +158,47 @@ export function Discovery({
   return (
     <>
       {home ? (
-        <section className="hero" aria-labelledby="hero-title">
-          <div className="hero-copy frame">
-            <p className="hero-kicker">Everything the world has tried</p>
+        <>
+          <section className="home-search frame" aria-labelledby="hero-title">
             <h1 id="hero-title">
-              Someone’s been <span className="tint-worked">where you are.</span>
+              Learn from <span className="tint-failed">what failed.</span>
             </h1>
-            <p className="hero-lede">
-              <strong className="tint-worked">What worked</strong>,{" "}
-              <strong className="tint-failed">what didn’t</strong>, and{" "}
-              <strong className="tint-ongoing">why</strong>. Every entry keeps
-              the conditions it happened in, so you can judge whether it would
-              work for you.
+            <p className="home-lede">
+              Search attempts, photos and film, down to the second something
+              went wrong.
             </p>
-            <div className="hero-actions">
-              <a className="button button-dark" href="#discover">
-                See what people tried
-              </a>
-              <Link className="text-link" href="/about">
-                How it works <ChevronRight size={15} />
-              </Link>
-            </div>
-          </div>
-          {notebook.mode !== "unavailable" && (
-            <div className="hero-stage frame">
-              <div className="stage-tile">
-                <Atlas
-                  entries={notebook.entries}
-                  topic={topic}
-                  outcome={tab}
-                  onSelect={select}
-                />
-                <dl className="readout">
-                  <div>
-                    <dt>Entries</dt>
-                    <dd>{notebook.entries.length}</dd>
-                  </div>
-                  <div>
-                    <dt>People tried them</dt>
-                    <dd>{totals.tried}</dd>
-                  </div>
-                  <div>
-                    <dt>Found them useful</dt>
-                    <dd>{totals.helped}</dd>
-                  </div>
-                  <div>
-                    <dt>Places</dt>
-                    <dd>{totals.places}</dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-          )}
-        </section>
+            <form className="home-bar" action="/search" role="search">
+              <Search size={20} aria-hidden="true" />
+              <input
+                ref={search}
+                type="search"
+                name="q"
+                aria-label="Search the notebook"
+                placeholder="What are you trying to figure out?"
+                autoComplete="off"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <kbd aria-hidden="true">/</kbd>
+              <button className="button button-dark">Search</button>
+            </form>
+            <nav className="home-types" aria-label="Search by type">
+              {[
+                ["videos", "Videos"],
+                ["photos", "Photos"],
+                ["failures", "Failures"],
+                ["fixes", "Fixes"],
+                ["research", "Research"],
+                ["critique", "Critique"],
+              ].map(([key, label]) => (
+                <Link key={key} href={`/search?type=${key}`}>
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </section>
+          <Showcase entries={notebook.entries} sessions={sessions} />
+        </>
       ) : (
         <section className="page-head frame">
           <p className="label">
@@ -246,32 +240,34 @@ export function Discovery({
               ? "Your notebook"
               : questions
                 ? "Questions worth exploring"
-                : "Stories worth learning from"}
+                : "Latest attempts"}
           </h2>
           {notebook.mode === "examples" && (
             <p className="example-notice">
               <span className="example-tag">Sample data</span> Fictional stories
-              to explore what’s possible.
+              and one historical case. Photos and film are real.
             </p>
           )}
         </div>
         <div className="ledger-controls">
-          <form
-            className="search-field"
-            onSubmit={(e) => e.preventDefault()}
-            role="search"
-          >
-            <Search size={16} aria-hidden="true" />
-            <input
-              ref={search}
-              type="search"
-              aria-label="Search the notebook"
-              placeholder="What are you trying to figure out?"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <kbd aria-hidden="true">/</kbd>
-          </form>
+          {!home && (
+            <form
+              className="search-field"
+              onSubmit={(e) => e.preventDefault()}
+              role="search"
+            >
+              <Search size={16} aria-hidden="true" />
+              <input
+                ref={search}
+                type="search"
+                aria-label="Search the notebook"
+                placeholder="What are you trying to figure out?"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <kbd aria-hidden="true">/</kbd>
+            </form>
+          )}
           <Popover.Root open={filters} onOpenChange={setFilters}>
             <Popover.Trigger
               className={`button button-outline ${topic ? "is-active" : ""}`}
@@ -401,16 +397,47 @@ export function Discovery({
             : "No entries shown"}
         </p>
       </section>
+      {home && notebook.mode !== "unavailable" && (
+        <section className="hero-stage frame" aria-label="The map of attempts">
+          <div className="stage-tile">
+            <Atlas
+              entries={notebook.entries}
+              topic={topic}
+              outcome={tab}
+              onSelect={select}
+            />
+            <dl className="readout">
+              <div>
+                <dt>Entries</dt>
+                <dd>{notebook.entries.length}</dd>
+              </div>
+              <div>
+                <dt>People tried them</dt>
+                <dd>{totals.tried}</dd>
+              </div>
+              <div>
+                <dt>Found them useful</dt>
+                <dd>{totals.helped}</dd>
+              </div>
+              <div>
+                <dt>Places</dt>
+                <dd>{totals.places}</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+      )}
       {!savedOnly && (
         <section className="contribute-banner">
           <div className="frame contribute-inner">
             <h2>
-              What have you <span className="tint-invert">learned lately?</span>
+              Post the one that{" "}
+              <span className="tint-invert">didn’t work.</span>
             </h2>
             <div>
               <p>
-                A small win, a wrong turn, or an idea you can’t stop thinking
-                about. It could be the start of someone else’s way forward.
+                Somebody is about to try the same thing. A photo, a minute of
+                video and an honest account will save them the trouble.
               </p>
               <Link href="/new" className="button button-invert">
                 Leave a field note <ArrowUpRight size={15} />
@@ -486,6 +513,123 @@ function OutcomeTabs({
           </span>
         </button>
       ))}
+    </div>
+  );
+}
+
+/** The home page's media layer: film with marked failures, and open critique. */
+function Showcase({
+  entries,
+  sessions,
+}: {
+  entries: Entry[];
+  sessions: Session[];
+}) {
+  const filmed = entries.filter((entry) => entry.clip);
+  if (!filmed.length && !sessions.length) return null;
+  return (
+    <div className="showcase frame">
+      {filmed.slice(0, 1).map((entry) => {
+        const clip = entry.clip!;
+        return (
+          <section
+            key={entry.id}
+            className="feature"
+            aria-labelledby="feature-title"
+          >
+            <div className="feature-head">
+              <h2 id="feature-title">Caught on camera</h2>
+              <Link className="text-link" href="/search?type=videos">
+                All videos <ChevronRight size={15} />
+              </Link>
+            </div>
+            <div
+              className="feature-card"
+              data-outcome={entry.outcome ?? "open"}
+            >
+              <Link
+                className="feature-media"
+                href={`/entries/${entry.id}#clip`}
+                aria-label={`Watch: ${clip.title}`}
+              >
+                <img
+                  src={clip.poster.src}
+                  alt=""
+                  width={clip.poster.width}
+                  height={clip.poster.height}
+                  loading="lazy"
+                />
+                <span className="feature-play">
+                  <Play size={22} fill="currentColor" />
+                </span>
+                <span className="serp-time">{clock(clip.duration)}</span>
+                <span className="feature-track" aria-hidden="true">
+                  {clip.moments.map((m) => (
+                    <i
+                      key={m.at}
+                      className={`timeline-mark mark-${m.kind}`}
+                      style={{ left: `${(m.at / clip.duration) * 100}%` }}
+                    />
+                  ))}
+                </span>
+              </Link>
+              <div className="feature-body">
+                <p className="feature-meta">
+                  {entry.topic} · {entry.place}
+                </p>
+                <p className="feature-title">
+                  <Link href={`/entries/${entry.id}`}>{entry.title}</Link>
+                </p>
+                <p className="feature-excerpt">{entry.excerpt}</p>
+                <ol className="feature-moments" aria-label="Marked moments">
+                  {clip.moments
+                    .filter((m) => m.kind === "broke")
+                    .map((m) => (
+                      <li key={m.at}>
+                        <Link
+                          href={`/entries/${entry.id}?t=${Math.floor(m.at)}#clip`}
+                        >
+                          <span className="moment-time">{clock(m.at)}</span>
+                          <span>
+                            <span className="moment-flag">Where it broke</span>
+                            {m.label}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                </ol>
+              </div>
+            </div>
+          </section>
+        );
+      })}
+      {sessions.length > 0 && (
+        <section className="critique-shelf" aria-labelledby="critique-title">
+          <div className="feature-head">
+            <h2 id="critique-title">Open for critique</h2>
+            <Link className="text-link" href="/sessions">
+              All sessions <ChevronRight size={15} />
+            </Link>
+          </div>
+          <ul className="session-cards">
+            {sessions.slice(0, 3).map((session) => (
+              <li key={session.id}>
+                <SessionCard
+                  session={session}
+                  notes={session.rounds.flatMap((r) => r.notes).length}
+                />
+              </li>
+            ))}
+          </ul>
+          <Link className="critique-cta" href="/sessions/new">
+            <strong>Stuck on your own work?</strong>
+            <span>
+              Paste a photo, pin what went wrong, and ask for feedback.
+            </span>
+            <ChevronRight size={18} />
+          </Link>
+        </section>
+      )}
     </div>
   );
 }

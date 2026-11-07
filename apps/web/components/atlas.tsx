@@ -75,7 +75,7 @@ export function Atlas({
     <div className="atlas-stage">
       <figure className="atlas">
         <div className="atlas-caption">
-          <span>What the world has tried, at a glance</span>
+          <span>The map of attempts</span>
           <span className="atlas-hint">Point at a cell to preview it</span>
         </div>
         <table onMouseLeave={() => setPreview(null)}>

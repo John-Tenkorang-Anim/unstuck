@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { ArrowUpRight, Bookmark } from "lucide-react";
+import { ArrowUpRight, Bookmark, Play } from "lucide-react";
+import { clock } from "@/lib/search";
 import { ViewTransition } from "react";
 import { kindLabels, outcomeLabels } from "@/lib/data";
 import type { EntrySummary as Entry } from "@/lib/types";
@@ -56,6 +57,23 @@ export function EntryTile({
       data-size={size}
       style={span ? ({ "--span": span } as React.CSSProperties) : undefined}
     >
+      {(entry.clip?.poster ?? entry.cover) && (
+        <div className="tile-media">
+          <img
+            src={(entry.clip?.poster ?? entry.cover)!.small}
+            alt=""
+            width={(entry.clip?.poster ?? entry.cover)!.width}
+            height={(entry.clip?.poster ?? entry.cover)!.height}
+            loading="lazy"
+            decoding="async"
+          />
+          {entry.clip && (
+            <span className="serp-time">
+              <Play size={11} /> {clock(entry.clip.duration)}
+            </span>
+          )}
+        </div>
+      )}
       <div className="tile-top">
         <OutcomeBadge outcome={entry.outcome} />
         <span className="tile-field">{entry.topic}</span>

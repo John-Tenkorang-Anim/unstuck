@@ -127,8 +127,14 @@ export function Shell({ children }: { children: ReactNode }) {
       href: "/",
       active: path === "/" || path.startsWith("/entries"),
     },
+    { label: "Search", href: "/search", active: path === "/search" },
     {
-      label: "Open questions",
+      label: "Critique",
+      href: "/sessions",
+      active: path.startsWith("/sessions"),
+    },
+    {
+      label: "Questions",
       href: "/questions",
       active: path === "/questions",
     },

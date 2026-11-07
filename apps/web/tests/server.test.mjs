@@ -13,8 +13,11 @@ async function documentAt(path) {
 test("discovery content is present in the HTML without running JavaScript", async () => {
   const { response, document } = await documentAt("/");
   assert.equal(response.status, 200);
-  assert.match(document.querySelector("main h1").textContent, /Someone’s been/);
-  assert.equal(document.querySelectorAll("main article").length, 6);
+  assert.match(
+    document.querySelector("main h1").textContent,
+    /Learn from what failed/,
+  );
+  assert.equal(document.querySelectorAll("main article").length, 7);
   assert.match(
     document.querySelector(".example-notice").textContent,
     /Fictional stories/,
@@ -37,6 +40,33 @@ test("the complete field note and its context are readable without JavaScript", 
   assert.equal(document.querySelectorAll(".evidence-row").length, 2);
 });
 
+test("search results, video moments and their evidence render without JavaScript", async () => {
+  const { response, document } = await documentAt("/search?q=bridge+twisting");
+  assert.equal(response.status, 200);
+  const first = document.querySelector(".result h2 a");
+  assert.match(first.textContent, /Tacoma Narrows/);
+  assert.match(
+    document.querySelector(".serp-moments a").getAttribute("href"),
+    /\/entries\/tacoma-narrows-1940\?t=\d+#clip/,
+  );
+  assert.match(
+    document.querySelector(".evidence").textContent,
+    /Where it broke/,
+  );
+  assert.ok(document.querySelector(".result mark"));
+});
+
+test("critique sessions and their pinned feedback render without JavaScript", async () => {
+  const { response, document } = await documentAt(
+    "/sessions/first-print-spaghetti",
+  );
+  assert.equal(response.status, 200);
+  assert.equal(document.querySelectorAll(".canvas-frame .pin").length, 3);
+  assert.ok(document.querySelectorAll(".note").length >= 4);
+  const missing = await fetch(new URL("/sessions/not-a-session", base));
+  assert.equal(missing.status, 404);
+});
+
 test("open questions contain only the matching entry on first render", async () => {
   const { document } = await documentAt("/questions");
   assert.equal(document.querySelectorAll("main article").length, 1);
@@ -47,7 +77,14 @@ test("open questions contain only the matching entry on first render", async () 
 });
 
 test("secondary routes render and missing entries receive a real 404", async () => {
-  for (const path of ["/about", "/notebook", "/new"]) {
+  for (const path of [
+    "/about",
+    "/notebook",
+    "/new",
+    "/search",
+    "/sessions",
+    "/sessions/new",
+  ]) {
     const { response, document } = await documentAt(path);
     assert.equal(response.status, 200, path);
     assert.ok(document.querySelector("main h1"), path);

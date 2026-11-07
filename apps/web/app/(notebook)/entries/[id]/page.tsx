@@ -10,6 +10,9 @@ import { kindLabels } from "@/lib/data";
 import { EntryActions } from "@/components/entry-actions";
 import { OutcomeBadge } from "@/components/entry-card";
 import { OutcomeGlyph } from "@/components/glyph";
+import { MomentPlayer } from "@/components/moment-player";
+import { Picture } from "@/components/picture";
+import { sampleSessions } from "@/lib/sessions";
 export async function generateMetadata({
   params,
 }: {
@@ -23,11 +26,18 @@ export async function generateMetadata({
 }
 export default async function EntryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const entry = await getEntry((await params).id);
   if (!entry) notFound();
+  const t = Number((await searchParams).t);
+  const start = Number.isFinite(t) && t >= 0 ? t : undefined;
+  const sessions = entry.example
+    ? sampleSessions.filter((session) => session.entryId === entry.id)
+    : [];
   const contextRows = Object.entries(entry.context);
   return (
     <div className="dossier frame">
@@ -44,10 +54,22 @@ export default async function EntryPage({
       </nav>
       {entry.example && (
         <div className="sample-banner">
-          <span className="example-tag">Sample data</span>
+          <span className="example-tag">
+            {entry.historical ? "Historical case" : "Sample data"}
+          </span>
           <p>
-            <strong>A fictional field note.</strong> This story and its evidence
-            are examples of how Unstuck works.
+            {entry.historical ? (
+              <>
+                <strong>A documented failure, retold as an entry.</strong> The
+                film is public domain. The write-up shows how Unstuck presents a
+                case.
+              </>
+            ) : (
+              <>
+                <strong>A fictional field note.</strong> This story and its
+                evidence are examples of how Unstuck works.
+              </>
+            )}
           </p>
         </div>
       )}
@@ -117,6 +139,18 @@ export default async function EntryPage({
           </a>
         </nav>
         <article className="detail-story">
+          {entry.clip ? (
+            <MomentPlayer clip={entry.clip} start={start} />
+          ) : (
+            entry.cover && (
+              <Picture
+                id="photo"
+                picture={entry.cover}
+                className="story-photo"
+                sizes="(max-width: 880px) 100vw, 660px"
+              />
+            )
+          )}
           <div className="story-body">
             {entry.sections.map((section, i) => (
               <section key={section.title} id={`section-${i}`}>
@@ -197,6 +231,19 @@ export default async function EntryPage({
               Different conditions can tell a different story.
             </p>
           </div>
+          {sessions.map((session) => (
+            <Link
+              key={session.id}
+              className="detail-session"
+              href={`/sessions/${session.id}`}
+            >
+              <span>
+                Open inquiry · {session.rounds.flatMap((r) => r.notes).length}{" "}
+                notes
+              </span>
+              <strong>{session.title}</strong>
+            </Link>
+          ))}
           <Link
             className="detail-contribute"
             href={`/new?relates=${encodeURIComponent(entry.id)}`}

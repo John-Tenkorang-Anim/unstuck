@@ -38,6 +38,17 @@ npm run start -- --port 3100
   outcome filters, field filters, sorting, empty states, shareable filter
   addresses, a `/` keyboard shortcut, and a `⌘K` search palette.
 - Light and dark themes that follow the system, with a remembered override.
+- A search page that ranks across text, video moments, photo descriptions,
+  explanations and session feedback, links to the exact second or spot, and
+  summarises matching outcomes as counts. It renders without JavaScript.
+- Critique and inquiry sessions with pinned or time-coded feedback, rounds and
+  status. Notes people add are kept on their device.
+- Photos and short video in notes and sessions, by paste, drop or file choice,
+  with pinned spots and marked moments. Drafts keep files on the device.
+- A video player whose marked moments are keyboard-reachable chapters.
+
+Sample photos and film come from Wikimedia Commons under the licenses shown on
+the About page. See the [search, media and sessions note](../../docs/architecture/0002-search-media-and-sessions.md).
 - Server-rendered field notes with context, outcome labels, explanations,
   source sections, sharing, and saved-entry controls.
 - Open questions and a personal notebook with persistent device-local bookmarks.

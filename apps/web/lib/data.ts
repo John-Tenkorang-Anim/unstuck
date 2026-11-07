@@ -1,7 +1,222 @@
-import type { Entry } from "./types";
+import type { Credit, Entry, Picture } from "./types";
+
+const commons = (file: string) =>
+  `https://commons.wikimedia.org/wiki/File:${file}`;
+function picture(
+  name: string,
+  width: number,
+  height: number,
+  alt: string,
+  credit: Credit,
+): Picture {
+  return {
+    src: `/samples/${name}-1200.jpg`,
+    small: `/samples/${name}-640.jpg`,
+    width,
+    height,
+    alt,
+    credit,
+  };
+}
+export const samplePictures = {
+  pots: picture(
+    "pots",
+    1200,
+    900,
+    "A large clay pot holding a smaller one, with damp sand packed between them and vegetables inside.",
+    {
+      author: "Peter Rinker",
+      license: "CC BY-SA 3.0",
+      source: commons("Tonkrugkühler,_Clay_pot_cooler,_Canari_Frigo.JPG"),
+    },
+  ),
+  garden: picture(
+    "garden",
+    1200,
+    900,
+    "Raised vegetable beds edged with timber in a sunny garden.",
+    {
+      author: "Kolforn",
+      license: "CC BY-SA 4.0",
+      source: commons(
+        "-2020-07-10_Raised_garden_beds,_Trimingham,_Norfolk.JPG",
+      ),
+    },
+  ),
+  classroom: picture(
+    "classroom",
+    1200,
+    798,
+    "Students at a classroom bench working with lemons, oranges and syringes during a science lesson.",
+    {
+      author: "Shixart1985",
+      license: "CC BY 2.0",
+      source: commons(
+        "Experimenting_with_citrus_fruits_and_syringes_in_a_classroom_setting_during_a_science_lesson_undefined.jpg",
+      ),
+    },
+  ),
+  print: picture(
+    "print",
+    1200,
+    1600,
+    "A failed 3D print: the lower layers are solid, then the part collapses into a loose tangle of plastic strands.",
+    {
+      author: "EwkaC",
+      license: "CC BY-SA 4.0",
+      source: commons("Nieudany_wydruk_3D_01.jpg"),
+    },
+  ),
+  solder: picture(
+    "solder",
+    1200,
+    891,
+    "Close-up of a circuit board where a solder joint has a dull, lumpy surface around a component lead.",
+    {
+      author: "Coronium",
+      license: "CC BY-SA 3.0",
+      source: commons("Cold_solder_joint.jpg"),
+    },
+  ),
+  breadboard: picture(
+    "breadboard",
+    1200,
+    1549,
+    "A breadboard with a green LED, a resistor and jumper wires.",
+    {
+      author: "Rhetos",
+      license: "CC0",
+      source: commons("Steckplatine_(grüne_LED).jpg"),
+    },
+  ),
+  tacoma: picture(
+    "tacoma-still",
+    1200,
+    900,
+    "Black and white film still of the Tacoma Narrows Bridge deck twisting between its towers.",
+    {
+      author: "Barney Elliott",
+      license: "Public domain",
+      source: commons("Tacoma_Narrows_still.png"),
+    },
+  ),
+};
 
 // Fictional examples demonstrate the product. They are not real research or advice.
 export const examples: Entry[] = [
+  {
+    id: "tacoma-narrows-1940",
+    kind: "research",
+    title: "Tacoma Narrows, 1940: the bridge that twisted itself apart",
+    excerpt:
+      "A new suspension bridge with a slender, solid-sided deck. Moderate wind set it twisting, and four months after opening the centre span fell. Filmed from start to finish.",
+    topic: "Making & fixing",
+    outcome: "failed",
+    place: "Tacoma, Washington, USA",
+    alias: "archive-case-1940",
+    date: "2026-11-06",
+    illustration: "water",
+    cover: samplePictures.tacoma,
+    clip: {
+      src: "/samples/tacoma-480.webm",
+      type: "video/webm",
+      bytes: 11100673,
+      poster: samplePictures.tacoma,
+      duration: 149.6,
+      title: "The collapse, 7 November 1940",
+      credit: {
+        author: "Barney Elliott",
+        license: "Public domain",
+        source: commons("Tacoma_Narrows_Bridge_destruction.ogv"),
+      },
+      moments: [
+        {
+          at: 5,
+          label: "The deck rolls in long vertical waves",
+          kind: "note",
+          detail:
+            "The deck heaves up and down along its length. This motion had been seen since construction and was not what destroyed the bridge.",
+        },
+        {
+          at: 62,
+          label: "The motion changes to twisting",
+          kind: "broke",
+          detail:
+            "Seen from the side, one edge of the deck rises while the other drops. This twisting motion is the one that grew until the span failed.",
+        },
+        {
+          at: 70,
+          label: "Looking along the deck as it twists",
+          kind: "note",
+          detail:
+            "The roadway tilts from side to side and the lamp posts lean with it.",
+        },
+        {
+          at: 95,
+          label: "A man walks off the bridge",
+          kind: "note",
+          detail: "People leave the deck on foot while it is still moving.",
+        },
+        {
+          at: 116,
+          label: "The centre span tears loose and falls",
+          kind: "broke",
+          detail:
+            "Sections of the centre span break away from the hangers and drop into the water below.",
+        },
+        {
+          at: 136,
+          label: "The aftermath",
+          kind: "note",
+          detail:
+            "The towers and main cables still stand, with the centre span gone.",
+        },
+      ],
+    },
+    readingMinutes: 4,
+    tried: 0,
+    helped: 41,
+    comments: 9,
+    context: {
+      Structure: "Suspension bridge",
+      Opened: "1 July 1940",
+      Failed: "7 November 1940",
+      Wind: "About 40 mph",
+      Deck: "Shallow solid plate girders",
+    },
+    sections: [
+      {
+        title: "What they were trying to do",
+        body: "Cross the Tacoma Narrows with a long suspension bridge on a tight budget. The design used a narrow deck stiffened by shallow, solid plate girders instead of a deep open truss, which made it light and elegant.",
+      },
+      {
+        title: "What happened",
+        body: "The deck moved in the wind from the day it opened. On 7 November 1940, in a wind of about 40 mph, the motion changed from up-and-down waves to twisting. The twisting grew until the centre span broke apart and fell into the water. Nobody on the bridge was killed.",
+      },
+      {
+        title: "Why it failed",
+        body: "Investigators concluded that the slender, solid deck was aerodynamically unstable. Once it began to twist, the wind fed energy into the twisting faster than the structure could absorb it, a self-reinforcing effect now called aeroelastic flutter. It is often described as simple resonance, but that explanation is incomplete.",
+      },
+      {
+        title: "What changed afterwards",
+        body: "The replacement bridge, opened in 1950, used a deep open truss that lets wind pass through and resists twisting. Wind-tunnel testing of bridge models became standard practice.",
+      },
+    ],
+    evidence: [
+      {
+        label: "Aeroelastic flutter drove the twisting failure",
+        detail: "Established in the investigations that followed",
+        state: "verified",
+      },
+      {
+        label: "Simple resonance with gusts caused the collapse",
+        detail: "A popular explanation that engineers consider incomplete",
+        state: "proposed",
+      },
+    ],
+    example: true,
+    historical: true,
+  },
   {
     id: "two-pots-one-small-breakthrough",
     kind: "solution",
@@ -14,6 +229,7 @@ export const examples: Entry[] = [
     alias: "quiet-baobab-24",
     date: "2026-11-05",
     illustration: "pots",
+    cover: samplePictures.pots,
     readingMinutes: 4,
     tried: 24,
     helped: 86,
@@ -160,6 +376,7 @@ export const examples: Entry[] = [
     alias: "curious-sunbird-32",
     date: "2026-11-02",
     illustration: "garden",
+    cover: samplePictures.garden,
     readingMinutes: 3,
     tried: 7,
     helped: 23,
@@ -240,6 +457,7 @@ export const examples: Entry[] = [
     alias: "thoughtful-ibis-07",
     date: "2026-10-31",
     illustration: "water",
+    cover: samplePictures.classroom,
     readingMinutes: 6,
     tried: 6,
     helped: 19,

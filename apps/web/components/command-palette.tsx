@@ -23,6 +23,13 @@ type Command = {
 };
 const fixed: Command[] = [
   { id: "discover", group: "Go to", label: "Discover", href: "/" },
+  { id: "search", group: "Go to", label: "Search everything", href: "/search" },
+  {
+    id: "critique",
+    group: "Go to",
+    label: "Critique sessions",
+    href: "/sessions",
+  },
   {
     id: "questions",
     group: "Go to",
@@ -37,6 +44,12 @@ const fixed: Command[] = [
     group: "Create",
     label: "Ask a question",
     href: "/new?kind=problem",
+  },
+  {
+    id: "critique-new",
+    group: "Create",
+    label: "Ask for critique",
+    href: "/sessions/new",
   },
   ...topics.map((topic) => ({
     id: `field-${topic}`,
@@ -103,9 +116,16 @@ export default function CommandPalette({
           .includes(term),
       ),
     );
-    return terms.length
-      ? matches
-      : matches.filter((c) => c.group !== "Entries");
+    if (!terms.length) return matches.filter((c) => c.group !== "Entries");
+    return [
+      {
+        id: "full-search",
+        group: "Search",
+        label: `Search for “${query.trim()}”`,
+        href: `/search?q=${encodeURIComponent(query.trim())}`,
+      },
+      ...matches,
+    ];
   }, [entries, query]);
   const current = Math.min(active, Math.max(0, results.length - 1));
   useEffect(() => {

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
+import { Credit } from "@/components/picture";
+import { examples, samplePictures } from "@/lib/data";
 export const metadata: Metadata = { title: "A little more about Unstuck" };
 const loop = [
   [
@@ -109,6 +111,29 @@ export default function About() {
           </p>
         </div>
       </div>
+      <section
+        id="credits"
+        className="frame about-section"
+        aria-labelledby="credits-title"
+      >
+        <h2 id="credits-title">Photo and film credits</h2>
+        <ul className="credits">
+          {Object.values(samplePictures).map((picture) => (
+            <li key={picture.src}>
+              <span>{picture.alt}</span>
+              <Credit credit={picture.credit} />
+            </li>
+          ))}
+          {examples
+            .filter((entry) => entry.clip)
+            .map((entry) => (
+              <li key={entry.clip!.src}>
+                <span>Film: {entry.clip!.title}</span>
+                <Credit credit={entry.clip!.credit} />
+              </li>
+            ))}
+        </ul>
+      </section>
       <section className="contribute-banner">
         <div className="frame contribute-inner">
           <h2>

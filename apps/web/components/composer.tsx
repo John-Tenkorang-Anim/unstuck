@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { EntryKind, Outcome } from "@/lib/types";
 import { kindLabels } from "@/lib/data";
+import { MediaAttach, type Attached } from "./media-attach";
 import { useNotebook } from "./notebook-provider";
 
 const kinds = [
@@ -103,6 +104,7 @@ const blank: Draft = {
   limitations: "",
 };
 const storageKey = "unstuck:draft:v1";
+const mediaKey = "unstuck:draft:v1:media";
 export function Composer({
   initialKind,
   relates,
@@ -124,6 +126,25 @@ export function Composer({
   const [savedAt, setSavedAt] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [complete, setComplete] = useState(false);
+  const [media, setMedia] = useState<Attached[]>([]);
+  useEffect(() => {
+    try {
+      const stored: unknown = JSON.parse(
+        localStorage.getItem(mediaKey) ?? "[]",
+      );
+      if (Array.isArray(stored)) setMedia(stored as Attached[]);
+    } catch {
+      /* Media metadata is optional. */
+    }
+  }, []);
+  function updateMedia(next: Attached[]) {
+    setMedia(next);
+    try {
+      localStorage.setItem(mediaKey, JSON.stringify(next));
+    } catch {
+      /* Attachments last for this visit. */
+    }
+  }
   const { notice } = useNotebook();
   useEffect(() => {
     try {
@@ -245,6 +266,15 @@ export function Composer({
       license: "CC-BY-4.0",
       topics: [],
       context: draft.country ? { country: draft.country } : {},
+      media: media.map(({ kind, name, type, size, alt, pins, moments }) => ({
+        kind,
+        name,
+        type,
+        size,
+        alt,
+        pins,
+        moments,
+      })),
       type_fields:
         draft.kind === "research"
           ? { method: draft.method, limitations: draft.limitations }
@@ -423,6 +453,14 @@ export function Composer({
                 <strong className="tint-ongoing">unfinished ideas</strong>. They
                 all belong.
               </p>
+              <Link className="critique-cta" href="/sessions/new">
+                <strong>Want feedback on a piece of work?</strong>
+                <span>
+                  Paste a photo or video, pin what went wrong, and open a
+                  critique session.
+                </span>
+                <ArrowRight size={18} />
+              </Link>
               <div className="kind-list">
                 {kinds.map((item) => (
                   <button
@@ -568,6 +606,9 @@ export function Composer({
                   false,
                   true,
                 )}
+                <div className="form-field">
+                  <MediaAttach value={media} onChange={updateMedia} />
+                </div>
               </form>
             </>
           ) : (
@@ -599,6 +640,23 @@ export function Composer({
                   ))}
                 {draft.country && (
                   <div className="draft-country">Context: {draft.country}</div>
+                )}
+                {media.length > 0 && (
+                  <section>
+                    <h4>Photos and video</h4>
+                    <ul className="draft-media">
+                      {media.map((item) => (
+                        <li key={item.id}>
+                          {item.kind === "video" ? "Video" : "Photo"}:{" "}
+                          {item.alt || item.name}
+                          {item.pins.length > 0 &&
+                            ` · ${item.pins.length} pinned spots`}
+                          {item.moments.length > 0 &&
+                            ` · ${item.moments.length} marked moments`}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
                 )}
               </article>
               <button className="text-link draft-export" onClick={exportDraft}>

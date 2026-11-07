@@ -27,11 +27,11 @@ describe("finding a way forward", () => {
   it("renders useful initial content before any interaction", () => {
     discover();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Someone’s been",
+      "Learn from what failed.",
     );
-    expect(screen.getAllByRole("article")).toHaveLength(6);
+    expect(screen.getAllByRole("article")).toHaveLength(7);
     expect(
-      screen.getByText(/Fictional stories to explore what’s possible/),
+      screen.getByText(/Fictional stories and one historical case/),
     ).toBeVisible();
   });
   it("combines search, outcome and field filters, with a working empty state", async () => {
@@ -52,7 +52,7 @@ describe("finding a way forward", () => {
       screen.getByRole("heading", { name: "A new direction is waiting." }),
     ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Clear filters" }));
-    expect(screen.getAllByRole("article")).toHaveLength(6);
+    expect(screen.getAllByRole("article")).toHaveLength(7);
   });
   it("sorts by evidence participation and supports the search keyboard shortcut", async () => {
     const user = userEvent.setup();
@@ -108,7 +108,7 @@ describe("finding a way forward", () => {
   it("keeps malformed saved storage from crashing the interface", () => {
     localStorage.setItem("unstuck:saved", "invalid json");
     discover();
-    expect(screen.getAllByRole("article")).toHaveLength(6);
+    expect(screen.getAllByRole("article")).toHaveLength(7);
   });
 });
 
@@ -139,7 +139,7 @@ describe("the outcome atlas", () => {
     );
     expect(window.location.search).toBe("?topic=Software&outcome=failed");
     await user.click(screen.getByRole("link", { name }));
-    expect(screen.getAllByRole("article")).toHaveLength(6);
+    expect(screen.getAllByRole("article")).toHaveLength(7);
     expect(window.location.search).toBe("");
   });
   it("restores a filter from a shared address and ignores unknown outcomes", () => {
@@ -147,7 +147,7 @@ describe("the outcome atlas", () => {
     expect(screen.getAllByRole("article")).toHaveLength(1);
     shared.unmount();
     discover({ initialOutcome: "not-an-outcome" });
-    expect(screen.getAllByRole("article")).toHaveLength(6);
+    expect(screen.getAllByRole("article")).toHaveLength(7);
   });
   it("exposes all six outcome filters with visible state, and names only their label", () => {
     discover();
@@ -279,13 +279,22 @@ describe("accessible navigation", () => {
     await user.keyboard("{Meta>}k{/Meta}");
     const input = await screen.findByRole("combobox");
     await user.type(input, "cache");
-    const option = await screen.findByRole("option", { name: /The cache/ });
-    expect(option).toHaveAttribute("aria-selected", "true");
+    expect(
+      await screen.findByRole("option", { name: /Search for “cache”/ }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(
+      await screen.findByRole("option", { name: /The cache/ }),
+    ).toHaveAttribute("aria-selected", "false");
     await user.keyboard("{Escape}");
     await waitFor(() => expect(before).toHaveFocus());
     await user.keyboard("{Meta>}k{/Meta}");
-    await user.type(await screen.findByRole("combobox"), "cache{Enter}");
+    await user.type(await screen.findByRole("combobox"), "cache");
+    await screen.findByRole("option", { name: /The cache/ });
+    await user.keyboard("{ArrowDown}{Enter}");
     expect(push).toHaveBeenCalledWith("/entries/the-cache-was-not-the-problem");
+    await user.keyboard("{Meta>}k{/Meta}");
+    await user.type(await screen.findByRole("combobox"), "cache{Enter}");
+    expect(push).toHaveBeenCalledWith("/search?q=cache");
     vi.unstubAllGlobals();
   });
   it("switches theme and remembers the choice", async () => {
