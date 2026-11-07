@@ -9,9 +9,11 @@ needed to render the interface.
 - **Type:** Space Grotesk for headlines and figures, IBM Plex Sans for reading
   and interface text. Both are bundled locally. Light reading uses system fonts
   and never downloads them.
-- **Colour:** neutral with small accents. Outcome colours pass the colour vision
-  checks in both themes, and each outcome also has its own glyph shape. Coloured
-  text uses separate `--*-text` tokens that meet a 4.5:1 contrast ratio.
+- **Colour:** one signature colour, Cherenkov Blue `#2F5BFF`, for brand accents,
+  primary buttons and links. It meets 4.5:1 as text on white and with white text
+  on it. Dark backgrounds use starlight `#9BB0FF` and dark mode uses `#8EA6FF`.
+  The outcome colours appear only where they encode results, each with its own
+  glyph shape.
 - **Motion:** entrance and scroll reveals are CSS only, so content never depends
   on scripts to appear. Page and filter changes use React's `ViewTransition`.
   Reduced-motion and light reading turn all of it off.

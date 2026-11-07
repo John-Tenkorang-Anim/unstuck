@@ -161,7 +161,7 @@ export function Discovery({
         <>
           <section className="home-search frame" aria-labelledby="hero-title">
             <h1 id="hero-title">
-              Learn from <span className="tint-failed">what failed.</span>
+              Learn from <span className="tint-brand">what failed.</span>
             </h1>
             <p className="home-lede">
               Search attempts, photos and film, down to the second something
@@ -207,13 +207,12 @@ export function Discovery({
           <h1>
             {savedOnly ? (
               <>
-                Good things,{" "}
-                <span className="tint-worked">kept for later.</span>
+                Good things, <span className="tint-brand">kept for later.</span>
               </>
             ) : (
               <>
                 A little stuck?{" "}
-                <span className="tint-worked">You’re in good company.</span>
+                <span className="tint-brand">You’re in good company.</span>
               </>
             )}
           </h1>
@@ -431,8 +430,7 @@ export function Discovery({
         <section className="contribute-banner">
           <div className="frame contribute-inner">
             <h2>
-              Post the one that{" "}
-              <span className="tint-invert">didn’t work.</span>
+              Post the one that <span className="tint-star">didn’t work.</span>
             </h2>
             <div>
               <p>

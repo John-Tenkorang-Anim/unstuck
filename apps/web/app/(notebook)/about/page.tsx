@@ -51,7 +51,7 @@ export default function About() {
         <p className="label">About Unstuck</p>
         <h1>
           Somewhere, someone has tried the thing you’re{" "}
-          <span className="tint-worked">trying to figure out.</span>
+          <span className="tint-brand">trying to figure out.</span>
         </h1>
         <div className="about-columns">
           <p>
@@ -62,10 +62,9 @@ export default function About() {
           </p>
           <p>
             Unstuck is an open record of those attempts. It keeps{" "}
-            <strong className="tint-worked">what worked</strong>,{" "}
-            <strong className="tint-failed">what didn’t</strong>, and the{" "}
-            <strong className="tint-ongoing">questions still open</strong>, and
-            it makes the evidence behind them easy to read.
+            <strong>what worked</strong>, <strong>what didn’t</strong>, and the{" "}
+            <strong>questions still open</strong>, and it makes the evidence
+            behind them easy to read.
           </p>
         </div>
       </section>
@@ -137,7 +136,7 @@ export default function About() {
       <section className="contribute-banner">
         <div className="frame contribute-inner">
           <h2>
-            What have you <span className="tint-invert">learned lately?</span>
+            What have you <span className="tint-star">learned lately?</span>
           </h2>
           <div>
             <p>It could be the beginning of someone else’s breakthrough.</p>

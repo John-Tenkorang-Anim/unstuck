@@ -20,7 +20,13 @@
   --invert-bg: #000000;
   --invert-ink: #f5f5f7;
   --invert-ink-2: #a1a1a6;
-  --focus: #0071e3;
+  --focus: #2f5bff;
+  /* Cherenkov Blue: the signature. --brand is for text and lines, --brand-solid for fills with white text. */
+  --brand: #2f5bff;
+  --brand-solid: #2f5bff;
+  --brand-press: #2346f0;
+  --brand-wash: #eef2ff;
+  --star: #9bb0ff;
   --thumb: #ffffff;
   --shadow-soft: none;
   --shadow-float:
@@ -35,7 +41,7 @@
   --mixed-text: #7f5d00;
   --ongoing-text: #2a4fc4;
   --open-text: #636366;
-  --link: #2a4fc4;
+  --link: #2f5bff;
   --invert-accent: #3fd0b8;
   --worked-solid: #006f68;
   --failed-solid: #b0300c;
@@ -70,7 +76,9 @@
     --invert-bg: #1c1c1e;
     --invert-ink: #f5f5f7;
     --invert-ink-2: #a1a1a6;
-    --focus: #2997ff;
+    --focus: #8ea6ff;
+    --brand: #8ea6ff;
+    --brand-wash: rgb(47 91 255 / 0.18);
     --thumb: #636366;
     --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.04);
     --shadow-float:
@@ -85,7 +93,7 @@
     --mixed-text: #e4bf4a;
     --ongoing-text: #9db0ff;
     --open-text: #98989d;
-    --link: #9db0ff;
+    --link: #8ea6ff;
   }
 }
 :root[data-theme="dark"] {
@@ -103,7 +111,9 @@
   --invert-bg: #1c1c1e;
   --invert-ink: #f5f5f7;
   --invert-ink-2: #a1a1a6;
-  --focus: #2997ff;
+  --focus: #8ea6ff;
+  --brand: #8ea6ff;
+  --brand-wash: rgb(47 91 255 / 0.18);
   --thumb: #636366;
   --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.04);
   --shadow-float:
@@ -118,7 +128,7 @@
   --mixed-text: #e4bf4a;
   --ongoing-text: #9db0ff;
   --open-text: #98989d;
-  --link: #9db0ff;
+  --link: #8ea6ff;
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -237,17 +247,11 @@ h3,
 .media-gallery .section-kicker {
   font-family: var(--display);
 }
-.tint-worked {
-  color: var(--worked-text);
+.tint-brand {
+  color: var(--brand);
 }
-.tint-failed {
-  color: var(--failed-text);
-}
-.tint-ongoing {
-  color: var(--ongoing-text);
-}
-.tint-invert {
-  color: var(--invert-accent);
+.tint-star {
+  color: var(--star);
 }
 kbd {
   font: 500 11.5px/1 var(--sans);
@@ -331,11 +335,11 @@ main:focus {
   transform: scale(0.97);
 }
 .button-dark {
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--brand-solid);
+  color: #fff;
 }
 .button-dark:hover {
-  opacity: 0.84;
+  background: var(--brand-press);
 }
 .button-outline {
   background: var(--fill);
@@ -440,6 +444,9 @@ main:focus {
   backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 0.5px solid var(--rule);
   view-transition-name: topbar;
+}
+.brand svg {
+  color: var(--brand);
 }
 .brand {
   display: inline-flex;
@@ -590,6 +597,7 @@ main:focus {
   text-align: center;
 }
 .hero-kicker {
+  color: var(--brand) !important;
   font-size: clamp(16px, 1.6vw, 21px);
   font-weight: 600;
   color: var(--worked-text);
@@ -645,23 +653,14 @@ main:focus {
   --mixed-text: #e4bf4a;
   --ongoing-text: #9db0ff;
   --open-text: #a1a1a6;
-  --link: #9db0ff;
+  --link: #8ea6ff;
   --stage: #101215;
   position: relative;
   overflow: hidden;
   padding: clamp(20px, 3.2vw, 44px);
   border-radius: clamp(22px, 2.6vw, 34px);
   background:
-    radial-gradient(
-      120% 80% at 85% 0%,
-      rgb(14 158 134 / 0.22),
-      transparent 60%
-    ),
-    radial-gradient(
-      90% 70% at 0% 100%,
-      rgb(109 127 242 / 0.16),
-      transparent 60%
-    ),
+    radial-gradient(90% 80% at 85% 0%, rgb(47 91 255 / 0.32), transparent 62%),
     var(--stage);
   color: var(--ink);
   color-scheme: dark;
@@ -1452,7 +1451,7 @@ main:focus {
 .context-panel .label,
 .success-note .label,
 .draft-preview .label {
-  color: var(--worked-text);
+  color: var(--brand);
 }
 .page-head + .ledger {
   padding-top: clamp(40px, 5vw, 64px);
@@ -1771,8 +1770,8 @@ main:focus {
   gap: 1px;
   padding: 16px 20px;
   border-radius: var(--r-l);
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--brand-solid);
+  color: #fff;
   transition:
     opacity 0.2s,
     transform 0.45s var(--ease);
@@ -2063,7 +2062,7 @@ main:focus {
   transition: background-color 0.2s;
 }
 .kind-option[aria-pressed="true"] > svg {
-  color: var(--worked-text);
+  color: var(--brand);
 }
 .kind-option[aria-pressed="true"] .kind-check {
   background: var(--ink);
@@ -2293,7 +2292,7 @@ main:focus {
   transition: background-color 0.4s;
 }
 .signal-meter .is-done {
-  background: var(--worked);
+  background: var(--brand-solid);
 }
 .signal ul {
   display: grid;
@@ -2318,7 +2317,7 @@ main:focus {
   color: var(--ink);
 }
 .signal li.is-done svg {
-  color: var(--worked-text);
+  color: var(--brand);
 }
 .writing-tip {
   padding-inline: 18px;
@@ -3179,8 +3178,8 @@ main:focus {
   margin-top: 10px;
   padding: 14px 18px;
   border-radius: var(--r-m);
-  background: var(--ink);
-  color: var(--bg);
+  background: var(--brand-solid);
+  color: #fff;
   transition: opacity 0.2s;
 }
 .critique-cta:hover {
@@ -4905,7 +4904,7 @@ mark {
   height: 30px;
   margin-left: 4px;
   border-radius: 50%;
-  background: var(--ongoing-solid);
+  background: var(--brand-solid);
   color: #fff;
   font-family: var(--display);
   font-size: 13px;
@@ -5424,15 +5423,17 @@ mark {
 }
 
 /* Landing page ------------------------------------------------------------
-   A fixed look, independent of the app's theme: cinematic black for the
-   opening and closing, white for the explanation in between.
+   One signature colour, Cherenkov Blue (#2F5BFF): the glow of particles
+   outrunning light in water. Deep space for the opening and close, starlight
+   (#9BB0FF, a blue giant's colour) for type on the dark, white in between.
    -------------------------------------------------------------------------- */
 .lp {
-  --lp-ink: #f5f5f7;
-  --lp-dim: #a1a1a6;
-  --lp-black: #050607;
-  --lp-fail-a: #ff7a52;
-  --lp-fail-b: #ffb23e;
+  --cherenkov: #2f5bff;
+  --cherenkov-press: #2346f0;
+  --starlight: #9bb0ff;
+  --space: #040817;
+  --lp-ink: #f4f6ff;
+  --lp-dim: #a9b2d6;
   background: #ffffff;
   color: #1d1d1f;
   overflow-x: clip;
@@ -5447,7 +5448,7 @@ mark {
   padding: 14px clamp(16px, 4vw, 48px);
   padding-top: calc(14px + env(safe-area-inset-top, 0px));
   color: var(--lp-ink);
-  background: rgb(5 6 7 / 0.55);
+  background: rgb(4 8 23 / 0.55);
   -webkit-backdrop-filter: saturate(180%) blur(18px);
   backdrop-filter: saturate(180%) blur(18px);
 }
@@ -5464,6 +5465,9 @@ mark {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+.lp-brand svg {
+  color: var(--starlight);
 }
 .lp-signin,
 .lp-ghost {
@@ -5482,18 +5486,24 @@ mark {
   gap: 10px;
   padding: 16px 28px;
   border-radius: 980px;
-  background: #ffffff;
-  color: #050607;
+  background: var(--cherenkov);
+  color: #fff;
   font-size: 17px;
-  font-weight: 600;
-  box-shadow: 0 0 0 0 rgb(255 255 255 / 0);
+  font-weight: 700;
+  box-shadow:
+    0 0 0 1px rgb(155 176 255 / 0.35) inset,
+    0 10px 40px -8px rgb(47 91 255 / 0.75);
   transition:
     transform 0.5s var(--ease),
-    box-shadow 0.5s var(--ease);
+    box-shadow 0.5s var(--ease),
+    background-color 0.3s;
 }
 .lp-cta:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 12px 40px -10px rgb(255 178 62 / 0.55);
+  background: var(--cherenkov-press);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    0 0 0 1px rgb(155 176 255 / 0.5) inset,
+    0 16px 56px -6px rgb(47 91 255 / 0.95);
 }
 .lp-cta svg {
   transition: transform 0.4s var(--ease);
@@ -5504,6 +5514,7 @@ mark {
 .lp-cta-small {
   padding: 9px 18px;
   font-size: 14.5px;
+  box-shadow: 0 6px 24px -8px rgb(47 91 255 / 0.8);
 }
 .lp-hero {
   position: relative;
@@ -5511,33 +5522,65 @@ mark {
   justify-items: center;
   align-content: center;
   min-height: 100svh;
-  padding: 120px clamp(16px, 5vw, 64px) 80px;
-  background: var(--lp-black);
+  padding: 110px clamp(16px, 5vw, 64px) 72px;
+  background: var(--space);
   color: var(--lp-ink);
   text-align: center;
   isolation: isolate;
+  overflow: hidden;
 }
-.lp-glow {
+.lp-space {
   position: absolute;
   inset: 0;
   z-index: -1;
+  overflow: hidden;
+}
+/* A starfield from two tiles of different sizes, so the pattern never lines up. */
+.lp-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.2px 1.2px at 22px 38px, #fff, transparent),
+    radial-gradient(1px 1px at 118px 92px, rgb(255 255 255 / 0.8), transparent),
+    radial-gradient(1.4px 1.4px at 190px 18px, #dfe6ff, transparent),
+    radial-gradient(1px 1px at 64px 170px, rgb(255 255 255 / 0.7), transparent),
+    radial-gradient(1.6px 1.6px at 228px 140px, #c8d3ff, transparent),
+    radial-gradient(1px 1px at 150px 214px, rgb(255 255 255 / 0.6), transparent);
+  background-size: 260px 240px;
+  opacity: 0.75;
+}
+.lp-stars-far {
+  background-image:
+    radial-gradient(1px 1px at 40px 60px, rgb(255 255 255 / 0.55), transparent),
+    radial-gradient(
+      1px 1px at 300px 120px,
+      rgb(255 255 255 / 0.45),
+      transparent
+    ),
+    radial-gradient(
+      1.2px 1.2px at 180px 330px,
+      rgb(207 218 255 / 0.6),
+      transparent
+    ),
+    radial-gradient(1px 1px at 350px 280px, rgb(255 255 255 / 0.4), transparent);
+  background-size: 410px 370px;
+  opacity: 0.6;
+}
+.lp-cherenkov {
+  position: absolute;
+  inset: 0;
   background:
+    radial-gradient(38% 30% at 50% 42%, rgb(47 91 255 / 0.32), transparent 70%),
     radial-gradient(
-      42% 38% at 18% 30%,
-      rgb(14 158 134 / 0.28),
-      transparent 70%
+      70% 55% at 50% 108%,
+      rgb(47 91 255 / 0.55),
+      transparent 72%
     ),
     radial-gradient(
-      40% 40% at 85% 75%,
-      rgb(255 122 82 / 0.22),
-      transparent 70%
-    ),
-    radial-gradient(
-      60% 50% at 50% 110%,
-      rgb(109 127 242 / 0.25),
+      30% 22% at 50% 104%,
+      rgb(155 176 255 / 0.35),
       transparent 70%
     );
-  filter: blur(8px);
 }
 .lp-kicker {
   display: inline-flex;
@@ -5545,48 +5588,103 @@ mark {
   gap: 10px;
   padding: 8px 16px;
   border-radius: 980px;
-  background: rgb(255 255 255 / 0.07);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  background: rgb(47 91 255 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(155 176 255 / 0.28);
   font-size: 14px;
   color: var(--lp-dim);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 .lp-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--lp-fail-a);
-  box-shadow: 0 0 12px var(--lp-fail-a);
+  background: var(--starlight);
+  box-shadow:
+    0 0 12px var(--cherenkov),
+    0 0 4px #fff;
 }
-.lp-hero h1 {
-  margin-top: 28px;
-  font-size: clamp(56px, 11.5vw, 168px);
+.lp-mark-wrap {
+  position: relative;
+  margin-top: 18px;
+}
+.lp-orbit {
+  position: absolute;
+  left: -8%;
+  top: 6%;
+  width: 116%;
+  height: 92%;
+  overflow: visible;
+  transform: rotate(-7deg);
+  pointer-events: none;
+}
+.lp-orbit ellipse {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.lp-orbit-ring {
+  stroke: rgb(155 176 255 / 0.22);
+  stroke-width: 1;
+}
+.lp-orbit-comet {
+  stroke: var(--starlight);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 0.06 0.94;
+  filter: drop-shadow(0 0 6px var(--cherenkov)) drop-shadow(0 0 2px #fff);
+}
+.lp-wordmark {
+  position: relative;
+  font-size: clamp(96px, 21vw, 320px);
   font-weight: 700;
-  line-height: 0.92;
-  letter-spacing: -0.055em;
-}
-.lp-fail {
-  background: linear-gradient(100deg, var(--lp-fail-a), var(--lp-fail-b));
+  line-height: 0.86;
+  letter-spacing: -0.065em;
+  padding-bottom: 0.06em;
+  background: linear-gradient(
+    100deg,
+    #ffffff 0%,
+    #ffffff 38%,
+    var(--starlight) 50%,
+    #ffffff 62%,
+    #ffffff 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 50%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  filter: drop-shadow(0 0 28px rgb(47 91 255 / 0.55));
+}
+.lp-tagline {
+  margin-top: clamp(4px, 1vw, 14px);
+  font-family: var(--display);
+  font-size: clamp(30px, 4.6vw, 64px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--lp-ink);
+}
+.lp-fail {
+  color: var(--starlight);
+  text-shadow: 0 0 24px rgb(47 91 255 / 0.85);
 }
 .lp-line {
   width: min(1100px, 100%);
   height: auto;
-  margin-top: 18px;
+  margin-top: 14px;
   overflow: visible;
 }
 .lp-line path {
   fill: none;
-  stroke: var(--lp-ink);
+  stroke: var(--starlight);
   stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.9;
+  filter: drop-shadow(0 0 6px rgb(47 91 255 / 0.9));
 }
 .lp-lede {
   max-width: 34em;
-  margin-top: 8px;
+  margin-top: 4px;
   font-size: clamp(18px, 1.9vw, 22px);
   line-height: 1.45;
   color: var(--lp-dim);
@@ -5598,11 +5696,12 @@ mark {
   align-items: center;
   justify-content: center;
   gap: 14px 26px;
-  margin-top: 34px;
+  margin-top: 30px;
 }
 .lp-statement {
   padding: clamp(96px, 14vw, 200px) clamp(16px, 6vw, 96px);
   text-align: center;
+  background: radial-gradient(50% 70% at 50% 0%, #eef2ff, #ffffff 70%);
 }
 .lp-statement p {
   max-width: 22ch;
@@ -5616,7 +5715,7 @@ mark {
 }
 .lp-worked {
   font-style: normal;
-  color: #006f68;
+  color: var(--cherenkov);
 }
 .lp-muted {
   display: inline-block;
@@ -5627,7 +5726,7 @@ mark {
   font-weight: 400;
   line-height: 1.45;
   letter-spacing: 0;
-  color: #6e6e73;
+  color: #5c5f6b;
 }
 .lp-steps {
   padding: 0 clamp(16px, 5vw, 64px) clamp(96px, 12vw, 160px);
@@ -5658,22 +5757,30 @@ mark {
 .lp-step p {
   margin-top: 8px;
   font-size: 17px;
-  color: #6e6e73;
+  color: #5c5f6b;
 }
 .lp-num {
-  display: block;
+  display: inline-block;
   margin-top: 24px;
+  padding: 3px 10px;
+  border-radius: 980px;
+  background: #eef2ff;
   font-family: var(--display);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  color: #b0300c;
+  color: var(--cherenkov);
 }
 .lp-visual {
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
   border-radius: 26px;
-  background: #0b0d10;
+  background: var(--space);
+  box-shadow: 0 30px 60px -30px rgb(47 91 255 / 0.45);
+  transition: box-shadow 0.6s var(--ease);
+}
+.lp-step:hover .lp-visual {
+  box-shadow: 0 40px 80px -26px rgb(47 91 255 / 0.6);
 }
 .lp-visual img {
   width: 100%;
@@ -5692,20 +5799,20 @@ mark {
   height: 32px;
   margin: -16px 0 0 -16px;
   border-radius: 50%;
-  background: #b0300c;
+  background: var(--cherenkov);
   color: #fff;
   font-family: var(--display);
   font-weight: 700;
   font-size: 14px;
   box-shadow:
     0 0 0 3px #fff,
-    0 6px 18px rgb(0 0 0 / 0.4);
+    0 0 22px rgb(47 91 255 / 0.9);
 }
 .lp-tag {
   position: absolute;
   padding: 6px 10px;
   border-radius: 10px;
-  background: rgb(255 255 255 / 0.92);
+  background: rgb(255 255 255 / 0.94);
   color: #1d1d1f;
   font-size: 13px;
   font-weight: 600;
@@ -5722,7 +5829,7 @@ mark {
   position: absolute;
   inset: 0 22% 0 0;
   border-radius: 3px;
-  background: #fff;
+  background: var(--cherenkov);
 }
 .lp-timeline i {
   position: absolute;
@@ -5734,8 +5841,10 @@ mark {
   background: #fff;
 }
 .lp-timeline i.is-break {
-  background: #ff5a2e;
-  box-shadow: 0 0 14px #ff5a2e;
+  background: var(--starlight);
+  box-shadow:
+    0 0 14px var(--cherenkov),
+    0 0 4px #fff;
 }
 .lp-moment {
   position: absolute;
@@ -5743,20 +5852,20 @@ mark {
   bottom: 16px;
   padding: 6px 10px;
   border-radius: 10px;
-  background: rgb(0 0 0 / 0.7);
+  background: rgb(4 8 23 / 0.78);
   color: #fff;
   font-size: 13.5px;
 }
 .lp-moment b {
   margin-right: 6px;
-  color: #ff8d6b;
+  color: var(--starlight);
 }
 .lp-visual-notes {
   display: grid;
   align-content: center;
   gap: 10px;
   padding: 22px;
-  background: linear-gradient(160deg, #f5f5f7, #e8e8ed);
+  background: linear-gradient(160deg, #eef2ff, #dfe6ff);
 }
 .lp-visual-notes p {
   padding: 12px 14px;
@@ -5764,24 +5873,19 @@ mark {
   background: #fff;
   font-size: 14.5px;
   line-height: 1.4;
-  box-shadow: 0 6px 20px -12px rgb(0 0 0 / 0.25);
+  box-shadow: 0 6px 20px -12px rgb(47 91 255 / 0.4);
 }
 .lp-visual-notes b {
   margin-right: 6px;
-}
-.lp-visual-notes [data-kind="issue"] b {
-  color: #b0300c;
-}
-.lp-visual-notes [data-kind="suggestion"] b {
-  color: #2a4fc4;
-}
-.lp-visual-notes [data-kind="strength"] b {
-  color: #006f68;
+  color: var(--cherenkov);
 }
 .lp-crowd {
+  position: relative;
   padding: clamp(96px, 12vw, 160px) 0;
-  background: var(--lp-black);
+  background: var(--space);
   color: var(--lp-ink);
+  isolation: isolate;
+  overflow: hidden;
 }
 .lp-crowd h2 {
   padding-inline: 16px;
@@ -5809,24 +5913,15 @@ mark {
   gap: 10px;
   padding: 14px 22px;
   border-radius: 980px;
-  background: rgb(255 255 255 / 0.06);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  background: rgb(47 91 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(155 176 255 / 0.2);
   font-family: var(--display);
   font-size: clamp(18px, 2vw, 24px);
   font-weight: 600;
   white-space: nowrap;
 }
-.lp-marquee .glyph[data-outcome="worked"] {
-  color: #3fd0b8;
-}
-.lp-marquee .glyph[data-outcome="failed"] {
-  color: #ff8d6b;
-}
-.lp-marquee .glyph[data-outcome="mixed"] {
-  color: #e4bf4a;
-}
-.lp-marquee .glyph[data-outcome="ongoing"] {
-  color: #9db0ff;
+.lp-marquee .glyph {
+  color: var(--starlight);
 }
 .lp-trust {
   padding: clamp(96px, 12vw, 160px) clamp(16px, 5vw, 64px);
@@ -5842,7 +5937,17 @@ mark {
 .lp-trust-grid > div {
   padding: 28px;
   border-radius: 24px;
-  background: #f5f5f7;
+  background: linear-gradient(160deg, #f3f6ff, #e6ecff);
+}
+.lp-trust-grid > div::before {
+  content: "";
+  display: block;
+  width: 36px;
+  height: 6px;
+  margin-bottom: 18px;
+  border-radius: 3px;
+  background: var(--cherenkov);
+  box-shadow: 0 0 12px rgb(47 91 255 / 0.6);
 }
 .lp-trust-grid h3 {
   font-size: 22px;
@@ -5851,28 +5956,26 @@ mark {
 }
 .lp-trust-grid p {
   margin-top: 8px;
-  color: #6e6e73;
+  color: #4d5160;
   font-size: 16px;
 }
 .lp-final {
+  position: relative;
   display: grid;
   justify-items: center;
   padding: clamp(110px, 16vw, 220px) 16px;
-  background:
-    radial-gradient(
-      50% 60% at 50% 100%,
-      rgb(255 122 82 / 0.22),
-      transparent 70%
-    ),
-    var(--lp-black);
+  background: var(--space);
   color: var(--lp-ink);
   text-align: center;
+  isolation: isolate;
+  overflow: hidden;
 }
 .lp-final h2 {
   font-size: clamp(64px, 12vw, 180px);
   font-weight: 700;
   line-height: 0.92;
   letter-spacing: -0.055em;
+  filter: drop-shadow(0 0 30px rgb(47 91 255 / 0.5));
 }
 .lp-final > p {
   max-width: 30em;
@@ -5888,9 +5991,10 @@ mark {
   gap: 12px;
   padding: 22px clamp(16px, 4vw, 48px);
   padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
-  background: var(--lp-black);
+  background: var(--space);
   color: var(--lp-dim);
   font-size: 14px;
+  border-top: 1px solid rgb(155 176 255 / 0.12);
 }
 .lp-footer .lp-brand {
   font-size: 15px;
@@ -5929,26 +6033,69 @@ mark {
 }
 @keyframes lp-pulse {
   50% {
-    transform: scale(1.12);
-    opacity: 0.7;
+    transform: scale(1.3);
+    opacity: 0.6;
+  }
+}
+@keyframes lp-sweep {
+  0%,
+  35% {
+    background-position: 100% 50%;
+  }
+  65%,
+  100% {
+    background-position: 0% 50%;
+  }
+}
+@keyframes lp-twinkle {
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes lp-comet {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes lp-glow {
+  50% {
+    opacity: 0.75;
   }
 }
 @media screen and (prefers-reduced-motion: no-preference) {
-  html:not([data-lite="true"]) .lp-hero > :not(.lp-glow):not(.lp-line) {
+  html:not([data-lite="true"]) .lp-hero > :not(.lp-space):not(.lp-line) {
     animation: lp-rise 1.2s var(--ease) backwards;
   }
-  html:not([data-lite="true"]) .lp-hero h1 {
-    animation-delay: 0.1s;
+  html:not([data-lite="true"]) .lp-wordmark {
+    animation: lp-sweep 7s ease-in-out 1.4s infinite;
+  }
+  html:not([data-lite="true"]) .lp-tagline {
+    animation-delay: 0.25s;
   }
   html:not([data-lite="true"]) .lp-lede {
-    animation-delay: 1.3s;
+    animation-delay: 1.4s;
   }
   html:not([data-lite="true"]) .lp-hero .lp-actions {
-    animation-delay: 1.5s;
+    animation-delay: 1.6s;
   }
   html:not([data-lite="true"]) .lp-line path {
     stroke-dasharray: 1;
-    animation: lp-draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) backwards 0.4s;
+    animation: lp-draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) backwards 0.5s;
+  }
+  html:not([data-lite="true"]) .lp-orbit-comet {
+    animation: lp-comet 14s linear infinite;
+  }
+  html:not([data-lite="true"]) .lp-stars-far {
+    animation: lp-twinkle 5s ease-in-out infinite;
+  }
+  html:not([data-lite="true"]) .lp-stars:not(.lp-stars-far) {
+    animation: lp-twinkle 7s ease-in-out 1.5s infinite;
+  }
+  html:not([data-lite="true"]) .lp-cherenkov {
+    animation: lp-glow 8s ease-in-out infinite;
   }
   html:not([data-lite="true"]) .lp-dot {
     animation: lp-pulse 2.4s ease-in-out infinite;

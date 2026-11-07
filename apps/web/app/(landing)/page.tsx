@@ -49,16 +49,45 @@ export default function Landing() {
 
       <main>
         <section className="lp-hero" aria-labelledby="lp-title">
-          <div className="lp-glow" aria-hidden="true" />
+          <div className="lp-space" aria-hidden="true">
+            <div className="lp-stars" />
+            <div className="lp-stars lp-stars-far" />
+            <div className="lp-cherenkov" />
+          </div>
           <p className="lp-kicker">
             <span className="lp-dot" aria-hidden="true" /> The open record of
             what didn’t work
           </p>
-          <h1 id="lp-title">
-            Learn from
-            <br />
-            <span className="lp-fail">what failed.</span>
-          </h1>
+          <div className="lp-mark-wrap">
+            <svg
+              className="lp-orbit"
+              viewBox="0 0 1000 300"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <ellipse
+                className="lp-orbit-ring"
+                cx="500"
+                cy="150"
+                rx="490"
+                ry="118"
+              />
+              <ellipse
+                className="lp-orbit-comet"
+                cx="500"
+                cy="150"
+                rx="490"
+                ry="118"
+                pathLength={1}
+              />
+            </svg>
+            <h1 id="lp-title" className="lp-wordmark">
+              Unstuck
+            </h1>
+          </div>
+          <p className="lp-tagline">
+            Learn from <span className="lp-fail">what failed.</span>
+          </p>
           <svg
             className="lp-line"
             viewBox="0 0 1200 140"
@@ -178,6 +207,11 @@ export default function Landing() {
         </section>
 
         <section className="lp-crowd" aria-labelledby="lp-who">
+          <div className="lp-space" aria-hidden="true">
+            <div className="lp-stars" />
+            <div className="lp-stars lp-stars-far" />
+            <div className="lp-cherenkov" />
+          </div>
           <h2 id="lp-who" className="lp-reveal">
             For anyone who makes, fixes,
             <br />
@@ -234,6 +268,11 @@ export default function Landing() {
         </section>
 
         <section className="lp-final" aria-labelledby="lp-final-title">
+          <div className="lp-space" aria-hidden="true">
+            <div className="lp-stars" />
+            <div className="lp-stars lp-stars-far" />
+            <div className="lp-cherenkov" />
+          </div>
           <h2 id="lp-final-title" className="lp-reveal">
             Get unstuck.
           </h2>

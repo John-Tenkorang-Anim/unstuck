@@ -487,7 +487,7 @@ export function Composer({
         </Link>
         <h1>
           Your experience.{" "}
-          <span className="tint-worked">Someone’s next step.</span>
+          <span className="tint-brand">Someone’s next step.</span>
         </h1>
         <p className="page-lede">
           It doesn’t have to be extraordinary. Just honest, specific, and yours.
@@ -524,10 +524,8 @@ export function Composer({
             <>
               <h2>What are you bringing?</h2>
               <p className="composer-lede">
-                <strong className="tint-worked">Successes</strong>,{" "}
-                <strong className="tint-failed">wrong turns</strong>, and{" "}
-                <strong className="tint-ongoing">unfinished ideas</strong>. They
-                all belong.
+                <strong>Successes</strong>, <strong>wrong turns</strong>, and{" "}
+                <strong>unfinished ideas</strong>. They all belong.
               </p>
               <Link className="critique-cta" href="/sessions/new">
                 <strong>Want feedback on a piece of work?</strong>

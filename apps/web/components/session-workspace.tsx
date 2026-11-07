@@ -359,11 +359,11 @@ export function SessionWorkspace({
       )}
       <div className="session-brief">
         <p>
-          <strong className="tint-failed">What went wrong</strong>{" "}
+          <strong className="tint-brand">What went wrong</strong>{" "}
           {session.wentWrong}
         </p>
         <p>
-          <strong className="tint-ongoing">What they’re asking</strong>{" "}
+          <strong className="tint-brand">What they’re asking</strong>{" "}
           {session.ask}
         </p>
       </div>
