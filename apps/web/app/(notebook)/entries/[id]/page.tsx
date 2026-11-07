@@ -1,3 +1,5 @@
+import { MediaGallery } from "@/components/media/media-gallery";
+import { getMediaOrigin } from "@/lib/media/reading-policy.server";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -104,6 +106,10 @@ export default async function EntryPage({
               </section>
             ))}
           </div>
+          <MediaGallery
+            attachments={entry.media ?? []}
+            origin={getMediaOrigin()}
+          />
           <div className="story-ending">
             <span>✳</span>
             <p>

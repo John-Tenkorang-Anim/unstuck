@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
+import { gzipSync } from "node:zlib";
 
 const base = process.env.UNSTUCK_TEST_URL ?? "http://127.0.0.1:3100";
 async function documentAt(path) {
@@ -58,5 +59,17 @@ test("secondary routes render and missing entries receive a real 404", async () 
   assert.match(
     document.querySelector('meta[name="robots"]').content,
     /noindex/,
+  );
+});
+
+test("a readable entry document stays within the 50 KB compressed HTML budget", async () => {
+  const response = await fetch(
+    new URL("/entries/two-pots-one-small-breakthrough", base),
+  );
+  assert.equal(response.status, 200);
+  const bytes = gzipSync(await response.text()).byteLength;
+  assert.ok(
+    bytes <= 50 * 1024,
+    `Entry document grew to ${bytes} compressed bytes`,
   );
 });

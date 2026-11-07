@@ -1,0 +1,300 @@
+{
+  "$defs": {
+    "CaptionTrack": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "pattern": "^/m/[0-9a-fA-F-]{36}/[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 262144,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "mime": {
+          "const": "text/vtt",
+          "title": "Mime",
+          "type": "string"
+        },
+        "language": {
+          "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+          "title": "Language",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "human_reviewed": {
+          "const": true,
+          "title": "Human Reviewed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "mime",
+        "language",
+        "label",
+        "human_reviewed"
+      ],
+      "title": "CaptionTrack",
+      "type": "object"
+    },
+    "ImageAsset": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "pattern": "^/m/[0-9a-fA-F-]{36}/[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "mime": {
+          "enum": [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/avif"
+          ],
+          "title": "Mime",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "maximum": 1600,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "maximum": 1600,
+          "title": "Height",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "mime",
+        "width",
+        "height"
+      ],
+      "title": "ImageAsset",
+      "type": "object"
+    },
+    "ImageManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "image",
+          "title": "Kind",
+          "type": "string"
+        },
+        "alt": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Alt",
+          "type": "string"
+        },
+        "caption": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ImageAsset"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "v",
+        "id",
+        "kind",
+        "alt",
+        "caption",
+        "sources"
+      ],
+      "title": "ImageManifest",
+      "type": "object"
+    },
+    "VideoAsset": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "pattern": "^/m/[0-9a-fA-F-]{36}/[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 20971520,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "mime": {
+          "enum": [
+            "video/mp4",
+            "video/webm"
+          ],
+          "title": "Mime",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "maximum": 1280,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "maximum": 1280,
+          "title": "Height",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "mime",
+        "width",
+        "height"
+      ],
+      "title": "VideoAsset",
+      "type": "object"
+    },
+    "VideoManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "video",
+          "title": "Kind",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "duration_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "has_audio": {
+          "title": "Has Audio",
+          "type": "boolean"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/VideoAsset"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "poster": {
+          "$ref": "#/$defs/ImageAsset"
+        },
+        "captions": {
+          "items": {
+            "$ref": "#/$defs/CaptionTrack"
+          },
+          "maxItems": 12,
+          "title": "Captions",
+          "type": "array"
+        },
+        "descriptive_transcript": {
+          "maxLength": 20000,
+          "minLength": 1,
+          "title": "Descriptive Transcript",
+          "type": "string"
+        },
+        "described_source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VideoAsset"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "v",
+        "id",
+        "kind",
+        "title",
+        "duration_seconds",
+        "has_audio",
+        "sources",
+        "poster",
+        "captions",
+        "descriptive_transcript",
+        "described_source"
+      ],
+      "title": "VideoManifest",
+      "type": "object"
+    }
+  },
+  "anyOf": [
+    {
+      "$ref": "#/$defs/ImageManifest"
+    },
+    {
+      "$ref": "#/$defs/VideoManifest"
+    }
+  ],
+  "description": "A delivery contract independent of the web framework and storage provider.",
+  "title": "PublicMediaManifest",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

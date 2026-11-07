@@ -17,12 +17,22 @@ if (
 ) {
   throw new Error("Choose a port between 1 and 65535.");
 }
-const server = resolve(root, ".next/standalone/server.js");
-try {
-  await access(server);
-} catch {
-  throw new Error("Build the frontend with npm run build before starting it.");
+let server;
+for (const path of [
+  ".next/standalone/apps/web/server.js",
+  ".next/standalone/server.js",
+]) {
+  const candidate = resolve(root, path);
+  try {
+    await access(candidate);
+    server = candidate;
+    break;
+  } catch {
+    /* Try the other supported build layout. */
+  }
 }
+if (!server)
+  throw new Error("Build the frontend with npm run build before starting it.");
 const destination = dirname(server);
 await cp(resolve(root, "public"), resolve(destination, "public"), {
   recursive: true,

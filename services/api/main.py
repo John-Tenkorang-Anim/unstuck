@@ -21,6 +21,11 @@ def create_app(repo=None, blob=None) -> FastAPI:
     from services.search import SearchService
     from routers.core import router as core_router
 
+    from adapters.fakes import FakeBlobStore
+    if settings.APP_ENV == 'production' and (
+        repo is None or blob is None or isinstance(repo, MemoryRepository) or isinstance(blob, FakeBlobStore)
+    ):
+        raise RuntimeError('Production requires persistent repository and object-store adapters; development fakes cannot be used.')
     app.state.repo = repo if repo is not None else MemoryRepository()
     app.state.entries = EntryService(app.state.repo)
     app.state.outcomes = OutcomeService(app.state.repo)
@@ -37,7 +42,6 @@ def create_app(repo=None, blob=None) -> FastAPI:
     app.state.explanations = ExplanationService(app.state.repo)
     from services.knowledge import KnowledgeService
     app.state.knowledge = KnowledgeService(app.state.repo)
-    from adapters.fakes import FakeBlobStore
     from services.media import MediaService
     from services.media_review import MediaReviewService
     app.state.blob = blob if blob is not None else FakeBlobStore()

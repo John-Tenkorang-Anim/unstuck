@@ -39,7 +39,9 @@ sanitization/scanning, CDN behavior, or production identity safety.
    account deletion, CSRF/origin protection, and route rate limiting.
 3. **Media:** Rust intake binary, actual image/PDF/CSV/video pipelines, metadata
    removal and fuzzing corpus, malware/hash and content scanners, annotations,
-   markers, SSRF-safe embeds, captions/OCR, CDN purge and retry-safe publish jobs.
+   markers, SSRF-safe embeds, captions/OCR, CDN integration and durable queue wiring.
+   An idempotent approval-before-publication method, approved-output snapshots,
+   manifest validation and takedown guards now exist with memory-adapter tests.
    Automatic approval stays disabled until all required scanners exist.
 4. **Workers and live events:** Redis consumer runtime, Python fallback relay,
    Go relay and SSE gateway, replay/resync, bounded clients, deduplicated jobs,
@@ -57,7 +59,7 @@ sanitization/scanning, CDN behavior, or production identity safety.
    Remaining: accounts and publication, tried-it submission, knowledge authoring,
    moderation/media controls, six-language translation/Arabic RTL, voice/live/offline
    integration, browser visual QA, and measured performance/accessibility budgets.
-8. **Deployment and operations:** Compose, Caddy, sandbox isolation, CI, backups
+8. **Deployment and operations:** Compose, Caddy, sandbox isolation, backups
    and restore rehearsal, metrics/traces, load testing and performance budgets.
 9. **v1.1/v2 scope:** trials, spaces, challenges, collections, signed entries,
    offline/read-aloud, exports/public API, Commune integration and later features.
@@ -72,3 +74,23 @@ storage recovery, composer validation/review/restoration, light reading, and a
 structural axe audit. These tests use JSDOM, not a browser. HTTP tests inspect
 server-rendered documents without executing scripts. Browser visual QA and
 Lighthouse/transfer-budget measurements remain outstanding.
+
+## Platform rendering and media foundations
+
+A canonical Python-exported JSON Schema now drives generated TypeScript bindings
+and server-side response validation. API/media schema drift checks, backend tests,
+frontend tests, production builds, SSR/HTML budgets, and Chromium regression
+checks are configured in `.github/workflows/platform.yml`. Workflow configuration
+is not itself evidence that a run passed; consult the corresponding commit's run.
+
+Approved images and short videos have a delivery renderer with descriptions,
+reviewed captions, descriptive transcripts, conservative default quality,
+per-attachment recovery and Save-Data/cookie-aware server rendering. Lite mode
+omits actual media elements until consent. Unknown additive API fields are
+ignored, unsupported media versions are withheld, and malformed attachments do
+not hide valid written content. A backend outage is no longer a false 404.
+
+See `docs/architecture/0001-platform-foundations.md` for the deployed architecture,
+limits and remaining gates. Actual encoding, durable cross-worker concurrency,
+object-store/CDN security, backup restoration, native playback and manual WCAG
+review remain incomplete.

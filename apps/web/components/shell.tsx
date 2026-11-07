@@ -14,7 +14,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNotebook } from "./notebook-provider";
 
 export function Brand() {
@@ -30,17 +30,49 @@ export function Brand() {
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname() ?? "";
   const [open, setOpen] = useState(false);
+  const drawer = useRef<HTMLElement>(null);
+  const menu = useRef<HTMLButtonElement>(null);
   const { saved, lite, toggleLite } = useNotebook();
   useEffect(() => {
     setOpen(false);
   }, [path]);
   useEffect(() => {
-    function close(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+    if (!open) return;
+    const previous = menu.current;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const items = () =>
+      Array.from(
+        drawer.current?.querySelectorAll<HTMLElement>(
+          'a[href],button:not([disabled]),[tabindex="0"]',
+        ) ?? [],
+      );
+    items()[0]?.focus({ preventScroll: true });
+    function trap(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = items();
+      const first = controls[0],
+        last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     }
-    window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
-  }, []);
+    document.addEventListener("keydown", trap);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", trap);
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
+  }, [open]);
   const navigation = [
     {
       label: "Discover",
@@ -66,7 +98,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <header className="topbar">
+      <header className="topbar" inert={open || undefined}>
         <div className="topbar-brand">
           <Brand />
         </div>
@@ -87,10 +119,17 @@ export function Shell({ children }: { children: ReactNode }) {
           >
             <Leaf size={19} />
           </button>
-          <Link href="/new" className="button button-dark topbar-share">
-            <Plus size={17} /> Share what you learned
+          <Link
+            href="/new"
+            className="button button-dark topbar-share"
+            aria-label="Share what you learned"
+            title="Share what you learned"
+          >
+            <Plus size={17} />
+            <span className="share-label">Share what you learned</span>
           </Link>
           <button
+            ref={menu}
             className="icon-button menu-button"
             aria-label={open ? "Close navigation" : "Open navigation"}
             aria-expanded={open}
@@ -108,8 +147,26 @@ export function Shell({ children }: { children: ReactNode }) {
           onClick={() => setOpen(false)}
         />
       )}
-      <aside id="sidebar" className={`sidebar ${open ? "sidebar-open" : ""}`}>
-        <div className="sidebar-label">A PLACE TO GET UNSTUCK</div>
+      <aside
+        ref={drawer}
+        id="sidebar"
+        className={`sidebar ${open ? "sidebar-open" : ""}`}
+        role={open ? "dialog" : undefined}
+        aria-modal={open || undefined}
+        aria-labelledby={open ? "navigation-title" : undefined}
+      >
+        {open && (
+          <button
+            className="icon-button sidebar-close"
+            aria-label="Close navigation drawer"
+            onClick={() => setOpen(false)}
+          >
+            <X size={18} />
+          </button>
+        )}
+        <div className="sidebar-label" id="navigation-title">
+          A PLACE TO GET UNSTUCK
+        </div>
         <nav aria-label="Main navigation">
           {navigation.map((item) => (
             <Link
@@ -177,7 +234,7 @@ export function Shell({ children }: { children: ReactNode }) {
       >
         {children}
       </main>
-      <div className="mobile-create">
+      <div className="mobile-create" inert={open || undefined}>
         <Link href="/new" aria-label="Create a field note">
           <Feather size={22} />
         </Link>

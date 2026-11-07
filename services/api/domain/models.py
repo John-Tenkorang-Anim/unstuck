@@ -6,7 +6,9 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from domain.media import PublicMediaManifest
 
 from domain.enums import (
     EntryKind,
@@ -21,7 +23,12 @@ from domain.enums import (
 )
 
 
-class PersonRef(BaseModel):
+class PublicModel(BaseModel):
+    # Responses include defaults; generated transport types reflect the full serialization.
+    model_config = ConfigDict(extra='forbid', json_schema_serialization_defaults_required=True)
+
+
+class PersonRef(PublicModel):
     """How a person appears in any public payload (INV-01).
 
     alias: per-entry random name, e.g. "quiet-otter-41", or "Author".
@@ -29,47 +36,48 @@ class PersonRef(BaseModel):
     signed_name: present only if the author signed this specific entry (v1.1).
     """
 
-    alias: str
+    alias: str = Field(min_length=1, max_length=80)
     is_author: bool = False
     signed_name: str | None = None
 
 
-class TopicRef(BaseModel):
+class TopicRef(PublicModel):
     slug: str
     name: str
     high_stakes: bool = False
 
 
-class EntryStats(BaseModel):
+class EntryStats(PublicModel):
     """Absolute counts (INV-04, INV-13). Never an increment."""
 
-    same_count: int = 0
-    not_same_count: int = 0
-    worked_count: int = 0
-    didnt_work_count: int = 0
-    helped_count: int = 0
-    saved_count: int = 0
-    comment_count: int = 0
-    solved_for_count: int = 0
+    same_count: int = Field(default=0, ge=0)
+    not_same_count: int = Field(default=0, ge=0)
+    worked_count: int = Field(default=0, ge=0)
+    didnt_work_count: int = Field(default=0, ge=0)
+    helped_count: int = Field(default=0, ge=0)
+    saved_count: int = Field(default=0, ge=0)
+    comment_count: int = Field(default=0, ge=0)
+    solved_for_count: int = Field(default=0, ge=0)
     frozen: bool = False
 
 
-class MediaView(BaseModel):
+class MediaView(PublicModel):
     id: UUID
     kind: str
     status: str
     review_status: str
     alt_text: str | None = None
     variants: dict[str, Any] = {}
+    manifest: PublicMediaManifest | None = None
 
 
-class LinkView(BaseModel):
+class LinkView(PublicModel):
     to_id: UUID
     rel: LinkRel
     note: str | None = None
 
 
-class EntryCreate(BaseModel):
+class EntryCreate(PublicModel):
     """Draft creation payload. Kind-specific requirements are enforced at publish, not here,
     so people can save partial drafts.
 
@@ -93,7 +101,7 @@ class EntryCreate(BaseModel):
     type_fields: dict[str, Any] = {}
 
 
-class EntryPatch(BaseModel):
+class EntryPatch(PublicModel):
     title: str | None = Field(default=None, min_length=6, max_length=160)
     goal: str | None = None
     approach: str | None = None
@@ -106,7 +114,7 @@ class EntryPatch(BaseModel):
     type_fields: dict[str, Any] | None = None
 
 
-class EntryView(BaseModel):
+class EntryView(PublicModel):
     """What GET /entries/{id} returns. Never includes author_id or any account id."""
 
     id: UUID
@@ -115,7 +123,7 @@ class EntryView(BaseModel):
     status: EntryStatus
     outcome: Outcome | None = None
     problem_state: ProblemState | None = None
-    title: str
+    title: str = Field(min_length=6, max_length=160)
     goal: str
     approach: str | None = None
     result: str | None = None
@@ -137,7 +145,7 @@ class EntryView(BaseModel):
     published_at: datetime | None = None
 
 
-class OutcomeReportCreate(BaseModel):
+class OutcomeReportCreate(PublicModel):
     """A tried-it report. The allowed verdicts depend on the entry's kind."""
 
     verdict: Verdict
@@ -145,7 +153,7 @@ class OutcomeReportCreate(BaseModel):
     note: str | None = Field(default=None, max_length=2000)
 
 
-class EntryDraft(BaseModel):
+class EntryDraft(PublicModel):
     """AI draft. Never persisted by the draft endpoint; the client fills the composer with it.
     missing: fields the story didn't support, so the UI can prompt for them instead of inventing.
     """
@@ -165,7 +173,7 @@ class EntryDraft(BaseModel):
     lang: str
 
 
-class CommentCreate(BaseModel):
+class CommentCreate(PublicModel):
     type: Literal["reply", "question", "answer", "hypothesis", "evidence", "fix_tried"]
     body_md: str = Field(min_length=1, max_length=10000)
     parent_id: UUID | None = None
@@ -173,7 +181,7 @@ class CommentCreate(BaseModel):
     fix_outcome: Literal["worked", "failed", "mixed"] | None = None
 
 
-class CommentView(BaseModel):
+class CommentView(PublicModel):
     id: UUID
     parent_id: UUID | None = None
     type: str
@@ -182,14 +190,14 @@ class CommentView(BaseModel):
     lang: str
 
 
-class ChainStep(BaseModel):
+class ChainStep(PublicModel):
     entry_id: UUID
     title: str
     outcome: Outcome | None = None
     what_changed: str | None = None
 
 
-class ProblemDetail(BaseModel):
+class ProblemDetail(PublicModel):
     type: str
     title: str
     status: int
@@ -197,7 +205,7 @@ class ProblemDetail(BaseModel):
     code: str
 
 
-class ExplanationView(BaseModel):
+class ExplanationView(PublicModel):
     id: UUID
     entry_id: UUID
     source_comment: UUID
@@ -209,18 +217,18 @@ class ExplanationView(BaseModel):
     author: PersonRef
 
 
-class ClaimCitation(BaseModel):
+class ClaimCitation(PublicModel):
     target_type: Literal['entry', 'explanation']
     target_id: UUID
 
 
-class ClaimDraft(BaseModel):
+class ClaimDraft(PublicModel):
     section: Literal['what_works', 'what_fails', 'why', 'open_questions', 'safety']
     text: str = Field(min_length=1, max_length=10000)
     citations: list[ClaimCitation] = Field(min_length=1, max_length=100)
 
 
-class RevisionDraft(BaseModel):
+class RevisionDraft(PublicModel):
     title: str = Field(min_length=6, max_length=160)
     claims: list[ClaimDraft] = Field(min_length=1, max_length=100)
     ai_generated: bool = False
@@ -230,7 +238,7 @@ class ClaimView(ClaimDraft):
     strength: str = 'anecdotal'
 
 
-class RevisionView(BaseModel):
+class RevisionView(PublicModel):
     id: UUID
     page_slug: str
     title: str

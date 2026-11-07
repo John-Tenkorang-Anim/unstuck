@@ -1,3 +1,4 @@
+import type { PublicMediaManifest } from "./contracts/media-v1";
 export type EntryKind =
   "experience" | "problem" | "solution" | "idea" | "discovery" | "research";
 export type Outcome = "worked" | "failed" | "mixed" | "ongoing";
@@ -33,8 +34,30 @@ export interface Entry {
   example: boolean;
   highStakes?: boolean;
   license?: string;
+  media?: Attachment[];
 }
 export interface Notebook {
-  entries: Entry[];
+  entries: EntrySummary[];
   mode: "examples" | "live" | "unavailable";
+}
+
+export type EntrySummary = Omit<
+  Entry,
+  "sections" | "context" | "evidence" | "media"
+>;
+export type Attachment = {
+  id: string;
+  kind: "image" | "video";
+  state: "ready" | "processing" | "unavailable";
+  manifest?: PublicMediaManifest;
+};
+export function summarizeEntry(entry: Entry): EntrySummary {
+  const {
+    sections: _sections,
+    context: _context,
+    evidence: _evidence,
+    media: _media,
+    ...summary
+  } = entry;
+  return summary;
 }

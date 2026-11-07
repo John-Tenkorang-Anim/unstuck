@@ -226,7 +226,12 @@ export function Composer({
       }
     }
     setStep((value) => Math.min(2, value + 1));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
   }
   function exportDraft() {
     const payload = {

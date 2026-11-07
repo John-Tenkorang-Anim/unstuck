@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MediaPublishJob",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "name", "media_id"],
+  "properties": {
+    "v": {"const": 1},
+    "name": {"const": "media.publish"},
+    "media_id": {"type": "string", "format": "uuid"}
+  }
+}

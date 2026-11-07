@@ -1,0 +1,188 @@
+[
+  {
+    "name": "blank image description",
+    "fixture": "image",
+    "changes": [
+      {
+        "path": [
+          "alt"
+        ],
+        "value": "   "
+      }
+    ]
+  },
+  {
+    "name": "foreign image path",
+    "fixture": "image",
+    "changes": [
+      {
+        "path": [
+          "sources",
+          0,
+          "path"
+        ],
+        "value": "/m/22222222-2222-4222-8222-222222222222/320.webp"
+      }
+    ]
+  },
+  {
+    "name": "external image URL",
+    "fixture": "image",
+    "changes": [
+      {
+        "path": [
+          "sources",
+          0,
+          "path"
+        ],
+        "value": "https://other.example/image.webp"
+      }
+    ]
+  },
+  {
+    "name": "excessive image dimensions",
+    "fixture": "image",
+    "changes": [
+      {
+        "path": [
+          "sources",
+          0,
+          "width"
+        ],
+        "value": 1601
+      }
+    ]
+  },
+  {
+    "name": "excessive image transfer",
+    "fixture": "image",
+    "changes": [
+      {
+        "path": [
+          "sources",
+          0,
+          "bytes"
+        ],
+        "value": 1048577
+      }
+    ]
+  },
+  {
+    "name": "unsupported media version",
+    "fixture": "video",
+    "changes": [
+      {
+        "path": [
+          "v"
+        ],
+        "value": 2
+      }
+    ]
+  },
+  {
+    "name": "missing video captions",
+    "fixture": "video",
+    "changes": [
+      {
+        "path": [
+          "captions"
+        ],
+        "value": []
+      }
+    ]
+  },
+  {
+    "name": "unreviewed captions",
+    "fixture": "video",
+    "changes": [
+      {
+        "path": [
+          "captions",
+          0,
+          "human_reviewed"
+        ],
+        "value": false
+      }
+    ]
+  },
+  {
+    "name": "blank descriptive transcript",
+    "fixture": "video",
+    "changes": [
+      {
+        "path": [
+          "descriptive_transcript"
+        ],
+        "value": "  "
+      }
+    ]
+  },
+  {
+    "name": "clip duration over v1 limit",
+    "fixture": "video",
+    "changes": [
+      {
+        "path": [
+          "duration_seconds"
+        ],
+        "value": 60.1
+      }
+    ]
+  },
+  {
+    "name": "video decoded pixel budget",
+    "fixture": "video",
+    "changes": [
+      {
+        "path": [
+          "sources",
+          0,
+          "width"
+        ],
+        "value": 1280
+      },
+      {
+        "path": [
+          "sources",
+          0,
+          "height"
+        ],
+        "value": 1280
+      }
+    ]
+  },
+  {
+    "name": "duplicate video quality",
+    "fixture": "video",
+    "changes": [
+      {
+        "path": [
+          "sources",
+          1,
+          "width"
+        ],
+        "value": 640
+      },
+      {
+        "path": [
+          "sources",
+          1,
+          "height"
+        ],
+        "value": 360
+      }
+    ]
+  },
+  {
+    "name": "private metadata field",
+    "fixture": "video",
+    "changes": [
+      {
+        "path": [
+          "original_key"
+        ],
+        "value": "orig/private-video"
+      }
+    ]
+  }
+]

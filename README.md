@@ -9,7 +9,8 @@ Requires Python 3.12 or newer.
 ```sh
 python3 -m venv .venv
 .venv/bin/python -m ensurepip
-.venv/bin/python -m pip install -e './services[dev]'
+.venv/bin/python -m pip install -r services/requirements.lock
+.venv/bin/python -m pip install --no-deps -e services
 .venv/bin/uvicorn main:app --reload
 ```
 
@@ -44,6 +45,16 @@ Open http://127.0.0.1:3100. See [the web README](apps/web/README.md) for backend
 connection, production commands, and tests. The default notebook uses labeled
 fictional examples. Bookmarks and drafts stay on the current device; community
 publishing awaits identity integration.
+
+## Platform architecture
+
+Rendering and media architecture are documented in the
+[platform decision record](docs/architecture/0001-platform-foundations.md).
+The web client now validates versioned API/media contracts and renders approved
+photos and short videos with accessible, bandwidth-aware fallbacks. Media
+encoding, real object storage, persistent repositories and identity remain
+production prerequisites. `APP_ENV=production` refuses the development storage
+adapters instead of starting with data that would be lost on restart.
 
 ## Implementation status
 

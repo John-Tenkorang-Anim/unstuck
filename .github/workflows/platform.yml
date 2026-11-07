@@ -1,0 +1,61 @@
+name: Platform contracts and rendering
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: platform-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  api-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: services/requirements.lock
+      - run: python -m pip install -r services/requirements.lock
+      - run: python -m pip install --no-deps -e services
+      - run: python scripts/export_contracts.py --check
+      - run: python -m pytest -q
+  web-and-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run contracts:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Check server-rendered pages and transfer budget
+        run: node scripts/check-production.mjs
+      - name: Check live API media rendering before browser tests
+        run: npm run test:media-production
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - name: Preserve synthetic browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: platform-browser-diagnostics
+          path: apps/web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

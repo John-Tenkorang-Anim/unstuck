@@ -17,7 +17,7 @@ import {
 import { EntryCard } from "./entry-card";
 import { LearningLoop } from "./artwork";
 import { topics } from "@/lib/data";
-import type { Entry, Notebook } from "@/lib/types";
+import type { EntrySummary as Entry, Notebook } from "@/lib/types";
 import { useNotebook } from "./notebook-provider";
 
 type Tab = "all" | "worked" | "failed" | "questions";

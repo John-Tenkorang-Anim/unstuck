@@ -2,32 +2,10 @@ import "server-only";
 import { examples } from "./data";
 import type { Entry, Notebook, Topic } from "./types";
 
-type ApiEntry = {
-  id: string;
-  kind: Entry["kind"];
-  title: string;
-  template: string;
-  outcome: Entry["outcome"];
-  goal: string;
-  approach: string | null;
-  result: string | null;
-  why_text: string | null;
-  advice: string | null;
-  context: Record<string, string>;
-  author: { alias: string };
-  published_at: string | null;
-  high_stakes: boolean;
-  license: string;
-  stats: {
-    same_count: number;
-    not_same_count: number;
-    worked_count: number;
-    didnt_work_count: number;
-    helped_count: number;
-    saved_count: number;
-    comment_count: number;
-  };
-};
+import type { EntryView as ApiEntry } from "./contracts/entry-v1";
+import { summarizeEntry } from "./types";
+import { parseEntry, parseFeed } from "./platform/contracts.server";
+import { readJson, PlatformUnavailable } from "./platform/http";
 function adapt(entry: ApiEntry): Entry {
   const templateTopic: Record<string, Topic> = {
     farming_food: "Food & farming",
@@ -78,15 +56,18 @@ function adapt(entry: ApiEntry): Entry {
 }
 export async function getNotebook(): Promise<Notebook> {
   const base = process.env.UNSTUCK_API_URL;
-  if (!base) return { entries: examples, mode: "examples" };
+  if (!base) return { entries: examples.map(summarizeEntry), mode: "examples" };
   try {
     const response = await fetch(`${base.replace(/\/$/, "")}/feed`, {
       cache: "no-store",
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) throw new Error("API unavailable");
-    const body = (await response.json()) as { items: ApiEntry[] };
-    return { entries: body.items.map(adapt), mode: "live" };
+    const entries = parseFeed(await readJson(response, 2 * 1024 * 1024));
+    return {
+      entries: entries.map((item) => summarizeEntry(adapt(item.record))),
+      mode: "live",
+    };
   } catch {
     return { entries: [], mode: "unavailable" };
   }
@@ -99,8 +80,11 @@ export async function getEntry(id: string): Promise<Entry | undefined> {
       `${base.replace(/\/$/, "")}/entries/${encodeURIComponent(id)}`,
       { cache: "no-store", signal: AbortSignal.timeout(5000) },
     );
-    return response.ok ? adapt((await response.json()) as ApiEntry) : undefined;
+    if (response.status === 404) return undefined;
+    if (!response.ok) throw new PlatformUnavailable();
+    const item = parseEntry(await readJson(response, 512 * 1024));
+    return { ...adapt(item.record), media: item.attachments };
   } catch {
-    return undefined;
+    throw new PlatformUnavailable();
   }
 }

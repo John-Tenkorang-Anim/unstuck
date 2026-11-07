@@ -1,0 +1,134 @@
+{
+  "id": "33333333-3333-4333-8333-333333333333",
+  "kind": "experience",
+  "template": "everyday",
+  "status": "published",
+  "outcome": "worked",
+  "problem_state": null,
+  "title": "A field note with accessible media",
+  "goal": "Test the reading and playback experience.",
+  "approach": "Document an arrangement with a photo and a short video.",
+  "result": "The transcript preserves the details even without playback.",
+  "why_text": null,
+  "advice": null,
+  "why_status": "unknown",
+  "author": {
+    "alias": "curious-test-reader",
+    "is_author": true,
+    "signed_name": null
+  },
+  "lang": "en",
+  "translation_available": false,
+  "license": "CC-BY-4.0",
+  "version": 1,
+  "topics": [],
+  "context": {
+    "country": "GH"
+  },
+  "type_fields": {},
+  "media": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "kind": "image",
+      "status": "ready",
+      "review_status": "approved",
+      "alt_text": "Two clay pots with damp sand between them, holding tomatoes in the inner pot.",
+      "variants": {},
+      "manifest": {
+        "v": 1,
+        "id": "11111111-1111-4111-8111-111111111111",
+        "kind": "image",
+        "alt": "Two clay pots with damp sand between them, holding tomatoes in the inner pot.",
+        "caption": "The arrangement used in this field note.",
+        "sources": [
+          {
+            "path": "/m/11111111-1111-4111-8111-111111111111/320.webp",
+            "bytes": 12000,
+            "mime": "image/webp",
+            "width": 320,
+            "height": 240
+          },
+          {
+            "path": "/m/11111111-1111-4111-8111-111111111111/960.webp",
+            "bytes": 68000,
+            "mime": "image/webp",
+            "width": 960,
+            "height": 720
+          },
+          {
+            "path": "/m/11111111-1111-4111-8111-111111111111/1600.webp",
+            "bytes": 140000,
+            "mime": "image/webp",
+            "width": 1600,
+            "height": 1200
+          }
+        ]
+      }
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "kind": "video",
+      "status": "ready",
+      "review_status": "approved",
+      "alt_text": null,
+      "variants": {},
+      "manifest": {
+        "v": 1,
+        "id": "22222222-2222-4222-8222-222222222222",
+        "kind": "video",
+        "title": "How the two pots fit together",
+        "duration_seconds": 42.0,
+        "has_audio": true,
+        "sources": [
+          {
+            "path": "/m/22222222-2222-4222-8222-222222222222/360.mp4",
+            "bytes": 1500000,
+            "mime": "video/mp4",
+            "width": 640,
+            "height": 360
+          },
+          {
+            "path": "/m/22222222-2222-4222-8222-222222222222/720.mp4",
+            "bytes": 4500000,
+            "mime": "video/mp4",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "poster": {
+          "path": "/m/22222222-2222-4222-8222-222222222222/poster.webp",
+          "bytes": 18000,
+          "mime": "image/webp",
+          "width": 640,
+          "height": 360
+        },
+        "captions": [
+          {
+            "path": "/m/22222222-2222-4222-8222-222222222222/en.vtt",
+            "bytes": 1400,
+            "mime": "text/vtt",
+            "language": "en",
+            "label": "English",
+            "human_reviewed": true
+          }
+        ],
+        "descriptive_transcript": "[A smaller clay pot sits inside a larger clay pot.] The presenter fills the gap with sand, leaving the inner pot clear. [Water darkens the sand.] The presenter covers the inner pot with a cloth and places both pots in shade.",
+        "described_source": null
+      }
+    }
+  ],
+  "stats": {
+    "same_count": 0,
+    "not_same_count": 0,
+    "worked_count": 0,
+    "didnt_work_count": 0,
+    "helped_count": 0,
+    "saved_count": 0,
+    "comment_count": 0,
+    "solved_for_count": 0,
+    "frozen": false
+  },
+  "links": [],
+  "high_stakes": false,
+  "published_at": null
+}

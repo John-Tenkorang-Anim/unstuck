@@ -16,10 +16,20 @@ type NotebookState = {
   toggleLite: () => void;
   notice: (message: string) => void;
 };
+import type { ReadingMode } from "@/lib/media/reading-policy";
+
 const Context = createContext<NotebookState | null>(null);
-export function NotebookProvider({ children }: { children: ReactNode }) {
+export function NotebookProvider({
+  children,
+  initialLite = false,
+  initialMode = "auto",
+}: {
+  children: ReactNode;
+  initialLite?: boolean;
+  initialMode?: ReadingMode;
+}) {
   const [saved, setSaved] = useState<string[]>([]);
-  const [lite, setLite] = useState(false);
+  const [lite, setLite] = useState(initialLite);
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState("");
   useEffect(() => {
@@ -29,23 +39,30 @@ export function NotebookProvider({ children }: { children: ReactNode }) {
       );
       if (Array.isArray(value))
         setSaved(value.filter((v): v is string => typeof v === "string"));
-      const connection = (
-        navigator as Navigator & {
-          connection?: { saveData?: boolean; effectiveType?: string };
-        }
-      ).connection;
-      const preference = localStorage.getItem("unstuck:lite");
+    } catch {
+      /* Bookmarks must not block reading or network preferences. */
+    }
+    let preference: string | null = null;
+    try {
+      preference = localStorage.getItem("unstuck:lite");
+    } catch {
+      /* Use request/network hints. */
+    }
+    const connection = (
+      navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
+      }
+    ).connection;
+    if (initialMode === "auto")
       setLite(
-        preference
+        preference === "true" || preference === "false"
           ? preference === "true"
-          : !!connection?.saveData ||
+          : initialLite ||
+              !!connection?.saveData ||
               ["slow-2g", "2g", "3g"].includes(connection?.effectiveType ?? ""),
       );
-    } catch {
-      /* Reading remains available when browser storage is disabled. */
-    }
     setReady(true);
-  }, []);
+  }, [initialLite, initialMode]);
   useEffect(() => {
     document.documentElement.dataset.lite = String(lite);
   }, [lite]);
@@ -76,6 +93,11 @@ export function NotebookProvider({ children }: { children: ReactNode }) {
   function toggleLite() {
     const next = !lite;
     setLite(next);
+    try {
+      document.cookie = `unstuck-reading=${next ? "lite" : "full"}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+    } catch {
+      /* The current visit can still change reading mode. */
+    }
     try {
       localStorage.setItem("unstuck:lite", String(next));
     } catch {

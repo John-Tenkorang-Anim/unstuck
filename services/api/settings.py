@@ -4,6 +4,7 @@ Every tunable number in the spec lives here, so it can change without a deploy
 where noted. Nothing else reads os.environ directly.
 """
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,6 +15,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    APP_ENV: Literal["development", "test", "production"] = "development"
     PRODUCT_NAME: str = "Unstuck"
     BASE_URL: str = "http://localhost:3000"
     DATABASE_URL: str = "postgresql://app:app@localhost:5432/unstuck"

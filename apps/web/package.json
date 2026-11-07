@@ -10,17 +10,25 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write app components lib tests scripts *.ts *.json",
-    "test:ssr": "node --test tests/server.test.mjs"
+    "test:ssr": "node --test tests/server.test.mjs",
+    "contracts:generate": "node scripts/contracts.mjs",
+    "contracts:check": "node scripts/contracts.mjs --check",
+    "test:browser": "playwright test",
+    "test:production": "node scripts/check-production.mjs",
+    "test:media-production": "node scripts/check-production.mjs --media"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "5.3.0",
     "@fontsource-variable/fraunces": "5.3.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "lucide-react": "1.70.0",
     "next": "16.4.5",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.8",
@@ -29,6 +37,7 @@
     "@types/react-dom": "19.3.0",
     "axe-core": "4.14.0",
     "jsdom": "31.0.0",
+    "json-schema-to-typescript": "16.0.0",
     "prettier": "3.9.10",
     "typescript": "7.0.2",
     "vitest": "5.1.0"

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Artwork } from "./artwork";
 import { kindLabels, outcomeLabels } from "@/lib/data";
-import type { Entry } from "@/lib/types";
+import type { EntrySummary as Entry } from "@/lib/types";
 import { useNotebook } from "./notebook-provider";
 
 export function SaveButton({

@@ -1,0 +1,18 @@
+{
+  "v": 1,
+  "id": "22222222-2222-4222-8222-222222222222",
+  "kind": "video",
+  "title": "How the two pots fit together",
+  "duration_seconds": 42,
+  "has_audio": true,
+  "sources": [
+    {"path": "/m/22222222-2222-4222-8222-222222222222/360.mp4", "bytes": 1500000, "mime": "video/mp4", "width": 640, "height": 360},
+    {"path": "/m/22222222-2222-4222-8222-222222222222/720.mp4", "bytes": 4500000, "mime": "video/mp4", "width": 1280, "height": 720}
+  ],
+  "poster": {"path": "/m/22222222-2222-4222-8222-222222222222/poster.webp", "bytes": 18000, "mime": "image/webp", "width": 640, "height": 360},
+  "captions": [
+    {"path": "/m/22222222-2222-4222-8222-222222222222/en.vtt", "bytes": 1400, "mime": "text/vtt", "language": "en", "label": "English", "human_reviewed": true}
+  ],
+  "descriptive_transcript": "[A smaller clay pot sits inside a larger clay pot.] The presenter fills the gap with sand, leaving the inner pot clear. [Water darkens the sand.] The presenter covers the inner pot with a cloth and places both pots in shade.",
+  "described_source": null
+}

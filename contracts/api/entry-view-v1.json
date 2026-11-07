@@ -1,0 +1,825 @@
+{
+  "$defs": {
+    "CaptionTrack": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "pattern": "^/m/[0-9a-fA-F-]{36}/[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 262144,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "mime": {
+          "const": "text/vtt",
+          "title": "Mime",
+          "type": "string"
+        },
+        "language": {
+          "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+          "title": "Language",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "human_reviewed": {
+          "const": true,
+          "title": "Human Reviewed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "mime",
+        "language",
+        "label",
+        "human_reviewed"
+      ],
+      "title": "CaptionTrack",
+      "type": "object"
+    },
+    "EntryKind": {
+      "enum": [
+        "experience",
+        "problem",
+        "solution",
+        "idea",
+        "discovery",
+        "research"
+      ],
+      "title": "EntryKind",
+      "type": "string"
+    },
+    "EntryStats": {
+      "additionalProperties": false,
+      "description": "Absolute counts (INV-04, INV-13). Never an increment.",
+      "properties": {
+        "same_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Same Count",
+          "type": "integer"
+        },
+        "not_same_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Not Same Count",
+          "type": "integer"
+        },
+        "worked_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Worked Count",
+          "type": "integer"
+        },
+        "didnt_work_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Didnt Work Count",
+          "type": "integer"
+        },
+        "helped_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Helped Count",
+          "type": "integer"
+        },
+        "saved_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Saved Count",
+          "type": "integer"
+        },
+        "comment_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Comment Count",
+          "type": "integer"
+        },
+        "solved_for_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Solved For Count",
+          "type": "integer"
+        },
+        "frozen": {
+          "default": false,
+          "title": "Frozen",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "same_count",
+        "not_same_count",
+        "worked_count",
+        "didnt_work_count",
+        "helped_count",
+        "saved_count",
+        "comment_count",
+        "solved_for_count",
+        "frozen"
+      ],
+      "title": "EntryStats",
+      "type": "object"
+    },
+    "EntryStatus": {
+      "enum": [
+        "draft",
+        "pending_review",
+        "published",
+        "hidden",
+        "deleted"
+      ],
+      "title": "EntryStatus",
+      "type": "string"
+    },
+    "ImageAsset": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "pattern": "^/m/[0-9a-fA-F-]{36}/[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 1048576,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "mime": {
+          "enum": [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/avif"
+          ],
+          "title": "Mime",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "maximum": 1600,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "maximum": 1600,
+          "title": "Height",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "mime",
+        "width",
+        "height"
+      ],
+      "title": "ImageAsset",
+      "type": "object"
+    },
+    "ImageManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "image",
+          "title": "Kind",
+          "type": "string"
+        },
+        "alt": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Alt",
+          "type": "string"
+        },
+        "caption": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ImageAsset"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "v",
+        "id",
+        "kind",
+        "alt",
+        "caption",
+        "sources"
+      ],
+      "title": "ImageManifest",
+      "type": "object"
+    },
+    "License": {
+      "enum": [
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC0-1.0"
+      ],
+      "title": "License",
+      "type": "string"
+    },
+    "LinkRel": {
+      "enum": [
+        "solves",
+        "next_attempt",
+        "replicates",
+        "contradicts",
+        "builds_on",
+        "duplicate_of"
+      ],
+      "title": "LinkRel",
+      "type": "string"
+    },
+    "LinkView": {
+      "additionalProperties": false,
+      "properties": {
+        "to_id": {
+          "format": "uuid",
+          "title": "To Id",
+          "type": "string"
+        },
+        "rel": {
+          "$ref": "#/$defs/LinkRel"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "to_id",
+        "rel",
+        "note"
+      ],
+      "title": "LinkView",
+      "type": "object"
+    },
+    "MediaView": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "review_status": {
+          "title": "Review Status",
+          "type": "string"
+        },
+        "alt_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alt Text"
+        },
+        "variants": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Variants",
+          "type": "object"
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PublicMediaManifest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "status",
+        "review_status",
+        "alt_text",
+        "variants",
+        "manifest"
+      ],
+      "title": "MediaView",
+      "type": "object"
+    },
+    "Outcome": {
+      "enum": [
+        "worked",
+        "failed",
+        "mixed",
+        "ongoing"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "PersonRef": {
+      "additionalProperties": false,
+      "description": "How a person appears in any public payload (INV-01).\n\nalias: per-entry random name, e.g. \"quiet-otter-41\", or \"Author\".\nis_author: true when this person wrote the entry being viewed.\nsigned_name: present only if the author signed this specific entry (v1.1).",
+      "properties": {
+        "alias": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Alias",
+          "type": "string"
+        },
+        "is_author": {
+          "default": false,
+          "title": "Is Author",
+          "type": "boolean"
+        },
+        "signed_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signed Name"
+        }
+      },
+      "required": [
+        "alias",
+        "is_author",
+        "signed_name"
+      ],
+      "title": "PersonRef",
+      "type": "object"
+    },
+    "ProblemState": {
+      "enum": [
+        "open",
+        "answered",
+        "solved",
+        "stale"
+      ],
+      "title": "ProblemState",
+      "type": "string"
+    },
+    "PublicMediaManifest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageManifest"
+        },
+        {
+          "$ref": "#/$defs/VideoManifest"
+        }
+      ],
+      "description": "A delivery contract independent of the web framework and storage provider.",
+      "title": "PublicMediaManifest"
+    },
+    "Template": {
+      "enum": [
+        "everyday",
+        "making",
+        "farming_food",
+        "software",
+        "research",
+        "work_business",
+        "community"
+      ],
+      "title": "Template",
+      "type": "string"
+    },
+    "TopicRef": {
+      "additionalProperties": false,
+      "properties": {
+        "slug": {
+          "title": "Slug",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "high_stakes": {
+          "default": false,
+          "title": "High Stakes",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "slug",
+        "name",
+        "high_stakes"
+      ],
+      "title": "TopicRef",
+      "type": "object"
+    },
+    "VideoAsset": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "pattern": "^/m/[0-9a-fA-F-]{36}/[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 20971520,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "mime": {
+          "enum": [
+            "video/mp4",
+            "video/webm"
+          ],
+          "title": "Mime",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "maximum": 1280,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "maximum": 1280,
+          "title": "Height",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "mime",
+        "width",
+        "height"
+      ],
+      "title": "VideoAsset",
+      "type": "object"
+    },
+    "VideoManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1,
+          "title": "V",
+          "type": "integer"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "video",
+          "title": "Kind",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "duration_seconds": {
+          "exclusiveMinimum": 0,
+          "maximum": 60,
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "has_audio": {
+          "title": "Has Audio",
+          "type": "boolean"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/VideoAsset"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "poster": {
+          "$ref": "#/$defs/ImageAsset"
+        },
+        "captions": {
+          "items": {
+            "$ref": "#/$defs/CaptionTrack"
+          },
+          "maxItems": 12,
+          "title": "Captions",
+          "type": "array"
+        },
+        "descriptive_transcript": {
+          "maxLength": 20000,
+          "minLength": 1,
+          "title": "Descriptive Transcript",
+          "type": "string"
+        },
+        "described_source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VideoAsset"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "v",
+        "id",
+        "kind",
+        "title",
+        "duration_seconds",
+        "has_audio",
+        "sources",
+        "poster",
+        "captions",
+        "descriptive_transcript",
+        "described_source"
+      ],
+      "title": "VideoManifest",
+      "type": "object"
+    },
+    "WhyStatus": {
+      "enum": [
+        "unknown",
+        "suspected",
+        "author_confirmed",
+        "verified"
+      ],
+      "title": "WhyStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What GET /entries/{id} returns. Never includes author_id or any account id.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/EntryKind"
+    },
+    "template": {
+      "$ref": "#/$defs/Template"
+    },
+    "status": {
+      "$ref": "#/$defs/EntryStatus"
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Outcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "problem_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProblemState"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "title": {
+      "maxLength": 160,
+      "minLength": 6,
+      "title": "Title",
+      "type": "string"
+    },
+    "goal": {
+      "title": "Goal",
+      "type": "string"
+    },
+    "approach": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approach"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result"
+    },
+    "why_text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Why Text"
+    },
+    "advice": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Advice"
+    },
+    "why_status": {
+      "$ref": "#/$defs/WhyStatus"
+    },
+    "author": {
+      "$ref": "#/$defs/PersonRef"
+    },
+    "lang": {
+      "title": "Lang",
+      "type": "string"
+    },
+    "translation_available": {
+      "default": false,
+      "title": "Translation Available",
+      "type": "boolean"
+    },
+    "license": {
+      "$ref": "#/$defs/License"
+    },
+    "version": {
+      "title": "Version",
+      "type": "integer"
+    },
+    "topics": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/TopicRef"
+      },
+      "title": "Topics",
+      "type": "array"
+    },
+    "context": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "title": "Context",
+      "type": "object"
+    },
+    "type_fields": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Type Fields",
+      "type": "object"
+    },
+    "media": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/MediaView"
+      },
+      "title": "Media",
+      "type": "array"
+    },
+    "stats": {
+      "$ref": "#/$defs/EntryStats"
+    },
+    "links": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LinkView"
+      },
+      "title": "Links",
+      "type": "array"
+    },
+    "high_stakes": {
+      "default": false,
+      "title": "High Stakes",
+      "type": "boolean"
+    },
+    "published_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Published At"
+    }
+  },
+  "required": [
+    "id",
+    "kind",
+    "template",
+    "status",
+    "outcome",
+    "problem_state",
+    "title",
+    "goal",
+    "approach",
+    "result",
+    "why_text",
+    "advice",
+    "why_status",
+    "author",
+    "lang",
+    "translation_available",
+    "license",
+    "version",
+    "topics",
+    "context",
+    "type_fields",
+    "media",
+    "stats",
+    "links",
+    "high_stakes",
+    "published_at"
+  ],
+  "title": "EntryView",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
