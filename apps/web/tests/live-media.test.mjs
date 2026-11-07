@@ -67,7 +67,7 @@ test("unapproved and malformed attachments never expose their source paths", asy
 });
 
 test("discovery sends only summaries to the interactive feed", async () => {
-  const { response, html, document } = await read("/");
+  const { response, html, document } = await read("/discover");
   assert.equal(response.status, 200);
   assert.equal(document.querySelectorAll("main article").length, 1);
   assert.ok(
