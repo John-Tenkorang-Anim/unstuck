@@ -64,9 +64,9 @@ export function MomentPlayer({ clip, start }: { clip: Clip; start?: number }) {
             controls
             playsInline
             preload="none"
-            poster={clip.poster.src}
-            width={clip.poster.width}
-            height={clip.poster.height}
+            poster={clip.poster?.src}
+            width={clip.poster?.width}
+            height={clip.poster?.height}
             aria-label={clip.title}
             onTimeUpdate={(event) => {
               const t = event.currentTarget.currentTime;
@@ -134,9 +134,11 @@ export function MomentPlayer({ clip, start }: { clip: Clip; start?: number }) {
           </li>
         ))}
       </ol>
-      <p className="player-credit">
-        Film: <Credit credit={clip.credit} />
-      </p>
+      {clip.credit && (
+        <p className="player-credit">
+          Film: <Credit credit={clip.credit} />
+        </p>
+      )}
     </section>
   );
 }

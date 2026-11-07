@@ -21,12 +21,16 @@ export function SessionCard({
             loading="lazy"
           />
         ) : (
-          <span className="session-card-inquiry">Inquiry on a video</span>
+          <span className="session-card-inquiry">{describeWork(session)}</span>
         )}
         <span className="session-card-pins">
           {session.pins.length
             ? `${session.pins.length} pins`
-            : "Video moments"}
+            : session.blocks
+              ? session.mode === "hints"
+                ? "Hints only"
+                : "Full review"
+              : "Video moments"}
         </span>
       </span>
       <span className="session-card-body">
@@ -45,4 +49,14 @@ export function SessionCard({
       </span>
     </Link>
   );
+}
+
+function describeWork(session: Session) {
+  const block = session.blocks?.[0];
+  if (!block) return "Inquiry on a video";
+  if (block.kind === "steps")
+    return `Worked solution · ${block.steps.length} steps`;
+  if (block.kind === "code")
+    return `${block.language} · ${block.code.split("\n").length} lines`;
+  return `Data · ${block.csv.trim().split("\n").length - 1} rows`;
 }

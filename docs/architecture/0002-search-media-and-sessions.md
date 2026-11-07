@@ -23,6 +23,20 @@ own work, not a flat comment thread.
   critique; hypothesis, evidence, question for inquiry) and a status
   (waiting, in review, revised, resolved).
 
+## Shown working for schools and engineering
+
+Coursework rarely fits in a photo. A session can carry **working blocks**:
+
+- **Steps** with inline maths between `$…$`, typeset by KaTeX with a MathML layer
+  for screen readers.
+- **Code** with line numbers, its actual output and the expected output.
+- **Data** pasted from a spreadsheet or CSV with a header row.
+
+Feedback anchors to a step, a line or a row, the same way it anchors to a pin or
+a video second. A session can be marked **hints only** for graded work: reviewers
+see a banner asking them to point at the problem and ask guiding questions rather
+than post a solution. Sessions also record the course or project.
+
 ## Retrieval
 
 `lib/search.ts` is field-weighted BM25 with light stemming. Weights favour titles

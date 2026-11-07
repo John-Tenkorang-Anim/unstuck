@@ -47,9 +47,13 @@ export function Credit({ credit }: { credit: Pic["credit"] }) {
   return (
     <span className="credit">
       {credit.author} ·{" "}
-      <a href={credit.source} target="_blank" rel="noopener noreferrer">
-        {credit.license}, Wikimedia Commons
-      </a>
+      {credit.source ? (
+        <a href={credit.source} target="_blank" rel="noopener noreferrer">
+          {credit.license}, Wikimedia Commons
+        </a>
+      ) : (
+        credit.license
+      )}
     </span>
   );
 }

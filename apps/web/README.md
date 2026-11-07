@@ -43,6 +43,9 @@ npm run start -- --port 3100
   summarises matching outcomes as counts. It renders without JavaScript.
 - Critique and inquiry sessions with pinned or time-coded feedback, rounds and
   status. Notes people add are kept on their device.
+- Shown working for coursework: maths steps, code with its output, and data
+  tables, each step, line and row addressable by feedback. Graded work can be
+  marked hints only.
 - Photos and short video in notes and sessions, by paste, drop or file choice,
   with pinned spots and marked moments. Drafts keep files on the device.
 - A video player whose marked moments are keyboard-reachable chapters.

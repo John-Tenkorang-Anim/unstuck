@@ -3,7 +3,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { fields } from "@/lib/taxonomy";
+import type { Block } from "@/lib/sessions";
 import { MediaAttach, type Attached } from "./media-attach";
+import { hasWorking, WorkingEditor } from "./working-editor";
 import { useNotebook } from "./notebook-provider";
 
 type Draft = {
@@ -14,6 +16,9 @@ type Draft = {
   wentWrong: string;
   ask: string;
   media: Attached[];
+  blocks: Block[];
+  course: string;
+  mode: "hints" | "full";
 };
 const blank: Draft = {
   title: "",
@@ -23,6 +28,9 @@ const blank: Draft = {
   wentWrong: "",
   ask: "",
   media: [],
+  blocks: [],
+  course: "",
+  mode: "full",
 };
 const storageKey = "unstuck:session-draft:v1";
 
@@ -38,7 +46,8 @@ export function SessionComposer() {
       if (
         stored &&
         typeof stored.title === "string" &&
-        Array.isArray(stored.media)
+        Array.isArray(stored.media) &&
+        (stored.blocks === undefined || Array.isArray(stored.blocks))
       )
         setDraft({ ...blank, ...stored });
     } catch {
@@ -62,7 +71,9 @@ export function SessionComposer() {
     const next: Record<string, string> = {};
     if (draft.title.trim().length < 6)
       next.title = "Give the session a title of at least 6 characters.";
-    if (!draft.media.length) next.media = "Add the work you want feedback on.";
+    if (!draft.media.length && !hasWorking(draft.blocks))
+      next.media =
+        "Add a photo, a video or your working so reviewers can see the problem.";
     if (draft.media.some((m) => !m.alt.trim()))
       next.media = "Describe each photo or video for people who can’t see it.";
     if (!draft.wentWrong.trim())
@@ -107,8 +118,12 @@ export function SessionComposer() {
             <MediaAttach
               value={draft.media}
               single
-              label="Your work"
+              label="A photo or video of your work"
               onChange={(media) => set({ media })}
+            />
+            <WorkingEditor
+              value={draft.blocks}
+              onChange={(blocks) => set({ blocks })}
             />
             {error("media")}
           </div>
@@ -170,6 +185,44 @@ export function SessionComposer() {
               onChange={(e) => set({ level: e.target.value })}
             />
           </div>
+          <div className="form-field">
+            <label htmlFor="session-course">
+              Course or project <span>optional</span>
+            </label>
+            <input
+              id="session-course"
+              value={draft.course}
+              placeholder="Calculus II · Problem set 4"
+              onChange={(e) => set({ course: e.target.value })}
+            />
+          </div>
+          <fieldset className="outcome-options mode-options">
+            <legend>Is this graded work?</legend>
+            {(
+              [
+                ["hints", "Yes, hints only"],
+                ["full", "No, full review"],
+              ] as const
+            ).map(([value, label]) => (
+              <label
+                key={value}
+                className={draft.mode === value ? "outcome-selected" : ""}
+              >
+                <input
+                  type="radio"
+                  name="session-mode"
+                  value={value}
+                  checked={draft.mode === value}
+                  onChange={() => set({ mode: value })}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+            <p className="mode-help">
+              With hints only, reviewers point to the problem and ask guiding
+              questions instead of posting a solution.
+            </p>
+          </fieldset>
           <div className="form-field">
             <label htmlFor="session-wentWrong">What went wrong?</label>
             <textarea

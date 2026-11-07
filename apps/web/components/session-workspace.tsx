@@ -1,7 +1,21 @@
 "use client";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
-import { Check, Crosshair, MapPin, X } from "lucide-react";
 import {
+  Check,
+  CircleHelp,
+  Crosshair,
+  FileSearch,
+  FlaskConical,
+  GraduationCap,
+  Lightbulb,
+  MapPin,
+  ThumbsUp,
+  TriangleAlert,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  anchorKey,
   noteLabels,
   noteTypes,
   statusLabels,
@@ -16,14 +30,36 @@ import type { Clip } from "@/lib/types";
 import { MomentPlayer } from "./moment-player";
 import { useNotebook } from "./notebook-provider";
 import { Credit } from "./picture";
+import { MathText, parseCsv, WorkBlocks } from "./work-blocks";
 
+const noteIcons: Record<NoteType, LucideIcon> = {
+  issue: TriangleAlert,
+  suggestion: Lightbulb,
+  question: CircleHelp,
+  strength: ThumbsUp,
+  hypothesis: FlaskConical,
+  evidence: FileSearch,
+};
 const steps: SessionStatus[] = ["open", "in-review", "revised", "resolved"];
 type Local = { pins: Pin[]; notes: SessionNote[]; resolved: string[] };
 const empty: Local = { pins: [], notes: [], resolved: [] };
+type Anchor = { key: string; label: string; detail: string; badge: string };
+
+/** Turn an anchor key back into the note fields it stands for. */
+function fieldsFor(key: string): Partial<SessionNote> {
+  const [kind, value] = key.split(":");
+  if (kind === "pin") return { pin: value };
+  if (kind === "step") return { step: Number(value) };
+  if (kind === "line") return { line: Number(value) };
+  if (kind === "row") return { row: Number(value) };
+  if (kind === "t") return { at: Number(value) };
+  return {};
+}
 
 /**
  * One feedback session: the work, the exact places under discussion, and the
- * notes about them. Additions are kept on this device until accounts open.
+ * notes about them, grouped by where they point. Additions stay on this device
+ * until accounts open.
  */
 export function SessionWorkspace({
   session,
@@ -42,7 +78,7 @@ export function SessionWorkspace({
   const [placing, setPlacing] = useState(false);
   const [draft, setDraft] = useState({
     type: noteTypes[session.kind][0],
-    pin: "",
+    anchor: "whole",
     body: "",
   });
   useEffect(() => {
@@ -74,12 +110,83 @@ export function SessionWorkspace({
       ),
     [session.rounds, local],
   );
+  // Every addressable place in the work, in reading order.
+  const anchors = useMemo(() => {
+    const list: Anchor[] = pins.map((pin, i) => ({
+      key: `pin:${pin.id}`,
+      label: pin.label,
+      detail: "",
+      badge: String(i + 1),
+    }));
+    for (const block of session.blocks ?? []) {
+      if (block.kind === "steps")
+        block.steps.forEach((step, i) =>
+          list.push({
+            key: `step:${i + 1}`,
+            label: `Step ${i + 1}`,
+            detail: step,
+            badge: `S${i + 1}`,
+          }),
+        );
+      if (block.kind === "code")
+        block.code.split("\n").forEach((line, i) => {
+          if (line.trim())
+            list.push({
+              key: `line:${i + 1}`,
+              label: `Line ${i + 1}`,
+              detail: line.trim(),
+              badge: `L${i + 1}`,
+            });
+        });
+      if (block.kind === "data")
+        parseCsv(block.csv).rows.forEach((row, i) =>
+          list.push({
+            key: `row:${i + 1}`,
+            label: `Row ${i + 1}`,
+            detail: row.join(" · "),
+            badge: `R${i + 1}`,
+          }),
+        );
+    }
+    for (const at of [
+      ...new Set(notes.filter((n) => n.at !== undefined).map((n) => n.at!)),
+    ].sort((a, b) => a - b))
+      list.push({
+        key: `t:${at}`,
+        label:
+          clip?.moments.find((m) => Math.abs(m.at - at) < 1)?.label ??
+          `At ${clock(at)}`,
+        detail: "",
+        badge: clock(at),
+      });
+    return list;
+  }, [pins, session.blocks, notes, clip]);
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const note of notes)
+      map[anchorKey(note)] = (map[anchorKey(note)] ?? 0) + 1;
+    return map;
+  }, [notes]);
   const shown = notes.filter(
     (note) =>
       (filter === "all" || note.type === filter) &&
-      (!focus || note.pin === focus),
+      (!focus || anchorKey(note) === focus),
   );
-  const pinNumber = (id?: string) => pins.findIndex((p) => p.id === id) + 1;
+  const groups = [
+    ...anchors,
+    { key: "whole", label: "On the piece as a whole", detail: "", badge: "" },
+  ]
+    .map((anchor) => ({
+      ...anchor,
+      notes: shown.filter((n) => anchorKey(n) === anchor.key),
+    }))
+    .filter((group) => group.notes.length);
+  const focused = anchors.find((a) => a.key === focus);
+  function choose(anchor: string) {
+    const next = focus === anchor ? null : anchor;
+    setFocus(next);
+    setDraft((d) => ({ ...d, anchor: next ?? "whole" }));
+  }
   function place(event: MouseEvent<HTMLDivElement>) {
     if (!placing) return;
     const box = event.currentTarget.getBoundingClientRect();
@@ -90,9 +197,9 @@ export function SessionWorkspace({
       label: "Your pin",
     };
     persist({ ...local, pins: [...local.pins, pin] });
-    setDraft({ ...draft, pin: pin.id });
     setPlacing(false);
-    setFocus(pin.id);
+    setFocus(`pin:${pin.id}`);
+    setDraft((d) => ({ ...d, anchor: `pin:${pin.id}` }));
   }
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -103,13 +210,13 @@ export function SessionWorkspace({
       role: "On this device",
       type: draft.type,
       body: draft.body.trim(),
-      pin: draft.pin || undefined,
+      ...fieldsFor(draft.anchor),
     };
     persist({ ...local, notes: [...local.notes, note] });
     setDraft({ ...draft, body: "" });
     notice("Note added. It stays on this device until accounts open.");
   }
-  const counts = Object.fromEntries(
+  const typeCounts = Object.fromEntries(
     noteTypes[session.kind].map((type) => [
       type,
       notes.filter((n) => n.type === type).length,
@@ -125,6 +232,7 @@ export function SessionWorkspace({
             {session.level ? ` · ${session.level}` : ""}
           </p>
           <h1>{session.title}</h1>
+          {session.course && <p className="session-course">{session.course}</p>}
         </div>
         <ol className="session-steps" aria-label="Session status">
           {steps.map((step) => (
@@ -142,6 +250,15 @@ export function SessionWorkspace({
           ))}
         </ol>
       </header>
+      {session.mode === "hints" && (
+        <p className="hints-banner">
+          <GraduationCap size={18} aria-hidden="true" />
+          <span>
+            <strong>Graded work: hints only.</strong> Point to where it goes
+            wrong and ask questions that lead there. Don’t post a full solution.
+          </span>
+        </p>
+      )}
       <div className="session-brief">
         <p>
           <strong className="tint-failed">What went wrong</strong>{" "}
@@ -154,7 +271,7 @@ export function SessionWorkspace({
       </div>
       <div className="session-grid">
         <div className="session-work">
-          {session.work ? (
+          {session.work && (
             <figure className="canvas">
               <div
                 className={`canvas-frame ${placing ? "is-placing" : ""}`}
@@ -170,13 +287,13 @@ export function SessionWorkspace({
                   <button
                     key={pin.id}
                     id={`pin-${pin.id}`}
-                    className={`pin ${focus === pin.id ? "is-focus" : ""}`}
+                    className={`pin ${focus === `pin:${pin.id}` ? "is-focus" : ""}`}
                     style={{ left: `${pin.x * 100}%`, top: `${pin.y * 100}%` }}
-                    aria-pressed={focus === pin.id}
-                    aria-label={`Pin ${index + 1}: ${pin.label}. ${notes.filter((n) => n.pin === pin.id).length} notes`}
+                    aria-pressed={focus === `pin:${pin.id}`}
+                    aria-label={`Pin ${index + 1}: ${pin.label}. ${counts[`pin:${pin.id}`] ?? 0} notes`}
                     onClick={(event) => {
                       event.stopPropagation();
-                      setFocus(focus === pin.id ? null : pin.id);
+                      choose(`pin:${pin.id}`);
                     }}
                   >
                     {index + 1}
@@ -193,36 +310,32 @@ export function SessionWorkspace({
                     <Crosshair size={14} />
                     {placing ? "Click the spot on the image" : "Add a pin"}
                   </button>
-                  {focus && (
-                    <button
-                      className="text-link"
-                      onClick={() => setFocus(null)}
-                    >
-                      <X size={13} /> Show all notes
-                    </button>
-                  )}
                 </span>
                 <span>
                   Round {round.n}: {round.note}
                 </span>
                 <Credit credit={session.work.credit} />
               </figcaption>
-              <ol className="pin-list">
-                {pins.map((pin, index) => (
-                  <li key={pin.id}>
-                    <button
-                      onClick={() => setFocus(focus === pin.id ? null : pin.id)}
-                    >
-                      <span className="pin pin-static">{index + 1}</span>
-                      {pin.label}
-                    </button>
-                  </li>
-                ))}
-              </ol>
             </figure>
-          ) : clip ? (
+          )}
+          {session.blocks && (
+            <>
+              <WorkBlocks
+                blocks={session.blocks}
+                focus={focus}
+                counts={counts}
+                onAnchor={choose}
+              />
+              {!session.work && (
+                <p className="work-round">
+                  Round {round.n}: {round.note}
+                </p>
+              )}
+            </>
+          )}
+          {!session.work && !session.blocks && clip && (
             <MomentPlayer clip={clip} start={start} />
-          ) : null}
+          )}
         </div>
         <aside className="session-notes" aria-label="Feedback">
           <div
@@ -243,70 +356,121 @@ export function SessionWorkspace({
                 aria-pressed={filter === type}
                 onClick={() => setFilter(type)}
               >
-                {noteLabels[type]} <span>{counts[type]}</span>
+                {noteLabels[type]} <span>{typeCounts[type]}</span>
               </button>
             ))}
           </div>
           {focus && (
             <p className="note-focus">
-              <MapPin size={13} /> Notes on pin {pinNumber(focus)}
+              <MapPin size={13} />
+              <span>
+                Notes on{" "}
+                {focus.startsWith("pin:")
+                  ? `pin ${focused?.badge}`
+                  : focused?.label.toLowerCase()}
+              </span>
+              <button className="text-link" onClick={() => setFocus(null)}>
+                <X size={13} /> Show all notes
+              </button>
             </p>
           )}
-          <ul className="note-list">
-            {shown.map((note) => (
-              <li
-                key={note.id}
-                id={`note-${note.id}`}
-                className={`note ${note.resolved ? "is-resolved" : ""}`}
-                data-note={note.type}
+          <div className="note-groups">
+            {groups.map((group) => (
+              <section
+                key={group.key}
+                className={`note-group ${focus === group.key ? "is-focus" : ""}`}
+                aria-label={group.label}
               >
-                <div className="note-top">
-                  <span className="note-type">{noteLabels[note.type]}</span>
-                  {note.pin && (
-                    <button
-                      className="note-anchor"
-                      onClick={() => setFocus(note.pin!)}
-                    >
-                      Pin {pinNumber(note.pin)}
-                    </button>
-                  )}
-                  {note.at !== undefined && (
-                    <a
-                      className="note-anchor"
-                      href={`?t=${Math.floor(note.at)}#clip`}
-                    >
-                      {clock(note.at)}
-                    </a>
-                  )}
-                  {note.resolved && (
-                    <span className="note-done">
-                      <Check size={12} /> Resolved
+                <h3 className="note-group-head">
+                  {group.key === "whole" ? (
+                    <span>
+                      <span className="note-whole" aria-hidden="true" />
+                      {group.label}
                     </span>
-                  )}
-                </div>
-                <p>{note.body}</p>
-                <div className="note-by">
-                  <span>{note.alias}</span> {note.role}
-                  {!note.resolved && (
-                    <button
-                      className="note-resolve"
-                      onClick={() =>
-                        persist({
-                          ...local,
-                          resolved: [...local.resolved, note.id],
-                        })
-                      }
+                  ) : group.key.startsWith("t:") ? (
+                    <a
+                      href={`?t=${Math.floor(Number(group.key.slice(2)))}#clip`}
                     >
-                      Mark resolved
+                      <span className="note-clock">{group.badge}</span>
+                      {group.label}
+                    </a>
+                  ) : (
+                    <button onClick={() => choose(group.key)}>
+                      <span
+                        className={
+                          group.key.startsWith("pin:")
+                            ? "pin pin-static"
+                            : "anchor-tag"
+                        }
+                      >
+                        {group.badge}
+                      </span>
+                      <span className="note-group-label">
+                        {group.label}
+                        {group.detail && (
+                          <span className="note-group-detail">
+                            {group.key.startsWith("step:") ? (
+                              <MathText text={group.detail} />
+                            ) : (
+                              group.detail
+                            )}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   )}
-                </div>
-              </li>
+                </h3>
+                <ul className="note-list">
+                  {group.notes.map((note) => {
+                    const Icon = noteIcons[note.type];
+                    return (
+                      <li
+                        key={note.id}
+                        id={`note-${note.id}`}
+                        className={`note ${note.resolved ? "is-resolved" : ""}`}
+                        data-note={note.type}
+                      >
+                        <Icon
+                          size={16}
+                          className="note-icon"
+                          aria-hidden="true"
+                        />
+                        <div>
+                          <p>
+                            <span className="note-type">
+                              {noteLabels[note.type]}
+                            </span>{" "}
+                            <MathText text={note.body} />
+                          </p>
+                          <p className="note-by">
+                            <span>{note.alias}</span> {note.role}
+                            {note.resolved ? (
+                              <span className="note-done">
+                                <Check size={12} /> Resolved
+                              </span>
+                            ) : (
+                              <button
+                                className="note-resolve"
+                                onClick={() =>
+                                  persist({
+                                    ...local,
+                                    resolved: [...local.resolved, note.id],
+                                  })
+                                }
+                              >
+                                Mark resolved
+                              </button>
+                            )}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
             ))}
-            {!shown.length && (
-              <li className="note-empty">No notes here yet.</li>
-            )}
-          </ul>
+            {!shown.length && <p className="note-empty">No notes here yet.</p>}
+          </div>
           <form className="note-form" onSubmit={submit}>
             <p className="label">Add to this session</p>
             <div
@@ -330,19 +494,21 @@ export function SessionWorkspace({
                 </label>
               ))}
             </div>
-            {pins.length > 0 && (
+            {anchors.length > 0 && (
               <label className="note-pin">
                 <span>Attach to</span>
                 <select
-                  value={draft.pin}
+                  value={draft.anchor}
                   onChange={(event) =>
-                    setDraft({ ...draft, pin: event.target.value })
+                    setDraft({ ...draft, anchor: event.target.value })
                   }
                 >
-                  <option value="">The whole piece</option>
-                  {pins.map((pin, index) => (
-                    <option key={pin.id} value={pin.id}>
-                      Pin {index + 1}: {pin.label}
+                  <option value="whole">The whole piece</option>
+                  {anchors.map((anchor) => (
+                    <option key={anchor.key} value={anchor.key}>
+                      {anchor.key.startsWith("pin:")
+                        ? `Pin ${anchor.badge}: ${anchor.label}`
+                        : `${anchor.label}${anchor.detail ? `: ${anchor.detail.replace(/\$/g, "").slice(0, 48)}` : ""}`}
                     </option>
                   ))}
                 </select>
@@ -354,7 +520,11 @@ export function SessionWorkspace({
             <textarea
               id="note-body"
               rows={3}
-              placeholder="Be specific: what you see, why it matters, what to try."
+              placeholder={
+                session.mode === "hints"
+                  ? "Point to the problem or ask a guiding question. Maths works between $ signs."
+                  : "Be specific: what you see, why it matters, what to try."
+              }
               value={draft.body}
               onChange={(event) =>
                 setDraft({ ...draft, body: event.target.value })

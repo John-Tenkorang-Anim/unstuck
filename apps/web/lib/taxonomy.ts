@@ -43,6 +43,7 @@ export const fields: Field[] = [
       { name: "Web & apps", professions: ["Software engineer"] },
       { name: "Data & ML", professions: ["Data engineer", "ML engineer"] },
       { name: "Operations", professions: ["Site reliability engineer"] },
+      { name: "Coursework", professions: ["Student", "Teaching assistant"] },
     ],
   },
   {
@@ -60,7 +61,10 @@ export const fields: Field[] = [
     summary: "Experiments, studies and results that didn't replicate.",
     specialties: [
       { name: "Lab & bench", professions: ["Researcher", "Lab technician"] },
-      { name: "Teaching & coursework", professions: ["Student", "Teacher"] },
+      {
+        name: "Teaching & coursework",
+        professions: ["Student", "Teacher", "Teaching assistant"],
+      },
       { name: "Field studies", professions: ["Field scientist"] },
     ],
   },

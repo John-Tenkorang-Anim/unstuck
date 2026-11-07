@@ -1,5 +1,5 @@
 import { samplePictures } from "./data";
-import type { Picture, Topic } from "./types";
+import type { Clip, Picture, Topic } from "./types";
 
 /**
  * A session is where feedback happens. Every critique or investigation gets its
@@ -11,11 +11,29 @@ export type NoteType =
   "issue" | "suggestion" | "question" | "strength" | "hypothesis" | "evidence";
 export interface Pin {
   id: string;
+  /** 1-based page for pins on a PDF. */
+  page?: number;
   /** Position as a fraction of the image, so pins survive any display size. */
   x: number;
   y: number;
   label: string;
 }
+/**
+ * Shown working. Steps take inline maths between $…$, code keeps its line
+ * numbers and output, and data is a small CSV. Feedback can point at a step,
+ * a line or a row, the way a marker circles one line on a page.
+ */
+export type Block =
+  | { kind: "steps"; title: string; steps: string[] }
+  | {
+      kind: "code";
+      title: string;
+      language: string;
+      code: string;
+      output?: string;
+      expected?: string;
+    }
+  | { kind: "data"; title: string; csv: string; note?: string };
 export interface SessionNote {
   id: string;
   alias: string;
@@ -24,7 +42,24 @@ export interface SessionNote {
   body: string;
   pin?: string;
   at?: number;
+  /** 1-based step, code line or data row in the session's working. */
+  step?: number;
+  line?: number;
+  row?: number;
+  page?: number;
   resolved?: boolean;
+}
+/** A stable key for whatever a note points at, used for grouping and focus. */
+export function anchorKey(
+  note: Pick<SessionNote, "pin" | "at" | "step" | "line" | "row">,
+) {
+  if (note.pin) return `pin:${note.pin}`;
+  if (note.step) return `step:${note.step}`;
+  if (note.line) return `line:${note.line}`;
+  if (note.row) return `row:${note.row}`;
+  if (note.page) return `page:${note.page}`;
+  if (note.at !== undefined) return `t:${note.at}`;
+  return "whole";
 }
 export interface Round {
   n: number;
@@ -43,6 +78,16 @@ export interface Session {
   wentWrong: string;
   ask: string;
   work?: Picture;
+  /** A shared video of the work, with its marked moments. */
+  clip?: Clip;
+  /** A shared PDF of the work. */
+  pdf?: { src: string; name: string; bytes: number };
+  /** Who opened the session, for shared sessions. */
+  author?: string;
+  blocks?: Block[];
+  /** Hints only: graded work, so reviewers point at the problem without solving it. */
+  mode?: "hints" | "full";
+  course?: string;
   entryId?: string;
   pins: Pin[];
   rounds: Round[];
@@ -69,6 +114,171 @@ export const statusLabels: Record<SessionStatus, string> = {
 
 // Fictional sessions that show how critique works. The photos are real and credited.
 export const sampleSessions: Session[] = [
+  {
+    id: "integration-by-parts-sign",
+    kind: "critique",
+    title: "Integration by parts: my answer is off by a sign",
+    field: "Research",
+    specialty: "Teaching & coursework",
+    level: "First-year calculus",
+    course: "Calculus II · Problem set 4, question 3",
+    mode: "hints",
+    status: "in-review",
+    opened: "2026-11-06",
+    wentWrong:
+      "When I differentiate my answer to check it, I get the negative of what I started with.",
+    ask: "Where does the sign go wrong? Please don’t give me the final answer, it’s graded.",
+    blocks: [
+      {
+        kind: "steps",
+        title: "My working",
+        steps: [
+          "Find $\\int x \\sin x \\, dx$. Choose $u = x$ and $dv = \\sin x \\, dx$.",
+          "Then $du = dx$ and $v = \\cos x$.",
+          "So $\\int x \\sin x \\, dx = uv - \\int v \\, du = x \\cos x - \\int \\cos x \\, dx$.",
+          "$= x \\cos x - \\sin x + C$",
+          "Check: $\\frac{d}{dx}(x \\cos x - \\sin x) = \\cos x - x \\sin x - \\cos x = -x \\sin x$, which should have been $x \\sin x$.",
+        ],
+      },
+    ],
+    pins: [],
+    rounds: [
+      {
+        n: 1,
+        note: "Typed up from my handwritten working.",
+        notes: [
+          {
+            id: "n1",
+            alias: "kind-tutor-27",
+            role: "Practitioner · maths teaching assistant",
+            type: "question",
+            step: 2,
+            body: "Try differentiating your $v$. Do you get back exactly $\\sin x$?",
+          },
+          {
+            id: "n2",
+            alias: "kind-tutor-27",
+            role: "Practitioner · maths teaching assistant",
+            type: "strength",
+            step: 5,
+            body: "Checking by differentiating is exactly the right habit. It’s how you caught this.",
+          },
+          {
+            id: "n3",
+            alias: "careful-limit-03",
+            role: "Peer · first-year student",
+            type: "suggestion",
+            step: 3,
+            body: "Once step 2 is fixed, redo this line slowly. A sign that changes there carries through every later step.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "moving-average-off-by-one",
+    kind: "critique",
+    title: "My moving average drops the last value",
+    field: "Software",
+    specialty: "Coursework",
+    level: "Intro to programming",
+    course: "CS 1110 · Lab 6",
+    mode: "hints",
+    status: "open",
+    opened: "2026-11-05",
+    wentWrong:
+      "With five values and a window of two I should get four averages, but I get three.",
+    ask: "What am I missing in the loop? Hints are fine, I want to fix it myself.",
+    blocks: [
+      {
+        kind: "code",
+        title: "moving_average.py",
+        language: "Python",
+        code: "def moving_average(values, window):\n    averages = []\n    for i in range(len(values) - window):\n        chunk = values[i:i + window]\n        averages.append(sum(chunk) / window)\n    return averages\n\nprint(moving_average([1, 2, 3, 4, 5], 2))",
+        output: "[1.5, 2.5, 3.5]",
+        expected: "[1.5, 2.5, 3.5, 4.5]",
+      },
+    ],
+    pins: [],
+    rounds: [
+      {
+        n: 1,
+        note: "First submission to the lab autograder.",
+        notes: [
+          {
+            id: "n1",
+            alias: "steady-loop-44",
+            role: "Practitioner · software engineer",
+            type: "question",
+            line: 3,
+            body: "How many windows of size 2 fit in 5 values? Count them by hand, then count how many times this loop runs.",
+          },
+          {
+            id: "n2",
+            alias: "steady-loop-44",
+            role: "Practitioner · software engineer",
+            type: "strength",
+            line: 4,
+            body: "Slicing with values[i:i + window] is clear and correct. The bug isn’t here.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "pendulum-g-too-high",
+    kind: "critique",
+    title: "Pendulum lab: my value of g comes out at 10.2",
+    field: "Research",
+    specialty: "Lab & bench",
+    level: "Physics 1 lab",
+    course: "PHYS 1112 · Lab 2, simple pendulum",
+    mode: "full",
+    status: "in-review",
+    opened: "2026-11-04",
+    wentWrong:
+      "I timed 10 swings at five lengths and used g = 4π²L/T². My average is 10.24 m/s², not 9.81.",
+    ask: "Is my method wrong, or is it one of my measurements?",
+    blocks: [
+      {
+        kind: "data",
+        title: "Measurements",
+        csv: "Length L (m),Time for 10 swings (s),Period T (s),g (m/s²)\n0.50,14.2,1.42,9.79\n0.75,17.4,1.74,9.78\n1.00,20.1,2.01,9.77\n1.25,20.2,2.02,12.09\n1.50,24.6,2.46,9.79",
+        note: "Mean of g: 10.24 m/s²",
+      },
+    ],
+    pins: [],
+    rounds: [
+      {
+        n: 1,
+        note: "Raw timings from the lab session, one run per length.",
+        notes: [
+          {
+            id: "n1",
+            alias: "bench-notes-12",
+            role: "Practitioner · lab demonstrator",
+            type: "issue",
+            row: 4,
+            body: "This row is the outlier. Its period barely changes from the 1.00 m row even though the pendulum is longer. If you timed 9 swings here, T would be 2.24 s and g would be 9.80.",
+          },
+          {
+            id: "n2",
+            alias: "bench-notes-12",
+            role: "Practitioner · lab demonstrator",
+            type: "strength",
+            body: "The other four rows agree within 0.02 m/s², so your method is sound.",
+          },
+          {
+            id: "n3",
+            alias: "quiet-vernier-21",
+            role: "Peer · physics student",
+            type: "suggestion",
+            body: "Plot T² against L. A straight line through the origin makes a single bad row stand out immediately, and the slope gives you g.",
+          },
+        ],
+      },
+    ],
+  },
   {
     id: "first-print-spaghetti",
     kind: "critique",

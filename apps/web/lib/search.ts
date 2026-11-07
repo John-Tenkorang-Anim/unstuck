@@ -173,6 +173,35 @@ export function entryDoc(entry: Entry): Doc {
 export function sessionDoc(session: Session): Doc {
   const href = `/sessions/${session.id}`;
   const notes = session.rounds.flatMap((round) => round.notes);
+  const working: Anchor[] = (session.blocks ?? []).flatMap((block) =>
+    block.kind === "steps"
+      ? block.steps.map((step, i) => ({
+          kind: "section" as const,
+          label: `Step ${i + 1}`,
+          text: step
+            .replace(/\$|\\[a-z]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim(),
+          href,
+        }))
+      : block.kind === "code"
+        ? [
+            {
+              kind: "section" as const,
+              label: block.title,
+              text: `${block.code} ${block.output ?? ""}`,
+              href,
+            },
+          ]
+        : [
+            {
+              kind: "section" as const,
+              label: block.title,
+              text: block.csv.replace(/,/g, " "),
+              href,
+            },
+          ],
+  );
   return {
     id: session.id,
     source: "session",
@@ -201,12 +230,14 @@ export function sessionDoc(session: Session): Doc {
       { weight: 2, text: `${session.wentWrong} ${session.ask}` },
       {
         weight: 1.5,
-        text: `${session.field} ${session.specialty} ${session.level ?? ""} ${session.work?.alt ?? ""}`,
+        text: `${session.field} ${session.specialty} ${session.level ?? ""} ${session.course ?? ""} ${session.work?.alt ?? ""}`,
       },
       { weight: 1.5, text: session.pins.map((p) => p.label).join(" ") },
       { weight: 1, text: notes.map((n) => n.body).join(" ") },
+      { weight: 1, text: working.map((w) => w.text).join(" ") },
     ],
     anchors: [
+      ...working,
       ...session.pins.map((p, i) => ({
         kind: "photo" as const,
         label: `Pin ${i + 1}`,

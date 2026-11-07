@@ -35,11 +35,11 @@ export interface Clip {
   src: string;
   type: string;
   bytes: number;
-  poster: Picture;
+  poster?: Picture;
   duration: number;
   title: string;
   moments: Moment[];
-  credit: Credit;
+  credit?: Credit;
 }
 export interface Entry {
   id: string;

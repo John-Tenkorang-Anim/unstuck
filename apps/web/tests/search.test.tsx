@@ -35,7 +35,7 @@ describe("search and retrieval", () => {
     expect(videos.results.map((r) => r.doc.id)).toEqual([
       "tacoma-narrows-1940",
     ]);
-    expect(videos.counts.critique).toBe(3);
+    expect(videos.counts.critique).toBe(6);
     const software = search(docs, "", { field: "Software" });
     expect(software.results.every((r) => r.doc.field === "Software")).toBe(
       true,
@@ -53,6 +53,48 @@ describe("search and retrieval", () => {
     expect(summary.total).toBe(examples.length);
     expect(summary.breaks[0].moment.kind).toBe("broke");
     expect(summary.outcomes.find((o) => o.key === "failed")?.count).toBe(3);
+  });
+});
+
+describe("shown working", () => {
+  it("lets feedback point at a single step, code line or data row", async () => {
+    const user = userEvent.setup();
+    render(
+      <NotebookProvider>
+        <SessionWorkspace session={sessionById("pendulum-g-too-high")!} />
+      </NotebookProvider>,
+    );
+    expect(screen.getByRole("table")).toHaveTextContent("12.09");
+    await user.click(screen.getByRole("button", { name: "Row 4, 1 notes" }));
+    expect(screen.getByText("Notes on row 4")).toBeVisible();
+    expect(document.querySelectorAll(".note")).toHaveLength(1);
+    expect(document.querySelector(".note")).toHaveTextContent("9 swings");
+    await user.type(screen.getByLabelText("Your note"), "Re-time this length.");
+    await user.click(screen.getByRole("button", { name: "Add note" }));
+    const stored = JSON.parse(
+      localStorage.getItem("unstuck:session:pendulum-g-too-high")!,
+    );
+    expect(stored.notes[0].row).toBe(4);
+  });
+  it("typesets maths with a readable MathML layer and marks graded work as hints only", () => {
+    render(
+      <NotebookProvider>
+        <SessionWorkspace session={sessionById("integration-by-parts-sign")!} />
+      </NotebookProvider>,
+    );
+    expect(screen.getByText(/Graded work: hints only/)).toBeVisible();
+    expect(document.querySelectorAll(".steps math").length).toBeGreaterThan(4);
+    expect(
+      screen.getByRole("button", { name: "Step 2, 1 notes" }),
+    ).toBeVisible();
+  });
+  it("finds coursework by its code and course", () => {
+    expect(search(docs, "range len window").results[0].doc.id).toBe(
+      "moving-average-off-by-one",
+    );
+    expect(search(docs, "pendulum period").results[0].doc.id).toBe(
+      "pendulum-g-too-high",
+    );
   });
 });
 
