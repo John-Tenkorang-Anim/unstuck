@@ -575,3 +575,68 @@ describe("discussion at scale", () => {
     expect((await d.myPosts(owner, {})).items[0].responses).toBe(3);
   });
 });
+
+describe("communities", () => {
+  it("creates open communities, counts members and keeps community-only posts out of the public feed", async () => {
+    const s = await store();
+    const c = await import("@/lib/communities.server");
+    const { createEntry, publishedEntries, communityEntries } =
+      await import("@/lib/entries.server");
+    const make = async (name: string): Promise<Account> => ({
+      ...(await s.insertAccount(name, "")).account,
+      moderator: false,
+      suspended: false,
+      created: new Date().toISOString(),
+    });
+    const founder = await make("Founder");
+    const slug = await c.createCommunity(founder, {
+      name: "Fish smokers of Elmina",
+      about: "Smoking fish over wood, and what made it spoil.",
+      topic: "Food & farming",
+    });
+    expect(slug).toBe("fish-smokers-of-elmina");
+    await expect(
+      c.createCommunity(founder, {
+        name: "Smallholder growers",
+        about: "Trying to take a sample's name.",
+        topic: "Food & farming",
+      }),
+    ).rejects.toThrow(/already exists/);
+    const reader = await make("Reader");
+    expect(await c.setMembership(reader, slug, true)).toEqual({
+      joined: true,
+      members: 2,
+    });
+    expect(await c.setMembership(reader, slug, true)).toEqual({
+      joined: true,
+      members: 2,
+    });
+    const form = new FormData();
+    form.set(
+      "entry",
+      JSON.stringify({
+        kind: "problem",
+        template: "farming_food",
+        title: "Smoked fish goes mouldy within a week",
+        goal: "Keep smoked fish for a month.",
+        approach: "Smoked for a day over mangrove wood.",
+        public: false,
+        communities: [slug],
+      }),
+    );
+    const id = await createEntry(reader, form);
+    expect((await publishedEntries()).some((e) => e.id === id)).toBe(false);
+    expect((await communityEntries(slug)).map((e) => e.id)).toEqual([id]);
+    const stats = await c.communityStats([slug], reader);
+    expect(stats[slug]).toMatchObject({
+      members: 2,
+      questions: 1,
+      unanswered: 1,
+      library: 0,
+      joined: true,
+    });
+    expect((await c.myCommunities(reader)).map((x) => x.slug)).toContain(slug);
+    await c.setMembership(reader, slug, false);
+    expect((await c.communityStats([slug], reader))[slug].joined).toBe(false);
+  });
+});

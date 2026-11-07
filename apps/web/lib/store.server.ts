@@ -53,7 +53,7 @@ export interface StoredNote extends SessionNote {
   hidden?: boolean;
 }
 export type TargetType =
-  "session" | "note" | "entry" | "comment" | "explanation";
+  "session" | "note" | "entry" | "comment" | "explanation" | "community";
 
 export const newId = () => randomUUID();
 export const hashToken = (token: string) =>
@@ -294,6 +294,8 @@ export const limits = {
   note: { max: 60, seconds: 3600 },
   report: { max: 20, seconds: 3600 },
   helpful: { max: 300, seconds: 3600 },
+  community: { max: 5, seconds: 86400 },
+  join: { max: 120, seconds: 3600 },
 };
 /**
  * Count recent events for a key and refuse once the window is full. The
@@ -675,6 +677,7 @@ const tables: Record<TargetType, string> = {
   entry: "web.entries",
   comment: "web.comments",
   explanation: "web.explanations",
+  community: "web.communities",
 };
 /**
  * File a report. Each person can report a thing once. When enough different
@@ -807,7 +810,9 @@ export async function preview(type: TargetType, id: string) {
       ? "left(t.body, 200) AS title, '' AS body, t.entry_id"
       : type === "explanation"
         ? "t.title, t.detail AS body, t.entry_id"
-        : "coalesce(t.data->>'title', left(t.data->>'body', 200)) AS title, coalesce(t.data->>'wentWrong', t.data->>'excerpt', '') AS body, NULL AS entry_id";
+        : type === "community"
+          ? "t.data->>'name' AS title, t.data->>'about' AS body, NULL AS entry_id"
+          : "coalesce(t.data->>'title', left(t.data->>'body', 200)) AS title, coalesce(t.data->>'wentWrong', t.data->>'excerpt', '') AS body, NULL AS entry_id";
   const [row] = await query<{
     title: string;
     body: string;
@@ -892,7 +897,8 @@ export async function standing(account: Account) {
      UNION ALL SELECT 'entry', id::text, data->>'title' FROM web.entries WHERE owner = $1 AND hidden
      UNION ALL SELECT 'note', id::text, left(data->>'body', 120) FROM web.notes WHERE owner = $1 AND hidden
      UNION ALL SELECT 'comment', id::text, left(body, 120) FROM web.comments WHERE owner = $1 AND hidden
-     UNION ALL SELECT 'explanation', id::text, title FROM web.explanations WHERE owner = $1 AND hidden`,
+     UNION ALL SELECT 'explanation', id::text, title FROM web.explanations WHERE owner = $1 AND hidden
+     UNION ALL SELECT 'community', id::text, data->>'name' FROM web.communities WHERE owner = $1 AND hidden`,
     [account.id],
   );
   const appeals = await query<Appeal>(

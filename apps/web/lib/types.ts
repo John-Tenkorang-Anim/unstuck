@@ -78,6 +78,10 @@ export interface Entry {
   mediaState?: "ready" | "pending" | "held";
   highStakes?: boolean;
   license?: string;
+  /** Communities the author posted it to, by address. */
+  communities?: string[];
+  /** False when the author shared it only with their communities. */
+  public?: boolean;
   media?: Attachment[];
 }
 export interface Notebook {

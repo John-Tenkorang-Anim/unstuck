@@ -129,19 +129,23 @@ export function Shell({ children }: { children: ReactNode }) {
       href: "/discover",
       active: path === "/discover" || path.startsWith("/entries"),
     },
-    { label: "Search", href: "/search", active: path === "/search" },
-    {
-      label: "Critique",
-      href: "/sessions",
-      active: path.startsWith("/sessions"),
-    },
     {
       label: "Questions",
       href: "/questions",
       active: path === "/questions",
     },
+    {
+      label: "Communities",
+      href: "/communities",
+      active: path.startsWith("/communities"),
+    },
+    {
+      label: "Critique",
+      href: "/sessions",
+      active: path.startsWith("/sessions"),
+    },
     { label: "Notebook", href: "/notebook", active: path === "/notebook" },
-    { label: "About", href: "/about", active: path === "/about" },
+    { label: "Search", href: "/search", active: path === "/search" },
   ];
   const links = navigation.map((item) => (
     <Link
@@ -273,6 +277,7 @@ export function Shell({ children }: { children: ReactNode }) {
             Everything the world has tried: what worked, what didn’t, and why.
           </p>
           <nav aria-label="Footer">
+            <Link href="/about">About</Link>
             <Link href="/about#principles">Principles</Link>
             <Link href="/new">Contribute</Link>
           </nav>

@@ -24,6 +24,7 @@ import { kindLabels } from "@/lib/data";
 import { MediaAttach, type Attached } from "./media-attach";
 import { useNotebook } from "./notebook-provider";
 import { useAccount } from "./use-account";
+import type { Community } from "@/lib/communities";
 
 /** Read an image's natural size so it keeps its proportions when published. */
 function imageSize(blob: Blob) {
@@ -124,10 +125,19 @@ const storageKey = "unstuck:draft:v1";
 const mediaKey = "unstuck:draft:v1:media";
 export function Composer({
   initialKind,
+  initialTitle,
   relates,
+  communities = [],
+  joined = [],
+  initialCommunity,
 }: {
   initialKind?: string;
+  /** A question typed into an Ask box elsewhere. */
+  initialTitle?: string;
   relates?: string;
+  communities?: Community[];
+  joined?: string[];
+  initialCommunity?: string;
 }) {
   const [draft, setDraft] = useState<Draft>({
     ...blank,
@@ -137,8 +147,26 @@ export function Composer({
           outcome: allowedOutcomes[initialKind as EntryKind][0] ?? "",
         }
       : {}),
+    ...(initialTitle ? { title: initialTitle.slice(0, 160) } : {}),
+    // Asking a community starts in that community's field.
+    ...((t) => (t ? { template: t[0] } : {}))(
+      templates.find(
+        (t) =>
+          t[1] === communities.find((c) => c.slug === initialCommunity)?.topic,
+      ),
+    ),
   });
-  const [step, setStep] = useState(0);
+  // Someone who typed a question goes straight to writing it.
+  const [step, setStep] = useState(initialTitle ? 1 : 0);
+  const [audience, setAudience] = useState<{
+    everyone: boolean;
+    communities: string[];
+  }>({
+    everyone: true,
+    communities: communities.some((c) => c.slug === initialCommunity)
+      ? [initialCommunity!]
+      : [],
+  });
   const [loaded, setLoaded] = useState(false);
   const [savedAt, setSavedAt] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -177,8 +205,19 @@ export function Composer({
       if (media.some((m) => !m.alt.trim()))
         throw new Error("Describe each photo or video before publishing.");
       if (!viewer) await signIn(who.name, who.role);
+      if (!audience.everyone && !audience.communities.length)
+        throw new Error(
+          "Choose where this should appear: everyone, a community, or both.",
+        );
       const form = new FormData();
-      form.set("entry", JSON.stringify(draft));
+      form.set(
+        "entry",
+        JSON.stringify({
+          ...draft,
+          public: audience.everyone,
+          communities: audience.communities,
+        }),
+      );
       const meta = [];
       for (const [index, item] of media.entries()) {
         const blob = await getFile(item.id);
@@ -223,6 +262,11 @@ export function Composer({
     }
   }
   useEffect(() => {
+    if (initialTitle) {
+      setSavedAt("A new question. Saving it replaces your earlier draft.");
+      setLoaded(true);
+      return;
+    }
     try {
       const stored: unknown = JSON.parse(
         localStorage.getItem(storageKey) ?? "null",
@@ -482,16 +526,40 @@ export function Composer({
   return (
     <div className="composer frame">
       <header className="composer-head">
-        <Link href="/discover" className="back-link">
-          <ArrowLeft size={14} /> All entries
-        </Link>
-        <h1>
-          Your experience.{" "}
-          <span className="tint-brand">Someone’s next step.</span>
-        </h1>
-        <p className="page-lede">
-          It doesn’t have to be extraordinary. Just honest, specific, and yours.
-        </p>
+        {initialCommunity &&
+        communities.some((c) => c.slug === initialCommunity) ? (
+          <Link href={`/communities/${initialCommunity}`} className="back-link">
+            <ArrowLeft size={14} />{" "}
+            {communities.find((c) => c.slug === initialCommunity)!.name}
+          </Link>
+        ) : (
+          <Link href="/discover" className="back-link">
+            <ArrowLeft size={14} /> Discover
+          </Link>
+        )}
+        {draft.kind === "problem" ? (
+          <>
+            <h1>
+              Ask it plainly.{" "}
+              <span className="tint-brand">Someone has been there.</span>
+            </h1>
+            <p className="page-lede">
+              Say where you’re stuck and what you’ve already tried. That’s what
+              people need to help.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1>
+              Your experience.{" "}
+              <span className="tint-brand">Someone’s next step.</span>
+            </h1>
+            <p className="page-lede">
+              It doesn’t have to be extraordinary. Just honest, specific, and
+              yours.
+            </p>
+          </>
+        )}
       </header>
       <ol className="composer-steps" aria-label="Field note progress">
         {["Choose a type", "Tell the story", "Review"].map((label, i) => (
@@ -776,6 +844,13 @@ export function Composer({
                     {publishError}
                   </p>
                 )}
+                <Audience
+                  communities={communities}
+                  joined={joined}
+                  value={audience}
+                  onChange={setAudience}
+                  question={draft.kind === "problem"}
+                />
                 <button
                   className="button button-outline"
                   disabled={
@@ -786,8 +861,10 @@ export function Composer({
                   {publishing ? "Publishing…" : "Publish to Unstuck"}
                 </button>
                 <span className="publish-hint">
-                  {viewer ? `Posting as ${viewer.name}. ` : ""}Everyone will be
-                  able to read it.
+                  {viewer ? `Posting as ${viewer.name}. ` : ""}
+                  {audience.everyone
+                    ? "Everyone will be able to read it."
+                    : "It appears in the communities you chose. Communities are open, so anyone with the link can read it."}
                 </span>
               </div>
             </>
@@ -875,5 +952,105 @@ export function Composer({
         </aside>
       </div>
     </div>
+  );
+}
+
+/**
+ * Where a post appears: to everyone, to communities, or both. Communities you
+ * joined come first; asking both gets more varied answers.
+ */
+function Audience({
+  communities,
+  joined,
+  value,
+  onChange,
+  question,
+}: {
+  communities: Community[];
+  joined: string[];
+  value: { everyone: boolean; communities: string[] };
+  onChange: (next: { everyone: boolean; communities: string[] }) => void;
+  question: boolean;
+}) {
+  const [filter, setFilter] = useState("");
+  const ordered = [
+    ...joined
+      .map((slug) => communities.find((c) => c.slug === slug))
+      .filter((c): c is Community => !!c),
+    ...communities.filter((c) => !joined.includes(c.slug)),
+  ].filter((c) =>
+    `${c.name} ${c.topic}`.toLowerCase().includes(filter.toLowerCase()),
+  );
+  const toggle = (slug: string) =>
+    onChange({
+      ...value,
+      communities: value.communities.includes(slug)
+        ? value.communities.filter((s) => s !== slug)
+        : value.communities.length >= 5
+          ? value.communities
+          : [...value.communities, slug],
+    });
+  const none = !value.everyone && !value.communities.length;
+  return (
+    <fieldset className="audience" aria-describedby="audience-hint">
+      <legend>Where should {question ? "your question" : "it"} appear?</legend>
+      <p id="audience-hint" className="audience-hint">
+        {question
+          ? "A community gets people who know the field. Everyone gets the widest range of answers. You can choose both."
+          : "Pick communities to add it to their library, and everyone to make it searchable."}
+      </p>
+      <label className="audience-option">
+        <input
+          type="checkbox"
+          checked={value.everyone}
+          onChange={(e) => onChange({ ...value, everyone: e.target.checked })}
+        />
+        <span>
+          <strong>Everyone</strong>
+          <small>Discover, Questions and search</small>
+        </span>
+      </label>
+      {communities.length > 0 && (
+        <>
+          {communities.length > 6 && (
+            <input
+              className="audience-filter"
+              type="search"
+              value={filter}
+              placeholder="Find a community"
+              aria-label="Find a community"
+              onChange={(e) => setFilter(e.target.value)}
+            />
+          )}
+          <div className="audience-list">
+            {ordered.map((c) => (
+              <label key={c.slug} className="audience-option">
+                <input
+                  type="checkbox"
+                  checked={value.communities.includes(c.slug)}
+                  disabled={
+                    !value.communities.includes(c.slug) &&
+                    value.communities.length >= 5
+                  }
+                  onChange={() => toggle(c.slug)}
+                />
+                <span>
+                  <strong>{c.name}</strong>
+                  <small>
+                    {joined.includes(c.slug) ? "You’re a member · " : ""}
+                    {c.topic}
+                  </small>
+                </span>
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+      {none && (
+        <p className="field-error" role="alert">
+          Choose at least one place.
+        </p>
+      )}
+    </fieldset>
   );
 }

@@ -61,9 +61,21 @@ npm run start -- --port 3100
   supporting or disputing evidence. Responses split into all, questions and
   tried-it, and can be searched, sorted by most helpful, newest or oldest,
   and paged. Long responses are clamped, and replies load on request.
-- A panel for the person who posted, showing what is new since their last
-  visit, and a "Your posts" page at `/you` that lists every post with its new
-  and unanswered counts.
+- A field note reads on its own. Its discussion opens as a pane beside it
+  only when someone asks for it, and `?discuss=1` keeps that open in a link.
+  On phones the discussion is a full-screen sheet.
+- Open communities at `/communities`. Anyone can start, join, read and post
+  in one. Each community has its own questions and a library of notes shelved
+  by outcome.
+- When posting, people choose where it appears: everyone, one or more
+  communities, or both. Community-only posts stay out of the public feed and
+  search.
+- Questions at `/questions` hold everyone's open problems, with filters for
+  unanswered, your communities and field. The notebook at `/notebook` holds
+  what is yours: your posts with new and unanswered counts, saved notes and
+  your communities. `/you` redirects there.
+- Discover lets people search or ask from one bar, then offers doors to ask,
+  help, get feedback or find a community.
 
 ## Shared data
 

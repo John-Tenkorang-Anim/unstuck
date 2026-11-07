@@ -29,10 +29,17 @@ export function AccountChip() {
           </p>
           <Link
             className="account-link"
-            href="/you"
+            href="/notebook?tab=posts"
             onClick={() => setOpen(false)}
           >
             Your posts
+          </Link>
+          <Link
+            className="account-link"
+            href="/notebook?tab=communities"
+            onClick={() => setOpen(false)}
+          >
+            Your communities
           </Link>
           <Link
             className="account-link"

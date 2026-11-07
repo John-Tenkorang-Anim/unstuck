@@ -18,6 +18,7 @@ const types: AppealTarget[] = [
   "entry",
   "comment",
   "explanation",
+  "community",
   "account",
 ];
 

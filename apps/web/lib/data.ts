@@ -103,7 +103,7 @@ export const samplePictures = {
 };
 
 // Fictional examples demonstrate the product. They are not real research or advice.
-export const examples: Entry[] = [
+const sampleEntries: Entry[] = [
   {
     id: "tacoma-narrows-1940",
     kind: "research",
@@ -493,7 +493,128 @@ export const examples: Entry[] = [
     ],
     example: true,
   },
+  {
+    id: "maize-yellowing-after-first-rains",
+    kind: "problem",
+    title:
+      "Maize leaves turning yellow from the bottom up after the first rains",
+    excerpt:
+      "Three weeks after planting, the lower leaves on about a third of my maize went pale yellow, starting at the tips. The upper leaves still look fine. I added compost before planting but no fertiliser.",
+    topic: "Food & farming",
+    outcome: null,
+    place: "Tamale, Ghana",
+    alias: "dry-season-04",
+    date: "2026-11-05",
+    illustration: "garden",
+    readingMinutes: 2,
+    tried: 0,
+    helped: 3,
+    comments: 0,
+    context: { Country: "Ghana", Soil: "Sandy loam", Rain: "First rains" },
+    sections: [
+      {
+        title: "Where I am stuck",
+        body: "Lower leaves are yellowing from the tip along the middle of the leaf. It is worse in the lower part of the field where water stood for a day after heavy rain.",
+      },
+      {
+        title: "What I have already tried",
+        body: "Compost before planting and weeding twice. I have not tested the soil. I am not sure whether this is nitrogen, waterlogging or something else.",
+      },
+      {
+        title: "What would help",
+        body: "How to tell the likely causes apart in the field, and what is cheap enough to test on a few rows first.",
+      },
+    ],
+    evidence: [],
+    example: true,
+  },
+  {
+    id: "build-runs-out-of-memory-in-ci",
+    kind: "problem",
+    title: "Build passes on my laptop but runs out of memory in CI",
+    excerpt:
+      "Our Next.js build finishes in four minutes locally. On the CI runner it stops at the type-checking step with a JavaScript heap out of memory error. Nothing in the code changed between the two runs.",
+    topic: "Software",
+    outcome: null,
+    place: "Remote team",
+    alias: "quiet-compiler-19",
+    date: "2026-11-04",
+    illustration: "code",
+    readingMinutes: 2,
+    tried: 0,
+    helped: 5,
+    comments: 0,
+    context: { Runner: "2 vCPU, 7 GB", Node: "22", Framework: "Next.js" },
+    sections: [
+      {
+        title: "Where I am stuck",
+        body: "The CI build fails with “JavaScript heap out of memory” during type checking. Locally it passes every time.",
+      },
+      {
+        title: "What I have already tried",
+        body: "Clearing the cache and re-running. Raising max-old-space-size to 4096 made it fail later instead of earlier.",
+      },
+      {
+        title: "What would help",
+        body: "Ways to find what is using the memory, or to split the work so the runner can finish.",
+      },
+    ],
+    evidence: [],
+    example: true,
+  },
+  {
+    id: "pendulum-lab-g-too-high",
+    kind: "problem",
+    title: "My pendulum lab keeps giving g = 10.6 m/s². Where is the error?",
+    excerpt:
+      "I timed 10 swings at five string lengths and plotted T² against L. The slope gives g = 10.6 m/s² every time, about 8% too high. My method looks right to me, so I want help finding the mistake myself.",
+    topic: "Research",
+    outcome: null,
+    place: "A school physics lab",
+    alias: "first-year-22",
+    date: "2026-11-03",
+    illustration: "water",
+    readingMinutes: 2,
+    tried: 0,
+    helped: 2,
+    comments: 0,
+    context: { Level: "Secondary school", Equipment: "Stopwatch, ruler" },
+    sections: [
+      {
+        title: "Where I am stuck",
+        body: "The value of g from my T² against L graph is consistently too high, even after repeating the measurements.",
+      },
+      {
+        title: "What I have already tried",
+        body: "Timing 10 swings instead of one, and repeating each length three times. The result barely moved.",
+      },
+      {
+        title: "What would help",
+        body: "Hints about where a consistent error could come from, not the full answer. This is for a graded report.",
+      },
+    ],
+    evidence: [],
+    example: true,
+  },
 ];
+/** Which sample communities each sample entry was posted to. */
+const sampleCommunityFor: Record<string, string[]> = {
+  "tacoma-narrows-1940": ["engineering-failures"],
+  "two-pots-one-small-breakthrough": ["smallholder-growers"],
+  "the-cache-was-not-the-problem": ["web-developers"],
+  "a-chair-worth-fixing": ["fix-it-at-home"],
+  "what-the-rain-changed": ["smallholder-growers"],
+  "a-cooler-room-without-a-bigger-bill": ["fix-it-at-home"],
+  "small-data-better-questions": ["classroom-research"],
+  "maize-yellowing-after-first-rains": ["smallholder-growers"],
+  "build-runs-out-of-memory-in-ci": ["web-developers"],
+  "pendulum-lab-g-too-high": ["maths-and-physics-help"],
+};
+export const examples: Entry[] = sampleEntries.map((entry) => ({
+  ...entry,
+  communities: sampleCommunityFor[entry.id] ?? [],
+  public: true,
+}));
 
 export const topics = [
   "Food & farming",

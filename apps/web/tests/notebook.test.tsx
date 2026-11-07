@@ -29,7 +29,7 @@ describe("finding a way forward", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Learn from what failed.",
     );
-    expect(screen.getAllByRole("article")).toHaveLength(7);
+    expect(screen.getAllByRole("article")).toHaveLength(10);
     expect(
       screen.getByText(/Fictional stories and one historical case/),
     ).toBeVisible();
@@ -52,7 +52,7 @@ describe("finding a way forward", () => {
       screen.getByRole("heading", { name: "A new direction is waiting." }),
     ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Clear filters" }));
-    expect(screen.getAllByRole("article")).toHaveLength(7);
+    expect(screen.getAllByRole("article")).toHaveLength(10);
   });
   it("sorts by evidence participation and supports the search keyboard shortcut", async () => {
     const user = userEvent.setup();
@@ -91,7 +91,7 @@ describe("finding a way forward", () => {
   });
   it("shows the selected topic and questions without losing their initial state", () => {
     discover({ initialTopic: "Food & farming" });
-    expect(screen.getAllByRole("article")).toHaveLength(2);
+    expect(screen.getAllByRole("article")).toHaveLength(3);
   });
   it("does not substitute sample entries when the live API is unavailable", () => {
     render(
@@ -108,7 +108,7 @@ describe("finding a way forward", () => {
   it("keeps malformed saved storage from crashing the interface", () => {
     localStorage.setItem("unstuck:saved", "invalid json");
     discover();
-    expect(screen.getAllByRole("article")).toHaveLength(7);
+    expect(screen.getAllByRole("article")).toHaveLength(10);
   });
 });
 
@@ -139,7 +139,7 @@ describe("the outcome atlas", () => {
     );
     expect(window.location.search).toBe("?topic=Software&outcome=failed");
     await user.click(screen.getByRole("link", { name }));
-    expect(screen.getAllByRole("article")).toHaveLength(7);
+    expect(screen.getAllByRole("article")).toHaveLength(10);
     expect(window.location.search).toBe("");
   });
   it("restores a filter from a shared address and ignores unknown outcomes", () => {
@@ -147,7 +147,7 @@ describe("the outcome atlas", () => {
     expect(screen.getAllByRole("article")).toHaveLength(1);
     shared.unmount();
     discover({ initialOutcome: "not-an-outcome" });
-    expect(screen.getAllByRole("article")).toHaveLength(7);
+    expect(screen.getAllByRole("article")).toHaveLength(10);
   });
   it("exposes all six outcome filters with visible state, and names only their label", () => {
     discover();

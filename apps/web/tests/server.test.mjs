@@ -70,13 +70,14 @@ test("critique sessions and their pinned feedback render without JavaScript", as
   assert.equal(missing.status, 404);
 });
 
-test("open questions contain only the matching entry on first render", async () => {
+test("open questions are listed with their answer counts on first render", async () => {
   const { document } = await documentAt("/questions");
-  assert.equal(document.querySelectorAll("main article").length, 1);
-  assert.match(
-    document.querySelector("main article h3").textContent,
-    /keep a west-facing room cooler/,
+  const titles = [...document.querySelectorAll(".q-row h3")].map(
+    (h) => h.textContent,
   );
+  assert.ok(titles.some((t) => /keep a west-facing room cooler/.test(t)));
+  assert.equal(document.querySelectorAll("main article").length, 0);
+  assert.ok(document.querySelector(".q-row .q-count"));
 });
 
 test("secondary routes render and missing entries receive a real 404", async () => {
@@ -616,4 +617,131 @@ test("people respond to a field note, mark answers helpful, and the poster sees 
     ).status,
     400,
   );
+});
+
+test("people start and join communities, and ask a question there only", async () => {
+  const founder = cookieOf(await post("/api/account", { name: "Esi" }));
+  const created = await post(
+    "/api/communities",
+    {
+      name: "Solar dryers",
+      about: "Drying fruit and fish with sunlight, and what spoiled.",
+      topic: "Food & farming",
+    },
+    founder,
+  );
+  assert.equal(created.status, 201);
+  const { slug } = await created.json();
+  assert.equal(slug, "solar-dryers");
+  const again = await post(
+    "/api/communities",
+    {
+      name: "Solar Dryers!",
+      about: "A second one with the same name.",
+      topic: "Food & farming",
+    },
+    founder,
+  );
+  assert.equal(again.status, 400);
+  const member = cookieOf(await post("/api/account", { name: "Yaw" }));
+  const joined = await post(
+    `/api/communities/${slug}/membership`,
+    { join: true },
+    member,
+  );
+  assert.deepEqual(await joined.json(), { joined: true, members: 2 });
+  assert.equal(
+    (
+      await post(
+        `/api/communities/no-such-place/membership`,
+        { join: true },
+        member,
+      )
+    ).status,
+    404,
+  );
+
+  const ask = (body) => {
+    const form = new FormData();
+    form.set(
+      "entry",
+      JSON.stringify({
+        kind: "problem",
+        template: "farming_food",
+        title: "Mango slices turn brown in my solar dryer",
+        goal: "Dry mango slices that keep their colour.",
+        approach: "Sliced thin and dried for two days.",
+        ...body,
+      }),
+    );
+    form.set("media", "[]");
+    return post("/api/entries", form, member);
+  };
+  assert.equal((await ask({ public: false, communities: [] })).status, 400);
+  assert.equal((await ask({ communities: ["not-real"] })).status, 400);
+  const posted = await ask({ public: false, communities: [slug] });
+  assert.equal(posted.status, 201);
+  const { id } = await posted.json();
+
+  const { document: community } = await documentAt(`/communities/${slug}`);
+  assert.match(community.querySelector(".q-list").textContent, /Mango slices/);
+  const { document: everyone } = await documentAt("/questions?show=all");
+  assert.doesNotMatch(
+    everyone.querySelector("main").textContent,
+    /Mango slices/,
+  );
+  const { document: note } = await documentAt(`/entries/${id}`);
+  assert.match(
+    note.querySelector(".posted-to").textContent,
+    /Shared only with\s*Solar dryers/,
+  );
+});
+
+test("the discussion opens beside the note from a shareable address", async () => {
+  const closed = await documentAt("/entries/two-pots-one-small-breakthrough");
+  assert.ok(closed.document.querySelector(".disc-pane").hasAttribute("hidden"));
+  assert.ok(closed.document.querySelector('a.disc-launch[href="?discuss=1"]'));
+  const open = await documentAt(
+    "/entries/two-pots-one-small-breakthrough?discuss=1",
+  );
+  assert.ok(!open.document.querySelector(".disc-pane").hasAttribute("hidden"));
+  assert.ok(open.document.querySelector(".is-discussing #why"));
+});
+
+test("questions, communities and the notebook are separate, linked places", async () => {
+  const { response, document } = await documentAt("/questions");
+  assert.equal(response.status, 200);
+  assert.ok(document.querySelectorAll(".q-row").length >= 1);
+  assert.ok(
+    document.querySelector(
+      'form.ask-bar[action="/new"] input[name="kind"][value="problem"]',
+    ),
+  );
+  assert.ok(document.querySelector('.section-hero a[href="/notebook"]'));
+  const library = await documentAt(
+    "/communities/smallholder-growers?tab=library",
+  );
+  assert.match(
+    library.document.querySelector(".library").textContent,
+    /Clay pot cooler/,
+  );
+  const moved = await fetch(new URL("/you", base), { redirect: "manual" });
+  assert.equal(moved.status, 307);
+  assert.match(moved.headers.get("location"), /\/notebook\?tab=posts/);
+  const nav = [...document.querySelectorAll(".topnav a")].map((a) =>
+    a.getAttribute("href"),
+  );
+  for (const href of [
+    "/discover",
+    "/questions",
+    "/communities",
+    "/sessions",
+    "/notebook",
+    "/search",
+  ])
+    assert.ok(nav.includes(href), href);
+  for (const href of nav) {
+    const r = await fetch(new URL(href, base));
+    assert.equal(r.status, 200, href);
+  }
 });

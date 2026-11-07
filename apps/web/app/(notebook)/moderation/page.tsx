@@ -53,12 +53,14 @@ export default async function Moderation() {
     entryId?: string,
   ) =>
     type === "comment" || type === "explanation"
-      ? `/entries/${entryId}#why`
-      : type === "session"
-        ? `/sessions/${id}`
-        : type === "entry"
-          ? `/entries/${id}`
-          : `/sessions/${sessionId}#note-${id}`;
+      ? `/entries/${entryId}?discuss=1#why`
+      : type === "community"
+        ? `/communities/${id}`
+        : type === "session"
+          ? `/sessions/${id}`
+          : type === "entry"
+            ? `/entries/${id}`
+            : `/sessions/${sessionId}#note-${id}`;
   return (
     <div className="frame moderation">
       <header className="page-bar">
@@ -142,6 +144,7 @@ export default async function Moderation() {
                         entry: "Hidden field note",
                         comment: "Hidden comment",
                         explanation: "Hidden explanation",
+                        community: "Hidden community",
                       }[appeal.target_type]
                     }
                   </span>
@@ -205,6 +208,7 @@ export default async function Moderation() {
                         note: "Note",
                         comment: "Comment",
                         explanation: "Explanation",
+                        community: "Community",
                       }[item.target_type]
                     }
                   </span>

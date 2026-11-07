@@ -14,6 +14,7 @@ const types: TargetType[] = [
   "entry",
   "comment",
   "explanation",
+  "community",
 ];
 
 /** Report a session, note or field note. Enough reports hide it until reviewed. */

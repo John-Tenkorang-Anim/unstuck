@@ -501,12 +501,14 @@ export async function myPosts(
     unanswered: number;
     latest: Date | null;
     hidden: boolean;
+    entry_kind: string | null;
   }>(
     `WITH posts AS (
-       SELECT 'entry' AS kind, e.id::text AS id, e.data->>'title' AS title, e.created, NULL::text AS status, e.hidden
+       SELECT 'entry' AS kind, e.id::text AS id, e.data->>'title' AS title, e.created, NULL::text AS status, e.hidden,
+              e.data->>'kind' AS entry_kind
        FROM web.entries e WHERE e.owner = $1
        UNION ALL
-       SELECT 'session', s.id::text, s.data->>'title', s.created, s.status, s.hidden FROM web.sessions s WHERE s.owner = $1
+       SELECT 'session', s.id::text, s.data->>'title', s.created, s.status, s.hidden, NULL FROM web.sessions s WHERE s.owner = $1
      )
      SELECT p.*,
        CASE WHEN p.kind = 'entry'
@@ -545,4 +547,25 @@ export async function markSessionSeen(account: Account, sessionId: string) {
      ON CONFLICT (account_id, target) DO UPDATE SET seen = clock_timestamp()`,
     [account.id, `session:${sessionId}`],
   );
+}
+
+/** Top-level responses per entry, for lists of questions. One query for any number. */
+export async function responseCounts(ids: string[]) {
+  const counts = new Map<
+    string,
+    { responses: number; latest: string | null }
+  >();
+  if (!hasDatabase() || !ids.length) return counts;
+  const rows = await query<{ entry_id: string; n: number; latest: Date }>(
+    `SELECT entry_id, count(*)::int AS n, max(created) AS latest FROM web.comments
+     WHERE entry_id = ANY($1) AND parent_id IS NULL AND NOT hidden GROUP BY entry_id`,
+    [ids],
+  );
+  rows.forEach((r) =>
+    counts.set(r.entry_id, {
+      responses: r.n,
+      latest: r.latest.toISOString(),
+    }),
+  );
+  return counts;
 }

@@ -177,10 +177,28 @@ CREATE TABLE IF NOT EXISTS web.last_seen (
   seen timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (account_id, target)
 );
+-- Open communities. Sample communities live in code; these are created by people.
+CREATE TABLE IF NOT EXISTS web.communities (
+  id uuid PRIMARY KEY,
+  slug text NOT NULL UNIQUE,
+  owner uuid NOT NULL REFERENCES web.accounts(id),
+  data jsonb NOT NULL,
+  hidden boolean NOT NULL DEFAULT false,
+  created timestamptz NOT NULL DEFAULT now()
+);
+-- Membership is keyed by address so sample communities can have members too.
+CREATE TABLE IF NOT EXISTS web.community_members (
+  community text NOT NULL,
+  account_id uuid NOT NULL REFERENCES web.accounts(id),
+  joined timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (community, account_id)
+);
+CREATE INDEX IF NOT EXISTS community_members_account ON web.community_members (account_id, joined DESC);
+CREATE INDEX IF NOT EXISTS entries_communities ON web.entries USING gin ((data->'communities'));
 ALTER TABLE web.reports DROP CONSTRAINT IF EXISTS reports_target_type_check;
 ALTER TABLE web.reports ADD CONSTRAINT reports_target_type_check
-  CHECK (target_type IN ('session', 'note', 'entry', 'comment', 'explanation'));
+  CHECK (target_type IN ('session', 'note', 'entry', 'comment', 'explanation', 'community'));
 ALTER TABLE web.appeals DROP CONSTRAINT IF EXISTS appeals_target_type_check;
 ALTER TABLE web.appeals ADD CONSTRAINT appeals_target_type_check
-  CHECK (target_type IN ('session', 'note', 'entry', 'comment', 'explanation', 'account'));
+  CHECK (target_type IN ('session', 'note', 'entry', 'comment', 'explanation', 'community', 'account'));
 `;

@@ -52,7 +52,9 @@ export function Discovery({
   initialOutcome = "",
   questions = false,
   savedOnly = false,
+  embedded = false,
   sessions = [],
+  featured,
 }: {
   notebook: Notebook;
   sessions?: Session[];
@@ -61,6 +63,10 @@ export function Discovery({
   initialOutcome?: string;
   questions?: boolean;
   savedOnly?: boolean;
+  /** Inside another page, such as the notebook: no page heading or banner. */
+  embedded?: boolean;
+  /** Server-rendered sections shown under the search on the home page. */
+  featured?: React.ReactNode;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [topic, setTopic] = useState(initialTopic);
@@ -180,8 +186,46 @@ export function Discovery({
                 onChange={(e) => setQuery(e.target.value)}
               />
               <kbd aria-hidden="true">/</kbd>
+              <button
+                className="button button-outline home-ask"
+                formAction="/new"
+                name="kind"
+                value="problem"
+              >
+                Ask
+              </button>
               <button className="button button-dark">Search</button>
             </form>
+            <nav className="home-doors" aria-label="What brings you here">
+              {[
+                [
+                  "/new?kind=problem",
+                  "Ask a question",
+                  "Get answers from people who’ve been there",
+                ],
+                [
+                  "/questions",
+                  "Help someone",
+                  "Questions waiting for an answer",
+                ],
+                [
+                  "/sessions/new",
+                  "Get feedback on work",
+                  "Pin what went wrong on a photo, PDF or video",
+                ],
+                [
+                  "/communities",
+                  "Find your people",
+                  "Open communities and their libraries",
+                ],
+              ].map(([href, title, detail]) => (
+                <Link key={href} href={href} className="home-door">
+                  <strong>{title}</strong>
+                  <span>{detail}</span>
+                  <ArrowRight size={16} aria-hidden="true" />
+                </Link>
+              ))}
+            </nav>
             <nav className="home-types" aria-label="Search by type">
               {[
                 ["videos", "Videos"],
@@ -197,9 +241,10 @@ export function Discovery({
               ))}
             </nav>
           </section>
+          {featured}
           <Showcase entries={notebook.entries} sessions={sessions} />
         </>
-      ) : (
+      ) : embedded ? null : (
         <section className="page-head frame">
           <p className="label">
             {savedOnly ? "Private to this device" : "No result yet"}
@@ -426,7 +471,7 @@ export function Discovery({
           </div>
         </section>
       )}
-      {!savedOnly && (
+      {!savedOnly && !embedded && (
         <section className="contribute-banner">
           <div className="frame contribute-inner">
             <h2>

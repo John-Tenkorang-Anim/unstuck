@@ -381,7 +381,11 @@ export function Discussion({
               ? `Showing ${number(page.items.length)} of ${number(page.count)}`
               : q
                 ? "Nothing matches that search."
-                : ""}
+                : view === "questions"
+                  ? "No questions yet."
+                  : view === "tried"
+                    ? "Nobody has reported trying it yet."
+                    : "Nobody has responded yet. Yours can be the first."}
         </p>
         <ul className="disc-list">
           {page.items.map((c) => (
@@ -451,10 +455,7 @@ function ExplanationRow({
           aria-label={`${e.supports} people support it, ${e.disputes} dispute it`}
         >
           <span className="disc-meter-bar" aria-hidden="true">
-            <i
-              className="is-support"
-              style={{ flexGrow: e.supports || (total ? 0 : 1) }}
-            />
+            <i className="is-support" style={{ flexGrow: e.supports }} />
             <i className="is-dispute" style={{ flexGrow: e.disputes }} />
           </span>
           <span>

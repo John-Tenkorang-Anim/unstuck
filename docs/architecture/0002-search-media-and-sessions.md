@@ -132,6 +132,22 @@ A popular field note can collect 100,000 responses, so nothing renders them all.
 - **Measured:** with 104,981 responses, the entry rendered on the server in
   about 50 ms, and every page, tab and search answered in under 10 ms.
 
+## Communities and where posts appear (decided outside the spec)
+
+- **Open by design:** communities can't be private. Anyone can read, join and
+  post. Sample communities live in code. Communities people create are kept in
+  `web.communities`, and memberships in `web.community_members`, keyed by
+  address so sample communities can have members.
+- **Audience:** a post records `communities` and `public`. A post must go to
+  everyone, at least one community, or both. Community-only posts are left out
+  of the public feed and search, and found with a GIN index on the
+  communities list.
+- **Questions and the notebook are different places.** Questions is everyone's
+  open problems. The notebook is one person's posts, saved notes and
+  communities.
+- **Counts in bulk:** member, question, unanswered and library counts come
+  from one grouped query per kind, for any number of communities.
+
 ## Not yet backed by the API
 
 - Hybrid keyword and vector search over anchors and transcripts (spec 11.1).

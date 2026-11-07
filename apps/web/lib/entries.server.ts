@@ -12,6 +12,7 @@ import {
   storedEntry,
   StoreError,
 } from "./store.server";
+import { communityBySlug } from "./communities.server";
 import type {
   Entry,
   EntryKind,
@@ -74,6 +75,13 @@ export async function createEntry(
     ? (input.outcome as Outcome)
     : null;
   const country = /^[A-Z]{2}$/.test(input.country ?? "") ? input.country : "";
+  const raw = input as Record<string, unknown>;
+  const communities = await knownCommunities(raw.communities);
+  const everyone = raw.public !== false;
+  if (!everyone && !communities.length)
+    throw new StoreError(
+      "Choose where this should appear: everyone, a community, or both.",
+    );
   const media = JSON.parse(String(form.get("media") ?? "[]")) as Record<
     string,
     unknown
@@ -158,6 +166,8 @@ export async function createEntry(
     license: "CC BY 4.0",
     owner: owner.id,
     files,
+    communities,
+    public: everyone,
   };
   await insertEntry(entry, owner.id);
   return entry.id;
@@ -219,15 +229,35 @@ async function present(
     mediaState: anyPending ? (privileged ? "pending" : "held") : "ready",
   };
 }
+/** Published field notes for the public feed and search. Community-only posts stay out. */
 export async function publishedEntries(): Promise<Entry[]> {
   if (!hasDatabase()) return [];
   try {
-    const entries = (await storedEntries()) as StoredEntry[];
+    const entries = ((await storedEntries()) as StoredEntry[]).filter(
+      (e) => e.public !== false,
+    );
     return Promise.all(entries.map((e) => present(e)));
   } catch (error) {
     console.error("Published field notes are unavailable", error);
     return [];
   }
+}
+/** Everything posted to one community, public or not, newest first. */
+export async function communityEntries(slug: string): Promise<Entry[]> {
+  if (!hasDatabase()) return [];
+  const rows = await query<{
+    id: string;
+    owner: string;
+    data: StoredEntry;
+    hidden: boolean;
+  }>(
+    `SELECT id, owner, data, hidden FROM web.entries
+     WHERE NOT hidden AND data->'communities' ? $1 ORDER BY created DESC LIMIT 500`,
+    [slug],
+  );
+  return Promise.all(
+    rows.map((r) => present({ ...r.data, id: r.id, owner: r.owner })),
+  );
 }
 export async function publishedEntry(id: string): Promise<Entry | undefined> {
   if (!hasDatabase()) return undefined;
@@ -240,4 +270,16 @@ export async function publishedEntry(id: string): Promise<Entry | undefined> {
   )
     return undefined;
   return present(entry, viewer);
+}
+
+/** Up to five real, visible communities, without repeats. */
+async function knownCommunities(value: unknown) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 5)
+    throw new StoreError("Choose up to five communities.");
+  const slugs = [...new Set(value.map(String))];
+  for (const slug of slugs)
+    if (!(await communityBySlug(slug)))
+      throw new StoreError("One of those communities doesn’t exist.");
+  return slugs;
 }
