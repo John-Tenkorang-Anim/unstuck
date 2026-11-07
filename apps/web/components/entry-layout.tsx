@@ -1,8 +1,22 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { MessagesSquare, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  Maximize2,
+  MessagesSquare,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 
 const number = (n: number) => n.toLocaleString("en");
+const storeKey = "unstuck:pane-width";
+/** The pane never squeezes the note below a readable column. */
+const limits = () => ({
+  min: 360,
+  max: Math.max(360, Math.min(960, window.innerWidth - 480)),
+});
+const defaultWidth = () =>
+  Math.round(Math.min(600, Math.max(420, window.innerWidth * 0.38)));
 
 /**
  * The note reads on its own. A bar pinned under the top bar holds one toggle
@@ -32,6 +46,70 @@ export function EntryLayout({
   const [scrolled, setScrolled] = useState(false);
   const pane = useRef<HTMLElement>(null);
   const toggleRef = useRef<HTMLAnchorElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+  const [dragging, setDragging] = useState(false);
+  // Apply the chosen width to the page, so the footer makes room as well.
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem(storeKey));
+      if (saved) setWidth(saved);
+    } catch {
+      /* The default width works without storage. */
+    }
+  }, []);
+  useEffect(() => {
+    if (width === null) return;
+    const { min, max } = limits();
+    const value = Math.min(max, Math.max(min, width));
+    document.documentElement.style.setProperty("--pane", `${value}px`);
+    try {
+      localStorage.setItem(storeKey, String(value));
+    } catch {
+      /* Width lasts for this visit. */
+    }
+  }, [width]);
+  useEffect(
+    () => () => {
+      document.documentElement.style.removeProperty("--pane");
+    },
+    [],
+  );
+  const current = () =>
+    pane.current?.getBoundingClientRect().width ?? defaultWidth();
+  const wide = width !== null && width >= limits().max - 8;
+  function widen() {
+    setWidth(wide ? defaultWidth() : limits().max);
+  }
+  function startDrag(event: React.PointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragging(true);
+    document.body.dataset.resizing = "";
+  }
+  function drag(event: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging) return;
+    const { min, max } = limits();
+    setWidth(Math.min(max, Math.max(min, event.clientX)));
+  }
+  function stopDrag() {
+    setDragging(false);
+    delete document.body.dataset.resizing;
+  }
+  function resizeWithKeys(event: React.KeyboardEvent<HTMLDivElement>) {
+    const { min, max } = limits();
+    const step = event.shiftKey ? 96 : 32;
+    const delta =
+      event.key === "ArrowRight" ? step : event.key === "ArrowLeft" ? -step : 0;
+    if (!delta && event.key !== "Home" && event.key !== "End") return;
+    event.preventDefault();
+    // Work from the latest width, so quick repeated presses all count.
+    setWidth((previous) => {
+      const base = previous ?? current();
+      const next =
+        event.key === "Home" ? min : event.key === "End" ? max : base + delta;
+      return Math.min(max, Math.max(min, next));
+    });
+  }
   useEffect(() => {
     // Older links point straight at the discussion with #why.
     if (location.hash === "#why") setOpen(true);
@@ -92,20 +170,52 @@ export function EntryLayout({
           <span className="disc-pane-title">
             <MessagesSquare size={16} aria-hidden="true" /> Discussion
           </span>
-          <a
-            href="?"
-            className="icon-button"
-            aria-label="Close the discussion"
-            title="Close the discussion"
-            onClick={(event) => {
-              event.preventDefault();
-              toggle(false);
-            }}
-          >
-            <PanelLeftClose size={17} />
-          </a>
+          <span className="disc-pane-actions">
+            <button
+              className="icon-button pane-widen"
+              aria-pressed={wide}
+              aria-label={
+                wide ? "Make the discussion narrower" : "Widen the discussion"
+              }
+              title={wide ? "Narrower" : "Widen for writing"}
+              onClick={widen}
+            >
+              {wide ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+            <a
+              href="?"
+              className="icon-button"
+              aria-label="Close the discussion"
+              title="Close the discussion"
+              onClick={(event) => {
+                event.preventDefault();
+                toggle(false);
+              }}
+            >
+              <PanelLeftClose size={17} />
+            </a>
+          </span>
         </div>
         <div className="disc-pane-body">{discussion}</div>
+        <div
+          className="pane-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize the discussion"
+          aria-controls="discussion-pane"
+          aria-valuemin={360}
+          aria-valuemax={960}
+          aria-valuenow={Math.round(width ?? 0) || undefined}
+          title="Drag to resize. Double-click to widen."
+          tabIndex={0}
+          data-dragging={dragging || undefined}
+          onPointerDown={startDrag}
+          onPointerMove={drag}
+          onPointerUp={stopDrag}
+          onPointerCancel={stopDrag}
+          onDoubleClick={widen}
+          onKeyDown={resizeWithKeys}
+        />
       </aside>
       <div className="note-pane">
         <div className="note-bar" data-scrolled={scrolled || undefined}>

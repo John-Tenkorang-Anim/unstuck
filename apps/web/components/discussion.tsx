@@ -2,8 +2,8 @@
 import { useState, type FormEvent } from "react";
 import {
   ChevronDown,
-  Lightbulb,
-  MessageSquareReply,
+  MessageSquare,
+  Plus,
   Search,
   ThumbsUp,
 } from "lucide-react";
@@ -147,7 +147,7 @@ export function Discussion({
   const triedTotal = summary.worked + summary.didnt;
   const explanations = showAllExplanations
     ? summary.explanations
-    : summary.explanations.slice(0, 5);
+    : summary.explanations.slice(0, 3);
   return (
     <section className="disc" id="why" aria-labelledby="why-title">
       <header className="disc-head">
@@ -227,8 +227,19 @@ export function Discussion({
 
       <div className="disc-block">
         <div className="disc-block-head">
-          <h3>Explanations</h3>
-          <span>Ranked by the evidence behind them, not by votes.</span>
+          <h3>
+            Explanations{" "}
+            <span className="disc-hint">ranked by evidence, not votes</span>
+          </h3>
+          {enabled && (
+            <button
+              className="disc-chip"
+              aria-expanded={proposing}
+              onClick={() => setProposing(!proposing)}
+            >
+              <Plus size={13} aria-hidden="true" /> Propose
+            </button>
+          )}
         </div>
         {explanations.length ? (
           <ol className="disc-explanations">
@@ -246,26 +257,16 @@ export function Discussion({
         ) : (
           <p className="quiet-notice">No explanations yet.</p>
         )}
-        <div className="disc-row-actions">
-          {summary.explanations.length > 5 && (
-            <button
-              className="text-link"
-              onClick={() => setShowAllExplanations(!showAllExplanations)}
-            >
-              {showAllExplanations
-                ? "Show the top 5"
-                : `Show all ${summary.explanations.length} explanations`}
-            </button>
-          )}
-          {enabled && (
-            <button
-              className="text-link"
-              onClick={() => setProposing(!proposing)}
-            >
-              <Lightbulb size={14} /> Propose an explanation
-            </button>
-          )}
-        </div>
+        {summary.explanations.length > 3 && (
+          <button
+            className="disc-more-quiet"
+            onClick={() => setShowAllExplanations(!showAllExplanations)}
+          >
+            {showAllExplanations
+              ? "Show the top 3"
+              : `Show all ${summary.explanations.length} explanations`}
+          </button>
+        )}
         {proposing && (
           <ProposeForm
             entryId={entryId}
@@ -450,30 +451,33 @@ function ExplanationRow({
       <div className="disc-expl-main">
         <h4>{e.title}</h4>
         {e.detail && <p>{e.detail}</p>}
-        <div
-          className="disc-meter"
-          aria-label={`${e.supports} people support it, ${e.disputes} dispute it`}
-        >
-          <span className="disc-meter-bar" aria-hidden="true">
-            <i className="is-support" style={{ flexGrow: e.supports }} />
-            <i className="is-dispute" style={{ flexGrow: e.disputes }} />
-          </span>
-          <span>
-            {number(e.supports)} support · {number(e.disputes)} dispute
-          </span>
-        </div>
-        <div className="disc-expl-actions">
-          <button className="text-link" onClick={() => onEvidence("supports")}>
-            Add supporting evidence
+        <div className="disc-actions">
+          <button
+            className="disc-action disc-evidence-add"
+            data-side="support"
+            onClick={() => onEvidence("supports")}
+            title="Add what you saw that supports this"
+          >
+            <Plus size={13} aria-hidden="true" /> Support
+            <span className="disc-count-pill">{number(e.supports)}</span>
           </button>
-          <button className="text-link" onClick={() => onEvidence("disputes")}>
-            Dispute it
+          <button
+            className="disc-action disc-evidence-add"
+            data-side="dispute"
+            onClick={() => onEvidence("disputes")}
+            title="Add what you saw that disputes this"
+          >
+            <Plus size={13} aria-hidden="true" /> Dispute
+            <span className="disc-count-pill">{number(e.disputes)}</span>
           </button>
           {total > 0 && (
-            <button className="text-link" aria-expanded={open} onClick={toggle}>
-              {open
-                ? "Hide evidence"
-                : `See the evidence (${number(e.people)} ${e.people === 1 ? "person" : "people"})`}
+            <button
+              className="disc-action disc-disclose"
+              aria-expanded={open}
+              onClick={toggle}
+            >
+              Evidence ({number(total)})
+              <ChevronDown size={14} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -481,16 +485,19 @@ function ExplanationRow({
           <ul className="disc-list disc-evidence">
             {page.items.map((c) => (
               <li key={c.id} className="disc-item" data-kind={c.kind}>
-                <p className="disc-meta">
-                  <b>{c.author}</b> {c.role && <span>{c.role}</span>}{" "}
-                  <span className="disc-kind">{kindLabel[c.kind]}</span>
-                </p>
-                <Body text={c.body} />
+                <Avatar name={c.author} />
+                <div className="disc-item-main">
+                  <p className="disc-meta">
+                    <b>{c.author}</b> {c.role && <span>{c.role}</span>}
+                    <span className="disc-kind">{kindLabel[c.kind]}</span>
+                  </p>
+                  <Body text={c.body} />
+                </div>
               </li>
             ))}
             {page.next && (
               <li>
-                <button className="text-link" onClick={more}>
+                <button className="disc-more-quiet" onClick={more}>
                   Show more evidence
                 </button>
               </li>
@@ -568,84 +575,99 @@ function CommentRow({
       id={`comment-${comment.id}`}
       data-kind={comment.kind}
     >
-      <p className="disc-meta">
-        <b>{comment.author}</b>
-        {comment.role && <span>{comment.role}</span>}
-        <span>{ago(comment.created)}</span>
-        {comment.kind !== "comment" && (
-          <span className="disc-kind">{kindLabel[comment.kind]}</span>
-        )}
+      <Avatar name={comment.author} />
+      <div className="disc-item-main">
+        <p className="disc-meta">
+          <b>{comment.author}</b>
+          {comment.role && <span>{comment.role}</span>}
+          <span aria-hidden="true">·</span>
+          <span>{ago(comment.created)}</span>
+          {comment.kind !== "comment" && (
+            <span className="disc-kind">{kindLabel[comment.kind]}</span>
+          )}
+        </p>
         {comment.explanationTitle && (
-          <span className="disc-about">on “{comment.explanationTitle}”</span>
+          <p className="disc-about">On “{comment.explanationTitle}”</p>
         )}
-      </p>
-      <Body text={comment.body} />
-      <div className="disc-actions">
-        <button
-          className={`disc-helpful ${helpful.mine ? "is-on" : ""}`}
-          aria-pressed={helpful.mine}
-          onClick={markHelpful}
-        >
-          <ThumbsUp size={13} /> Helpful
-          {helpful.count ? ` · ${number(helpful.count)}` : ""}
-        </button>
-        {enabled && (
+        <Body text={comment.body} />
+        <div className="disc-actions">
           <button
-            className="disc-action"
-            onClick={() => setReplying(!replying)}
+            className={`disc-action disc-helpful ${helpful.mine ? "is-on" : ""}`}
+            aria-pressed={helpful.mine}
+            title={helpful.mine ? "You marked this helpful" : "Mark as helpful"}
+            onClick={markHelpful}
           >
-            <MessageSquareReply size={13} /> Reply
+            <ThumbsUp
+              size={14}
+              aria-hidden="true"
+              fill={helpful.mine ? "currentColor" : "none"}
+            />
+            Helpful
+            {helpful.count ? (
+              <span className="disc-count-pill">{number(helpful.count)}</span>
+            ) : null}
           </button>
+          {enabled && (
+            <button
+              className="disc-action"
+              onClick={() => setReplying(!replying)}
+            >
+              <MessageSquare size={14} aria-hidden="true" /> Reply
+            </button>
+          )}
+          {replyCount > 0 && (
+            <button
+              className="disc-action disc-disclose"
+              aria-expanded={!!replies}
+              onClick={showReplies}
+            >
+              {number(replyCount)} {replyCount === 1 ? "reply" : "replies"}
+              <ChevronDown size={14} aria-hidden="true" />
+            </button>
+          )}
+          {viewer?.id !== comment.by && (
+            <ReportButton type="comment" id={comment.id} />
+          )}
+        </div>
+        {replying && (
+          <Composer
+            entryId={entryId}
+            initial={{ kind: "comment", parentId: comment.id }}
+            viewer={viewer}
+            signIn={signIn}
+            onCancel={() => setReplying(false)}
+            onDone={async () => {
+              setReplying(false);
+              setReplyCount((n) => n + 1);
+              setReplies(
+                (
+                  await fetch(`/api/comments/${comment.id}/replies`).then((r) =>
+                    r.json(),
+                  )
+                ).items,
+              );
+            }}
+          />
         )}
-        {replyCount > 0 && (
-          <button
-            className="disc-action"
-            aria-expanded={!!replies}
-            onClick={showReplies}
-          >
-            {replies
-              ? "Hide replies"
-              : `${number(replyCount)} ${replyCount === 1 ? "reply" : "replies"}`}
-          </button>
-        )}
-        {viewer?.id !== comment.by && (
-          <ReportButton type="comment" id={comment.id} />
+        {replies && (
+          <ul className="disc-replies">
+            {replies.map((r) => (
+              <li key={r.id} className="disc-item disc-reply">
+                <Avatar name={r.author} />
+                <div className="disc-item-main">
+                  <p className="disc-meta">
+                    <b>{r.author}</b>
+                    {r.role && <span>{r.role}</span>}
+                    <span aria-hidden="true">·</span>
+                    <span>{ago(r.created)}</span>
+                  </p>
+                  <Body text={r.body} />
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
-      {replying && (
-        <Composer
-          entryId={entryId}
-          initial={{ kind: "comment", parentId: comment.id }}
-          viewer={viewer}
-          signIn={signIn}
-          onCancel={() => setReplying(false)}
-          onDone={async () => {
-            setReplying(false);
-            setReplyCount((n) => n + 1);
-            setReplies(
-              (
-                await fetch(`/api/comments/${comment.id}/replies`).then((r) =>
-                  r.json(),
-                )
-              ).items,
-            );
-          }}
-        />
-      )}
-      {replies && (
-        <ul className="disc-replies">
-          {replies.map((r) => (
-            <li key={r.id} className="disc-item disc-reply">
-              <p className="disc-meta">
-                <b>{r.author}</b>
-                {r.role && <span>{r.role}</span>}
-                <span>{ago(r.created)}</span>
-              </p>
-              <Body text={r.body} />
-            </li>
-          ))}
-        </ul>
-      )}
     </li>
   );
 }
@@ -739,9 +761,18 @@ function Composer({
       </label>
       <textarea
         id={`body-${initial.parentId ?? initial.explanationId ?? "new"}`}
+        ref={grow}
+        autoFocus
         rows={3}
         value={body}
         maxLength={5000}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault();
+            event.currentTarget.form?.requestSubmit();
+          }
+          if (event.key === "Escape" && !body) onCancel();
+        }}
         placeholder={
           kind === "worked" || kind === "didnt"
             ? "Where you tried it, what was different, and what you saw."
@@ -749,7 +780,10 @@ function Composer({
               ? "What you observed or measured, and how."
               : "Be specific. Say what you saw and what you’d try."
         }
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => {
+          setBody(e.target.value);
+          grow(e.target);
+        }}
       />
       {!viewer && (
         <div className="form-row post-as">
@@ -779,7 +813,12 @@ function Composer({
         </p>
       )}
       <div className="note-submit">
-        <button type="button" className="text-link" onClick={onCancel}>
+        <span className="disc-compose-hint">
+          {body.length > 4500
+            ? `${number(5000 - body.length)} characters left`
+            : "⌘ Enter to post"}
+        </span>
+        <button type="button" className="disc-action" onClick={onCancel}>
           Cancel
         </button>
         <button
@@ -884,4 +923,26 @@ function ProposeForm({
       </div>
     </form>
   );
+}
+
+/** A small initial in a circle, coloured from the name so people are easy to follow. */
+function Avatar({ name }: { name: string }) {
+  let hash = 0;
+  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return (
+    <span className="disc-avatar" data-tone={hash % 6} aria-hidden="true">
+      {name.slice(0, 1).toUpperCase()}
+    </span>
+  );
+}
+
+/** Let a text box grow with what's written, up to a little under half the screen. */
+function grow(element: HTMLTextAreaElement | null) {
+  if (!element) return;
+  element.style.height = "auto";
+  element.style.height = `${Math.min(element.scrollHeight + 2, window.innerHeight * 0.45)}px`;
+  // Keep the Post button in view while the box grows.
+  element.form
+    ?.querySelector(".note-submit")
+    ?.scrollIntoView({ block: "nearest" });
 }

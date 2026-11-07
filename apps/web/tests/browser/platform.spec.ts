@@ -133,3 +133,37 @@ test("home discovery does not load media files and omits full entry bodies", asy
     "The transcript preserves the details even without playback.",
   );
 });
+
+test("the discussion opens beside the note, resizes with mouse or keyboard, and keeps one toggle", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(path);
+  const toggle = page.locator(".note-toggle");
+  await toggle.click();
+  await expect(page).toHaveURL(/discuss=1/);
+  await expect(toggle).toHaveText(/Hide discussion/);
+  const pane = page.locator(".disc-pane");
+  const width = async () => (await pane.boundingBox())!.width;
+  const start = await width();
+  expect(start).toBeGreaterThanOrEqual(420);
+  const handle = page.getByRole("separator", { name: "Resize the discussion" });
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + 5, box.y + 200);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 205, box.y + 200, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(width).toBeGreaterThan(start + 150);
+  await handle.focus();
+  await page.keyboard.press("Home");
+  await expect.poll(width).toBe(360);
+  await page.getByRole("button", { name: "Widen the discussion" }).click();
+  await expect.poll(width).toBeGreaterThan(800);
+  // The note keeps a readable column beside the widest pane.
+  expect(
+    (await page.locator(".note-pane").boundingBox())!.width,
+  ).toBeGreaterThan(460);
+  await toggle.click();
+  await expect(pane).toBeHidden();
+  await expect(toggle).toHaveText(/Discussion/);
+});

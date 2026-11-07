@@ -213,19 +213,6 @@ export default async function EntryPage({
           </div>
         </dl>
         <div className="dossier-grid">
-          <nav className="toc" aria-label="In this field note">
-            <span className="label">Contents</span>
-            {entry.sections.map((s, i) => (
-              <a key={s.title} href={`#section-${i}`}>
-                <span>{String(i + 1).padStart(2, "0")}</span>
-                {s.title}
-              </a>
-            ))}
-            <a href="?discuss=1" className="toc-discuss">
-              <span>{String(entry.sections.length + 1).padStart(2, "0")}</span>
-              Discussion
-            </a>
-          </nav>
           <article className="detail-story">
             {entry.clip ? (
               <MomentPlayer clip={entry.clip} start={start} />
