@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { examples } from "@/lib/data";
@@ -6,6 +6,36 @@ import { entryDoc, search, sessionDoc, summarize, tokens } from "@/lib/search";
 import { sampleSessions, sessionById } from "@/lib/sessions";
 import { NotebookProvider } from "@/components/notebook-provider";
 import { SessionWorkspace } from "@/components/session-workspace";
+
+const viewer = { id: "acct-1", name: "Ama", role: "Student" };
+/** Stub the notes API: echo the posted note back as the server would. */
+function stubNotes() {
+  const calls: Record<string, unknown>[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      calls.push({ url, ...body });
+      const [kind, value] = String(body.anchor ?? "whole").split(":");
+      return Response.json(
+        {
+          note: {
+            id: `n-${calls.length}`,
+            alias: viewer.name,
+            role: viewer.role,
+            by: viewer.id,
+            type: body.type,
+            body: body.body,
+            ...(kind !== "whole" ? { [kind]: Number(value) || value } : {}),
+          },
+        },
+        { status: 201 },
+      );
+    }),
+  );
+  return calls;
+}
+afterEach(() => vi.unstubAllGlobals());
 
 const docs = [...examples.map(entryDoc), ...sampleSessions.map(sessionDoc)];
 
@@ -61,7 +91,10 @@ describe("shown working", () => {
     const user = userEvent.setup();
     render(
       <NotebookProvider>
-        <SessionWorkspace session={sessionById("pendulum-g-too-high")!} />
+        <SessionWorkspace
+          session={sessionById("pendulum-g-too-high")!}
+          viewer={viewer}
+        />
       </NotebookProvider>,
     );
     expect(screen.getByRole("table")).toHaveTextContent("12.09");
@@ -69,12 +102,14 @@ describe("shown working", () => {
     expect(screen.getByText("Notes on row 4")).toBeVisible();
     expect(document.querySelectorAll(".note")).toHaveLength(1);
     expect(document.querySelector(".note")).toHaveTextContent("9 swings");
+    const calls = stubNotes();
     await user.type(screen.getByLabelText("Your note"), "Re-time this length.");
     await user.click(screen.getByRole("button", { name: "Add note" }));
-    const stored = JSON.parse(
-      localStorage.getItem("unstuck:session:pendulum-g-too-high")!,
-    );
-    expect(stored.notes[0].row).toBe(4);
+    expect(calls[0]).toMatchObject({
+      url: "/api/sessions/pendulum-g-too-high/notes",
+      anchor: "row:4",
+    });
+    expect(await screen.findByText("Re-time this length.")).toBeVisible();
   });
   it("typesets maths with a readable MathML layer and marks graded work as hints only", () => {
     render(
@@ -99,12 +134,12 @@ describe("shown working", () => {
 });
 
 describe("feedback sessions", () => {
-  it("links notes to pins, filters by kind, and keeps added notes on this device", async () => {
+  it("links notes to pins, filters by kind, and posts new notes to the session", async () => {
     const user = userEvent.setup();
     const session = sessionById("first-print-spaghetti")!;
     render(
       <NotebookProvider>
-        <SessionWorkspace session={session} />
+        <SessionWorkspace session={session} viewer={viewer} />
       </NotebookProvider>,
     );
     expect(
@@ -124,15 +159,68 @@ describe("feedback sessions", () => {
     await user.click(within(filters).getByRole("button", { name: /Question/ }));
     expect(document.querySelectorAll(".note")).toHaveLength(1);
     await user.click(within(filters).getByRole("button", { name: /All/ }));
+    const calls = stubNotes();
     await user.type(
       screen.getByLabelText("Your note"),
       "Try printing a single wall test first.",
     );
     await user.click(screen.getByRole("button", { name: "Add note" }));
-    expect(document.querySelectorAll(".note")).toHaveLength(5);
     expect(
-      JSON.parse(localStorage.getItem("unstuck:session:first-print-spaghetti")!)
-        .notes[0].body,
-    ).toBe("Try printing a single wall test first.");
+      await screen.findByText("Try printing a single wall test first."),
+    ).toBeVisible();
+    expect(document.querySelectorAll(".note")).toHaveLength(5);
+    // The note stays attached to the pin chosen earlier.
+    expect(calls[0]).toMatchObject({ type: "issue", anchor: "pin:p2" });
+  });
+  it("asks for a name before the first note, then posts as that person", async () => {
+    const user = userEvent.setup();
+    const posted: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        posted.push(url);
+        if (url === "/api/account")
+          return Response.json(
+            { account: { id: "a2", name: "Yaw", role: "" } },
+            { status: 201 },
+          );
+        const body = JSON.parse(String(init?.body));
+        return Response.json(
+          {
+            note: {
+              id: "n9",
+              alias: "Yaw",
+              role: "Member",
+              by: "a2",
+              type: body.type,
+              body: body.body,
+            },
+          },
+          { status: 201 },
+        );
+      }),
+    );
+    render(
+      <NotebookProvider>
+        <SessionWorkspace
+          session={sessionById("dull-solder-joints")!}
+          viewer={null}
+        />
+      </NotebookProvider>,
+    );
+    await user.type(
+      screen.getByLabelText("Your note"),
+      "Reflow that joint with fresh flux.",
+    );
+    expect(screen.getByRole("button", { name: "Add note" })).toBeDisabled();
+    await user.type(screen.getByPlaceholderText("Your name"), "Yaw");
+    await user.click(screen.getByRole("button", { name: "Add note" }));
+    expect(
+      await screen.findByText("Reflow that joint with fresh flux."),
+    ).toBeVisible();
+    expect(posted).toEqual([
+      "/api/account",
+      "/api/sessions/dull-solder-joints/notes",
+    ]);
   });
 });

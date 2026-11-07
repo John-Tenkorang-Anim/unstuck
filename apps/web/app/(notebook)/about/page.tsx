@@ -129,7 +129,7 @@ export default function About() {
             .map((entry) => (
               <li key={entry.clip!.src}>
                 <span>Film: {entry.clip!.title}</span>
-                <Credit credit={entry.clip!.credit} />
+                {entry.clip!.credit && <Credit credit={entry.clip!.credit} />}
               </li>
             ))}
         </ul>

@@ -67,6 +67,50 @@ IndexedDB on the device. The player lists marked moments as keyboard-reachable
 chapters with text descriptions, so the failure point is understandable without
 playback. Light reading never loads photos or video until asked.
 
+## Sharing (decided outside the spec)
+
+The web app owns community data in PostgreSQL, in a `web` schema separate from
+the API's tables (`lib/schema.server.ts`, applied at startup under an advisory
+lock).
+
+- **Accounts** are a display name and optional role. Each signed-in browser has
+  its own token in an HttpOnly, SameSite=Lax cookie; the database stores only
+  SHA-256 hashes of tokens and of the recovery code. A recovery code signs the
+  account in elsewhere and can be replaced.
+- **Writes** require a same-origin `Origin` header, an account that isn't
+  suspended, and a rate-limit slot. Limits are counted in `web.rate_events` under
+  a transaction-scoped advisory lock, so they hold across processes.
+- **Uploads** are identified by their first bytes and size-limited. Images are
+  decoded and re-encoded, which strips metadata. PDFs with scripts, launch
+  actions, embedded files or forms are refused. An optional scanner can block a
+  file or send it for review. Files waiting for review are visible only to their
+  owner and moderators. File bytes live on disk outside `public/` and are served
+  with `nosniff`, a sandboxing CSP and byte ranges.
+- **Moderation:** one report per person per item; three open reports hide it.
+  Moderators hide, restore, dismiss, approve or reject files, and suspend
+  accounts. Each action requires a reason and is recorded in
+  `web.moderation_actions`.
+- **Field notes** are published with photos and a video with marked moments,
+  and appear in the feed, entry pages and search beside the API's entries.
+
+- **Known-abuse imagery:** photos are hashed with PDQ (`lib/pdq.ts`), checked
+  bit-for-bit against Meta's reference implementation. Hashes are stored, matched
+  against `UNSTUCK_HASH_LIST` at upload, and re-checked on demand. A match puts
+  the original in a `quarantine` storage area that no route serves, suspends the
+  uploader and opens an incident with jurisdiction-specific reporting guidance.
+  Moderators record the hotline's reference. Joining a hash-sharing programme,
+  keeping evidence for the legally required period and filing reports are
+  operator responsibilities.
+- **Appeals:** one per person per hidden item or suspension. The decision
+  needs a written reason, and a moderator can't decide an appeal against their
+  own action while another moderator exists. Overturning restores the item or
+  lifts the suspension.
+- **Storage:** `lib/storage.server.ts` writes to local disk or to an
+  S3-compatible bucket, with ranged reads for video seeking.
+
+Not covered: hash matching for video frames and PDF pages, which are held for
+moderator review in production instead.
+
 ## Not yet backed by the API
 
 - Hybrid keyword and vector search over anchors and transcripts (spec 11.1).

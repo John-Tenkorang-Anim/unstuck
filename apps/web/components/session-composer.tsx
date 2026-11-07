@@ -1,12 +1,29 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, LockKeyhole } from "lucide-react";
+import { ArrowLeft, Globe2 } from "lucide-react";
+import { getFile, removeFile } from "@/lib/local-media";
 import { fields } from "@/lib/taxonomy";
 import type { Block } from "@/lib/sessions";
 import { MediaAttach, type Attached } from "./media-attach";
 import { hasWorking, WorkingEditor } from "./working-editor";
 import { useNotebook } from "./notebook-provider";
+import { useAccount } from "./use-account";
+
+/** Read an image's natural size so pins and layout keep their proportions. */
+function imageSize(blob: Blob) {
+  return new Promise<{ width: number; height: number }>((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => {
+      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    image.onerror = () => resolve({ width: 0, height: 0 });
+    image.src = url;
+  });
+}
 
 type Draft = {
   title: string;
@@ -66,8 +83,13 @@ export function SessionComposer() {
   const set = (change: Partial<Draft>) =>
     setDraft((d) => ({ ...d, ...change }));
   const field = fields.find((f) => f.name === draft.field) ?? fields[0];
-  function save(event: React.FormEvent) {
+  const router = useRouter();
+  const { viewer, signIn } = useAccount();
+  const [who, setWho] = useState({ name: "", role: "" });
+  const [busy, setBusy] = useState(false);
+  async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (busy) return;
     const next: Record<string, string> = {};
     if (draft.title.trim().length < 6)
       next.title = "Give the session a title of at least 6 characters.";
@@ -79,6 +101,8 @@ export function SessionComposer() {
     if (!draft.wentWrong.trim())
       next.wentWrong = "Say what went wrong, even if you’re not sure why.";
     if (!draft.ask.trim()) next.ask = "Say what kind of feedback would help.";
+    if (!viewer && who.name.trim().length < 2)
+      next.who = "Choose a name to post as.";
     setErrors(next);
     if (Object.keys(next).length) {
       requestAnimationFrame(() =>
@@ -86,9 +110,74 @@ export function SessionComposer() {
       );
       return;
     }
-    notice(
-      "Session saved on this device. Opening it to others needs accounts.",
-    );
+    setBusy(true);
+    try {
+      if (!viewer) await signIn(who.name, who.role);
+      const media = draft.media[0];
+      const blob = media ? await getFile(media.id) : undefined;
+      if (media && !blob)
+        throw new Error("Your file is no longer on this device. Add it again.");
+      const size =
+        media?.kind === "image" && blob ? await imageSize(blob) : undefined;
+      const form = new FormData();
+      form.set(
+        "session",
+        JSON.stringify({
+          title: draft.title,
+          field: draft.field,
+          specialty: draft.specialty,
+          level: draft.level,
+          course: draft.course,
+          mode: draft.mode,
+          wentWrong: draft.wentWrong,
+          ask: draft.ask,
+          blocks: draft.blocks
+            .filter((b) =>
+              b.kind === "steps"
+                ? b.steps.some((s) => s.trim())
+                : b.kind === "code"
+                  ? b.code.trim()
+                  : b.csv.trim(),
+            )
+            .map((b) =>
+              b.kind === "steps"
+                ? { ...b, steps: b.steps.filter((s) => s.trim()) }
+                : b,
+            ),
+          alt: media?.alt,
+          pins: media?.pins.map((p) => ({
+            ...p,
+            label: p.label || "Pinned spot",
+          })),
+          moments: media?.moments.map((m) => ({
+            ...m,
+            label: m.label || "Marked moment",
+          })),
+          duration: media?.duration,
+          ...size,
+        }),
+      );
+      if (media && blob) form.set("work", blob, media.name);
+      const response = await fetch("/api/sessions", {
+        method: "POST",
+        body: form,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok)
+        throw new Error(data.error ?? "The session couldn’t be published.");
+      draft.media.forEach((m) => removeFile(m.id));
+      localStorage.removeItem(storageKey);
+      notice("Session published. People can now add feedback.");
+      router.push(`/sessions/${data.id}`);
+    } catch (failure) {
+      setErrors({
+        publish:
+          failure instanceof Error
+            ? failure.message
+            : "The session couldn’t be published.",
+      });
+      setBusy(false);
+    }
   }
   const error = (key: string) =>
     errors[key] && (
@@ -247,14 +336,42 @@ export function SessionComposer() {
             />
             {error("ask")}
           </div>
+          {!viewer && (
+            <div className="form-row post-as" id="session-who" tabIndex={-1}>
+              <label>
+                <span>Post as</span>
+                <input
+                  value={who.name}
+                  maxLength={40}
+                  placeholder="Your name"
+                  autoComplete="nickname"
+                  onChange={(e) => setWho({ ...who, name: e.target.value })}
+                />
+              </label>
+              <label>
+                <span>Your role, optional</span>
+                <input
+                  value={who.role}
+                  maxLength={60}
+                  placeholder="Second-year student"
+                  onChange={(e) => setWho({ ...who, role: e.target.value })}
+                />
+              </label>
+              {error("who")}
+            </div>
+          )}
           <div className="publishing-note">
-            <LockKeyhole size={16} aria-hidden="true" />
+            <Globe2 size={16} aria-hidden="true" />
             <p>
-              Your work and draft stay on this device. Opening sessions to
-              reviewers needs accounts, which aren’t available yet.
+              Publishing makes this session and your file visible to everyone
+              {viewer ? `, posted as ${viewer.name}` : ""}. Your draft is kept
+              on this device until then.
             </p>
           </div>
-          <button className="button button-dark">Save session draft</button>
+          {error("publish")}
+          <button className="button button-dark" disabled={busy}>
+            {busy ? "Publishing…" : "Publish session"}
+          </button>
         </div>
       </form>
     </div>

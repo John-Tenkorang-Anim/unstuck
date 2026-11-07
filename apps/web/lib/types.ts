@@ -67,7 +67,15 @@ export interface Entry {
   /** A real, documented event retold as an entry, rather than a fictional one. */
   historical?: boolean;
   cover?: Picture;
+  /** More photos after the cover, for published field notes. */
+  photos?: Picture[];
   clip?: Clip;
+  /** Account id of the person who published it, for shared field notes. */
+  owner?: string;
+  /** Hidden by reports or a moderator; only its owner and moderators see it. */
+  hidden?: boolean;
+  /** Whether a published note's media is visible yet. */
+  mediaState?: "ready" | "pending" | "held";
   highStakes?: boolean;
   license?: string;
   media?: Attachment[];

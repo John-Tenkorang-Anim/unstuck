@@ -13,6 +13,7 @@ import { OutcomeGlyph } from "@/components/glyph";
 import { MomentPlayer } from "@/components/moment-player";
 import { Picture } from "@/components/picture";
 import { sampleSessions } from "@/lib/sessions";
+import { ReportButton } from "@/components/report-button";
 export async function generateMetadata({
   params,
 }: {
@@ -72,6 +73,14 @@ export default async function EntryPage({
             )}
           </p>
         </div>
+      )}
+      {entry.hidden && (
+        <p className="review-notice" role="status">
+          This field note is hidden from everyone else.{" "}
+          <Link className="text-link" href="/account#standing">
+            See why, or appeal
+          </Link>
+        </p>
       )}
       {entry.highStakes && (
         <div className="safety-banner">
@@ -150,6 +159,24 @@ export default async function EntryPage({
                 sizes="(max-width: 880px) 100vw, 660px"
               />
             )
+          )}
+          {entry.photos && entry.photos.length > 0 && (
+            <div className="story-photos">
+              {entry.photos.map((photo) => (
+                <Picture
+                  key={photo.src}
+                  picture={photo}
+                  sizes="(max-width: 880px) 100vw, 660px"
+                />
+              ))}
+            </div>
+          )}
+          {entry.mediaState && entry.mediaState !== "ready" && (
+            <p className="review-notice" role="status">
+              {entry.mediaState === "pending"
+                ? "Your photos or video are waiting for a moderator. Everyone else will see them once approved."
+                : "Some photos or video are waiting for review."}
+            </p>
           )}
           <div className="story-body">
             {entry.sections.map((section, i) => (
@@ -253,11 +280,13 @@ export default async function EntryPage({
               Add your experience <ArrowUpRight size={15} />
             </strong>
           </Link>
+          {entry.owner && <ReportButton type="entry" id={entry.id} />}
           <p className="detail-license">
             {entry.example
-              ? "Example field note."
-              : `Shared under ${entry.license ?? "the author’s chosen license"}.`}{" "}
-            Aliases change with every entry.
+              ? "Example field note. Aliases change with every entry."
+              : entry.owner
+                ? `Posted by ${entry.alias}. Shared under ${entry.license ?? "CC BY 4.0"}.`
+                : `Shared under ${entry.license ?? "the author’s chosen license"}. Aliases change with every entry.`}
           </p>
         </aside>
       </div>

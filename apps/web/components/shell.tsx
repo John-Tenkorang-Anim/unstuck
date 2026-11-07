@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import { topics } from "@/lib/data";
+import { AccountChip } from "./account-chip";
+import { RecoveryDialog } from "./recovery-dialog";
 import { LogoMark } from "./glyph";
 import { useNotebook } from "./notebook-provider";
 
@@ -192,6 +194,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <Leaf size={16} />
           </button>
           <ThemeButton />
+          <AccountChip />
           <Link
             href="/new"
             className="button button-dark topbar-share"
@@ -275,6 +278,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </nav>
         </div>
       </footer>
+      <RecoveryDialog />
       {paletteUsed && (
         <CommandPalette
           open={paletteOpen}

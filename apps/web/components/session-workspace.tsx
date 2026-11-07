@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import dynamic from "next/dynamic";
+import { useMemo, useState, type MouseEvent } from "react";
 import {
   Check,
   CircleHelp,
@@ -27,11 +28,18 @@ import {
 } from "@/lib/sessions";
 import { clock } from "@/lib/search";
 import type { Clip } from "@/lib/types";
+import { parseCsv } from "@/lib/csv";
 import { MomentPlayer } from "./moment-player";
 import { useNotebook } from "./notebook-provider";
 import { Credit } from "./picture";
-import { MathText, parseCsv, WorkBlocks } from "./work-blocks";
+import { postJson, useAccount, type Viewer } from "./use-account";
+import { MathText, WorkBlocks } from "./work-blocks";
+import { ReportButton } from "./report-button";
 
+const PdfViewer = dynamic(() => import("./pdf-viewer"), {
+  ssr: false,
+  loading: () => <p className="pdf-loading">Opening the PDF…</p>,
+});
 const noteIcons: Record<NoteType, LucideIcon> = {
   issue: TriangleAlert,
   suggestion: Lightbulb,
@@ -41,83 +49,84 @@ const noteIcons: Record<NoteType, LucideIcon> = {
   evidence: FileSearch,
 };
 const steps: SessionStatus[] = ["open", "in-review", "revised", "resolved"];
-type Local = { pins: Pin[]; notes: SessionNote[]; resolved: string[] };
-const empty: Local = { pins: [], notes: [], resolved: [] };
 type Anchor = { key: string; label: string; detail: string; badge: string };
-
-/** Turn an anchor key back into the note fields it stands for. */
-function fieldsFor(key: string): Partial<SessionNote> {
-  const [kind, value] = key.split(":");
-  if (kind === "pin") return { pin: value };
-  if (kind === "step") return { step: Number(value) };
-  if (kind === "line") return { line: Number(value) };
-  if (kind === "row") return { row: Number(value) };
-  if (kind === "t") return { at: Number(value) };
-  return {};
-}
+type Pending = Omit<Pin, "id"> & { page?: number };
 
 /**
  * One feedback session: the work, the exact places under discussion, and the
- * notes about them, grouped by where they point. Additions stay on this device
- * until accounts open.
+ * notes about them, grouped by where they point. Notes are shared with
+ * everyone who opens the session.
  */
 export function SessionWorkspace({
   session,
-  clip,
+  clip: inheritedClip,
   start,
+  initialNotes = [],
+  viewer: initialViewer,
+  isOwner = false,
 }: {
   session: Session;
   clip?: Clip;
   start?: number;
+  initialNotes?: SessionNote[];
+  viewer?: Viewer;
+  isOwner?: boolean;
 }) {
-  const key = `unstuck:session:${session.id}`;
   const { notice } = useNotebook();
-  const [local, setLocal] = useState<Local>(empty);
+  const { viewer, signIn } = useAccount(initialViewer);
+  const clip = session.clip ?? inheritedClip;
+  const [shared, setShared] = useState<SessionNote[]>(initialNotes);
+  const [addedPins, setAddedPins] = useState<Pin[]>([]);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [status, setStatus] = useState(session.status);
   const [focus, setFocus] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteType | "all">("all");
   const [placing, setPlacing] = useState(false);
+  const [pageCount, setPageCount] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [who, setWho] = useState({ name: "", role: "" });
   const [draft, setDraft] = useState({
     type: noteTypes[session.kind][0],
     anchor: "whole",
     body: "",
   });
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(key) ?? "null");
-      if (stored && Array.isArray(stored.notes))
-        setLocal({ ...empty, ...stored });
-    } catch {
-      /* A fresh session view still works. */
-    }
-  }, [key]);
-  function persist(next: Local) {
-    setLocal(next);
-    try {
-      localStorage.setItem(key, JSON.stringify(next));
-    } catch {
-      notice("Browser storage is unavailable. Your note lasts for this visit.");
-    }
-  }
-  const pins = [...session.pins, ...local.pins];
+  const pins = useMemo(
+    () => [...session.pins, ...addedPins],
+    [session.pins, addedPins],
+  );
   const round = session.rounds.at(-1)!;
   const notes = useMemo(
+    () => [...session.rounds.flatMap((r) => r.notes), ...shared],
+    [session.rounds, shared],
+  );
+  const pages = useMemo(
     () =>
-      [...session.rounds.flatMap((r) => r.notes), ...local.notes].map(
-        (note) => ({
-          ...note,
-          resolved: note.resolved || local.resolved.includes(note.id),
-        }),
-      ),
-    [session.rounds, local],
+      [
+        ...new Set([
+          ...Array.from({ length: pageCount }, (_, i) => i + 1),
+          ...notes.filter((n) => n.page).map((n) => n.page!),
+        ]),
+      ].sort((a, b) => a - b),
+    [pageCount, notes],
   );
   // Every addressable place in the work, in reading order.
   const anchors = useMemo(() => {
     const list: Anchor[] = pins.map((pin, i) => ({
       key: `pin:${pin.id}`,
-      label: pin.label,
+      label: pin.page ? `${pin.label} (page ${pin.page})` : pin.label,
       detail: "",
       badge: String(i + 1),
     }));
+    if (session.pdf)
+      pages.forEach((page) =>
+        list.push({
+          key: `page:${page}`,
+          label: `Page ${page}`,
+          detail: "",
+          badge: `P${page}`,
+        }),
+      );
     for (const block of session.blocks ?? []) {
       if (block.kind === "steps")
         block.steps.forEach((step, i) =>
@@ -160,7 +169,7 @@ export function SessionWorkspace({
         badge: clock(at),
       });
     return list;
-  }, [pins, session.blocks, notes, clip]);
+  }, [pins, pages, session.pdf, session.blocks, notes, clip]);
   const counts = useMemo(() => {
     const map: Record<string, number> = {};
     for (const note of notes)
@@ -185,42 +194,111 @@ export function SessionWorkspace({
   function choose(anchor: string) {
     const next = focus === anchor ? null : anchor;
     setFocus(next);
+    setPending(null);
     setDraft((d) => ({ ...d, anchor: next ?? "whole" }));
+  }
+  function placeAt(x: number, y: number, page?: number) {
+    setPending({ x, y, label: "New pin", ...(page ? { page } : {}) });
+    setPlacing(false);
+    setDraft((d) => ({ ...d, anchor: "pending" }));
+    document.getElementById("note-body")?.focus();
   }
   function place(event: MouseEvent<HTMLDivElement>) {
     if (!placing) return;
     const box = event.currentTarget.getBoundingClientRect();
-    const pin: Pin = {
-      id: `local-${Date.now()}`,
-      x: Math.min(0.98, Math.max(0.02, (event.clientX - box.left) / box.width)),
-      y: Math.min(0.98, Math.max(0.02, (event.clientY - box.top) / box.height)),
-      label: "Your pin",
-    };
-    persist({ ...local, pins: [...local.pins, pin] });
-    setPlacing(false);
-    setFocus(`pin:${pin.id}`);
-    setDraft((d) => ({ ...d, anchor: `pin:${pin.id}` }));
+    placeAt(
+      Math.min(0.98, Math.max(0.02, (event.clientX - box.left) / box.width)),
+      Math.min(0.98, Math.max(0.02, (event.clientY - box.top) / box.height)),
+    );
   }
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (draft.body.trim().length < 3) return;
-    const note: SessionNote = {
-      id: `local-${Date.now()}`,
-      alias: "You",
-      role: "On this device",
-      type: draft.type,
-      body: draft.body.trim(),
-      ...fieldsFor(draft.anchor),
-    };
-    persist({ ...local, notes: [...local.notes, note] });
-    setDraft({ ...draft, body: "" });
-    notice("Note added. It stays on this device until accounts open.");
+    if (draft.body.trim().length < 3 || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      if (!viewer) await signIn(who.name, who.role);
+      const result = await postJson<{ note: SessionNote; pin?: Pin }>(
+        `/api/sessions/${session.id}/notes`,
+        {
+          type: draft.type,
+          body: draft.body.trim(),
+          anchor: draft.anchor,
+          ...(draft.anchor === "pending" && pending
+            ? { pin: { ...pending, label: draft.body.trim().slice(0, 60) } }
+            : {}),
+        },
+      );
+      if (result.pin) setAddedPins((p) => [...p, result.pin!]);
+      setShared((s) => [...s, result.note]);
+      setPending(null);
+      setDraft({
+        ...draft,
+        body: "",
+        anchor: draft.anchor === "pending" ? "whole" : draft.anchor,
+      });
+      notice("Note posted to the session.");
+    } catch (failure) {
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "Your note couldn’t be posted.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resolve(note: SessionNote) {
+    try {
+      await postJson(`/api/notes/${note.id}/resolve`);
+      setShared((s) =>
+        s.map((n) => (n.id === note.id ? { ...n, resolved: true } : n)),
+      );
+    } catch (failure) {
+      notice(
+        failure instanceof Error
+          ? failure.message
+          : "That note couldn’t be resolved.",
+      );
+    }
+  }
+  async function move(next: SessionStatus) {
+    try {
+      await postJson(`/api/sessions/${session.id}/status`, { status: next });
+      setStatus(next);
+      notice(`Session marked ${statusLabels[next].toLowerCase()}.`);
+    } catch (failure) {
+      notice(
+        failure instanceof Error
+          ? failure.message
+          : "The status couldn’t be changed.",
+      );
+    }
   }
   const typeCounts = Object.fromEntries(
     noteTypes[session.kind].map((type) => [
       type,
       notes.filter((n) => n.type === type).length,
     ]),
+  );
+  const canResolve = (note: SessionNote) =>
+    !!viewer && !!note.by && (note.by === viewer.id || isOwner);
+  const pinTools = (
+    <span className="canvas-tools">
+      <button
+        className={`button button-outline ${placing ? "is-active" : ""}`}
+        onClick={() => setPlacing(!placing)}
+        aria-pressed={placing}
+      >
+        <Crosshair size={14} />
+        {placing ? "Click the spot on the work" : "Add a pin"}
+      </button>
+      {pending && (
+        <span className="pending-note">
+          New pin placed. Write your note to post it.
+        </span>
+      )}
+    </span>
   );
   return (
     <div className="session">
@@ -230,22 +308,33 @@ export function SessionWorkspace({
             {session.kind === "critique" ? "Critique" : "Inquiry"} ·{" "}
             {session.field} · {session.specialty}
             {session.level ? ` · ${session.level}` : ""}
+            {session.author ? ` · opened by ${session.author}` : ""}
           </p>
           <h1>{session.title}</h1>
           {session.course && <p className="session-course">{session.course}</p>}
+          {session.author && !isOwner && (
+            <ReportButton type="session" id={session.id} />
+          )}
         </div>
         <ol className="session-steps" aria-label="Session status">
           {steps.map((step) => (
             <li
               key={step}
-              aria-current={step === session.status ? "step" : undefined}
+              aria-current={step === status ? "step" : undefined}
               className={
-                steps.indexOf(step) < steps.indexOf(session.status)
-                  ? "is-done"
-                  : ""
+                steps.indexOf(step) < steps.indexOf(status) ? "is-done" : ""
               }
             >
-              {statusLabels[step]}
+              {isOwner && step !== status ? (
+                <button
+                  onClick={() => move(step)}
+                  aria-label={`Mark as ${statusLabels[step].toLowerCase()}`}
+                >
+                  {statusLabels[step]}
+                </button>
+              ) : (
+                statusLabels[step]
+              )}
             </li>
           ))}
         </ol>
@@ -257,6 +346,15 @@ export function SessionWorkspace({
             <strong>Graded work: hints only.</strong> Point to where it goes
             wrong and ask questions that lead there. Don’t post a full solution.
           </span>
+        </p>
+      )}
+      {session.mediaState && session.mediaState !== "ready" && (
+        <p className="review-notice" role="status">
+          {session.mediaState === "pending"
+            ? "Your file is waiting for a moderator. Everyone else will see it once it’s approved."
+            : session.mediaState === "rejected"
+              ? "A moderator removed this session’s file."
+              : "This session’s file is waiting for review."}
         </p>
       )}
       <div className="session-brief">
@@ -299,18 +397,21 @@ export function SessionWorkspace({
                     {index + 1}
                   </button>
                 ))}
+                {pending && !pending.page && (
+                  <span
+                    className="pin is-pending"
+                    style={{
+                      left: `${pending.x * 100}%`,
+                      top: `${pending.y * 100}%`,
+                    }}
+                    aria-hidden="true"
+                  >
+                    +
+                  </span>
+                )}
               </div>
               <figcaption>
-                <span className="canvas-tools">
-                  <button
-                    className={`button button-outline ${placing ? "is-active" : ""}`}
-                    onClick={() => setPlacing(!placing)}
-                    aria-pressed={placing}
-                  >
-                    <Crosshair size={14} />
-                    {placing ? "Click the spot on the image" : "Add a pin"}
-                  </button>
-                </span>
+                {pinTools}
                 <span>
                   Round {round.n}: {round.note}
                 </span>
@@ -318,23 +419,36 @@ export function SessionWorkspace({
               </figcaption>
             </figure>
           )}
-          {session.blocks && (
-            <>
-              <WorkBlocks
-                blocks={session.blocks}
+          {session.pdf && (
+            <div className="canvas">
+              <PdfViewer
+                src={session.pdf.src}
+                name={session.pdf.name}
+                pins={pins}
+                pending={pending}
                 focus={focus}
                 counts={counts}
+                placing={placing}
+                onPlace={(page, x, y) => placeAt(x, y, page)}
                 onAnchor={choose}
+                onPages={setPageCount}
               />
-              {!session.work && (
-                <p className="work-round">
-                  Round {round.n}: {round.note}
-                </p>
-              )}
-            </>
+              <p className="canvas-caption">{pinTools}</p>
+            </div>
           )}
-          {!session.work && !session.blocks && clip && (
-            <MomentPlayer clip={clip} start={start} />
+          {clip && <MomentPlayer clip={clip} start={start} />}
+          {session.blocks && (
+            <WorkBlocks
+              blocks={session.blocks}
+              focus={focus}
+              counts={counts}
+              onAnchor={choose}
+            />
+          )}
+          {!session.work && (
+            <p className="work-round">
+              Round {round.n}: {round.note}
+            </p>
           )}
         </div>
         <aside className="session-notes" aria-label="Feedback">
@@ -444,22 +558,22 @@ export function SessionWorkspace({
                           </p>
                           <p className="note-by">
                             <span>{note.alias}</span> {note.role}
+                            {note.by && note.by !== viewer?.id && (
+                              <ReportButton type="note" id={note.id} />
+                            )}
                             {note.resolved ? (
                               <span className="note-done">
                                 <Check size={12} /> Resolved
                               </span>
                             ) : (
-                              <button
-                                className="note-resolve"
-                                onClick={() =>
-                                  persist({
-                                    ...local,
-                                    resolved: [...local.resolved, note.id],
-                                  })
-                                }
-                              >
-                                Mark resolved
-                              </button>
+                              canResolve(note) && (
+                                <button
+                                  className="note-resolve"
+                                  onClick={() => resolve(note)}
+                                >
+                                  Mark resolved
+                                </button>
+                              )
                             )}
                           </p>
                         </div>
@@ -469,7 +583,11 @@ export function SessionWorkspace({
                 </ul>
               </section>
             ))}
-            {!shown.length && <p className="note-empty">No notes here yet.</p>}
+            {!shown.length && (
+              <p className="note-empty">
+                No notes here yet. Be the first to help.
+              </p>
+            )}
           </div>
           <form className="note-form" onSubmit={submit}>
             <p className="label">Add to this session</p>
@@ -494,7 +612,7 @@ export function SessionWorkspace({
                 </label>
               ))}
             </div>
-            {anchors.length > 0 && (
+            {(anchors.length > 0 || pending) && (
               <label className="note-pin">
                 <span>Attach to</span>
                 <select
@@ -504,6 +622,12 @@ export function SessionWorkspace({
                   }
                 >
                   <option value="whole">The whole piece</option>
+                  {pending && (
+                    <option value="pending">
+                      The new pin
+                      {pending.page ? ` on page ${pending.page}` : ""}
+                    </option>
+                  )}
                   {anchors.map((anchor) => (
                     <option key={anchor.key} value={anchor.key}>
                       {anchor.key.startsWith("pin:")
@@ -530,13 +654,49 @@ export function SessionWorkspace({
                 setDraft({ ...draft, body: event.target.value })
               }
             />
+            {!viewer && (
+              <div className="form-row post-as">
+                <label>
+                  <span>Post as</span>
+                  <input
+                    value={who.name}
+                    maxLength={40}
+                    placeholder="Your name"
+                    autoComplete="nickname"
+                    onChange={(e) => setWho({ ...who, name: e.target.value })}
+                  />
+                </label>
+                <label>
+                  <span>Your role, optional</span>
+                  <input
+                    value={who.role}
+                    maxLength={60}
+                    placeholder="Physics TA"
+                    onChange={(e) => setWho({ ...who, role: e.target.value })}
+                  />
+                </label>
+              </div>
+            )}
+            {error && (
+              <p className="field-error" role="alert">
+                {error}
+              </p>
+            )}
             <div className="note-submit">
-              <span>Saved on this device until accounts open.</span>
+              <span>
+                {viewer
+                  ? `Posting as ${viewer.name}. Everyone can see notes.`
+                  : "Everyone can see notes."}
+              </span>
               <button
                 className="button button-dark"
-                disabled={draft.body.trim().length < 3}
+                disabled={
+                  busy ||
+                  draft.body.trim().length < 3 ||
+                  (!viewer && who.name.trim().length < 2)
+                }
               >
-                Add note
+                {busy ? "Posting…" : "Add note"}
               </button>
             </div>
           </form>

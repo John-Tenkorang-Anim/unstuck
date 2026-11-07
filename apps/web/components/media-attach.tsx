@@ -1,6 +1,13 @@
 "use client";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Clipboard, Crosshair, Film, ImagePlus, Trash2 } from "lucide-react";
+import {
+  Clipboard,
+  Crosshair,
+  FileText,
+  Film,
+  ImagePlus,
+  Trash2,
+} from "lucide-react";
 import { getFile, putFile, removeFile } from "@/lib/local-media";
 import { formatBytes } from "@/lib/media/delivery";
 import { clock } from "@/lib/search";
@@ -9,7 +16,7 @@ import type { Moment } from "@/lib/types";
 
 export interface Attached {
   id: string;
-  kind: "image" | "video";
+  kind: "image" | "video" | "pdf";
   name: string;
   type: string;
   size: number;
@@ -23,6 +30,7 @@ const limits = {
   imageBytes: 15e6,
   videoBytes: 100e6,
   videoSeconds: 60,
+  pdfBytes: 20e6,
 };
 
 function videoLength(url: string) {
@@ -76,9 +84,11 @@ export function MediaAttach({
         ? "video"
         : file.type.startsWith("image/")
           ? "image"
-          : null;
+          : file.type === "application/pdf"
+            ? "pdf"
+            : null;
       if (!kind) {
-        setError(`${file.name} isn’t a photo or video.`);
+        setError(`${file.name} isn’t a photo, video or PDF.`);
         continue;
       }
       if (single && next.length) next.forEach((item) => removeFile(item.id));
@@ -89,6 +99,10 @@ export function MediaAttach({
       ) {
         setError("Up to 8 photos per note.");
         break;
+      }
+      if (kind === "pdf" && file.size > limits.pdfBytes) {
+        setError(`${file.name} is over 20 MB.`);
+        continue;
       }
       if (kind === "image" && file.size > limits.imageBytes) {
         setError(`${file.name} is over 15 MB.`);
@@ -178,7 +192,7 @@ export function MediaAttach({
         </p>
         <p className="dropzone-limits">
           {single
-            ? "One photo or video."
+            ? "One photo, a video up to 60 seconds, or a PDF up to 20 MB."
             : "Up to 8 photos, 15 MB each, and one video up to 60 seconds."}{" "}
           Files stay on this device.
         </p>
@@ -187,7 +201,7 @@ export function MediaAttach({
           type="file"
           hidden
           multiple={!single}
-          accept="image/*,video/*"
+          accept="image/*,video/*,application/pdf"
           onChange={(event) => {
             add([...(event.target.files ?? [])]);
             event.target.value = "";
@@ -247,7 +261,13 @@ function AttachedItem({
   return (
     <div className="attached">
       <div className="attached-head">
-        {item.kind === "image" ? <ImagePlus size={15} /> : <Film size={15} />}
+        {item.kind === "image" ? (
+          <ImagePlus size={15} />
+        ) : item.kind === "pdf" ? (
+          <FileText size={15} />
+        ) : (
+          <Film size={15} />
+        )}
         <span>{item.name}</span>
         <small>
           {formatBytes(item.size)}
@@ -262,7 +282,11 @@ function AttachedItem({
           <Trash2 size={14} />
         </button>
       </div>
-      {item.kind === "image" ? (
+      {item.kind === "pdf" ? (
+        <p className="attached-hint">
+          Reviewers will see every page and can pin spots on them.
+        </p>
+      ) : item.kind === "image" ? (
         <div
           className={`canvas-frame ${placing ? "is-placing" : ""}`}
           onClick={place}
@@ -303,7 +327,7 @@ function AttachedItem({
           aria-invalid={!item.alt.trim()}
         />
       </label>
-      {item.kind === "image" ? (
+      {item.kind === "pdf" ? null : item.kind === "image" ? (
         <div className="attached-marks">
           <button
             type="button"

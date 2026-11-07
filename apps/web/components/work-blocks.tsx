@@ -2,6 +2,8 @@
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { Fragment } from "react";
+import { parseCsv } from "@/lib/csv";
+import { DataChart } from "./data-chart";
 import type { Block } from "@/lib/sessions";
 
 /** Text with inline maths between $…$, typeset with MathML for screen readers. */
@@ -28,13 +30,7 @@ export function MathText({ text }: { text: string }) {
     </>
   );
 }
-export function parseCsv(csv: string) {
-  const [head = "", ...rows] = csv.trim().split(/\r?\n/);
-  return {
-    header: head.split(",").map((cell) => cell.trim()),
-    rows: rows.map((row) => row.split(",").map((cell) => cell.trim())),
-  };
-}
+export { parseCsv } from "@/lib/csv";
 
 /**
  * Shown working, with every step, code line and data row addressable. Pressing
@@ -180,6 +176,12 @@ export function WorkBlocks({
                 </table>
               </div>
               {block.note && <p className="data-note">{block.note}</p>}
+              <DataChart
+                header={parseCsv(block.csv).header}
+                rows={parseCsv(block.csv).rows}
+                focus={focus}
+                onAnchor={onAnchor}
+              />
             </>
           )}
         </section>

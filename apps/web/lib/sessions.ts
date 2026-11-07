@@ -47,11 +47,13 @@ export interface SessionNote {
   line?: number;
   row?: number;
   page?: number;
+  /** Account id of a shared note's author. Sample notes have none. */
+  by?: string;
   resolved?: boolean;
 }
 /** A stable key for whatever a note points at, used for grouping and focus. */
 export function anchorKey(
-  note: Pick<SessionNote, "pin" | "at" | "step" | "line" | "row">,
+  note: Pick<SessionNote, "pin" | "at" | "step" | "line" | "row" | "page">,
 ) {
   if (note.pin) return `pin:${note.pin}`;
   if (note.step) return `step:${note.step}`;
@@ -84,6 +86,8 @@ export interface Session {
   pdf?: { src: string; name: string; bytes: number };
   /** Who opened the session, for shared sessions. */
   author?: string;
+  /** Whether a shared session's file is visible yet. */
+  mediaState?: "ready" | "pending" | "held" | "rejected";
   blocks?: Block[];
   /** Hints only: graded work, so reviewers point at the problem without solving it. */
   mode?: "hints" | "full";

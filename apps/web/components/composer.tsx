@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getFile, removeFile } from "@/lib/local-media";
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,6 +23,21 @@ import type { EntryKind, Outcome } from "@/lib/types";
 import { kindLabels } from "@/lib/data";
 import { MediaAttach, type Attached } from "./media-attach";
 import { useNotebook } from "./notebook-provider";
+import { useAccount } from "./use-account";
+
+/** Read an image's natural size so it keeps its proportions when published. */
+function imageSize(blob: Blob) {
+  return new Promise<{ width: number; height: number }>((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+    image.onload = () => {
+      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    image.onerror = () => resolve({ width: 0, height: 0 });
+    image.src = url;
+  });
+}
 
 const kinds = [
   {
@@ -146,6 +163,65 @@ export function Composer({
     }
   }
   const { notice } = useNotebook();
+  const router = useRouter();
+  const { viewer, signIn } = useAccount();
+  const [who, setWho] = useState({ name: "", role: "" });
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
+  /** Publish the note with its attachments, then open it. */
+  async function publish() {
+    if (publishing) return;
+    setPublishing(true);
+    setPublishError("");
+    try {
+      if (media.some((m) => !m.alt.trim()))
+        throw new Error("Describe each photo or video before publishing.");
+      if (!viewer) await signIn(who.name, who.role);
+      const form = new FormData();
+      form.set("entry", JSON.stringify(draft));
+      const meta = [];
+      for (const [index, item] of media.entries()) {
+        const blob = await getFile(item.id);
+        if (!blob)
+          throw new Error(
+            `${item.name} is no longer on this device. Add it again.`,
+          );
+        const size = item.kind === "image" ? await imageSize(blob) : {};
+        meta.push({
+          alt: item.alt,
+          pins: item.pins,
+          moments: item.moments,
+          duration: item.duration,
+          ...size,
+        });
+        form.set(`file-${index}`, blob, item.name);
+      }
+      form.set("media", JSON.stringify(meta));
+      const response = await fetch("/api/entries", {
+        method: "POST",
+        body: form,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok)
+        throw new Error(data.error ?? "The note couldn’t be published.");
+      media.forEach((item) => removeFile(item.id));
+      try {
+        localStorage.removeItem(storageKey);
+        localStorage.removeItem(mediaKey);
+      } catch {
+        /* The published note is safe either way. */
+      }
+      notice("Published. Your field note is live.");
+      router.push(`/entries/${data.id}`);
+    } catch (failure) {
+      setPublishError(
+        failure instanceof Error
+          ? failure.message
+          : "The note couldn’t be published.",
+      );
+      setPublishing(false);
+    }
+  }
   useEffect(() => {
     try {
       const stored: unknown = JSON.parse(
@@ -665,10 +741,56 @@ export function Composer({
               <div className="publishing-note">
                 <LockKeyhole size={16} aria-hidden="true" />
                 <p>
-                  <strong>Your words, your choice.</strong> This note will stay
-                  private on your device. Community publishing will be available
-                  when accounts open.
+                  <strong>Your words, your choice.</strong> Save it privately on
+                  this device, or publish it so everyone can learn from it.
                 </p>
+              </div>
+              <div className="publish-panel">
+                {!viewer && (
+                  <div className="form-row post-as">
+                    <label>
+                      <span>Post as</span>
+                      <input
+                        value={who.name}
+                        maxLength={40}
+                        placeholder="Your name"
+                        autoComplete="nickname"
+                        onChange={(e) =>
+                          setWho({ ...who, name: e.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Your role, optional</span>
+                      <input
+                        value={who.role}
+                        maxLength={60}
+                        placeholder="Smallholder farmer"
+                        onChange={(e) =>
+                          setWho({ ...who, role: e.target.value })
+                        }
+                      />
+                    </label>
+                  </div>
+                )}
+                {publishError && (
+                  <p className="field-error" role="alert">
+                    {publishError}
+                  </p>
+                )}
+                <button
+                  className="button button-outline"
+                  disabled={
+                    publishing || (!viewer && who.name.trim().length < 2)
+                  }
+                  onClick={publish}
+                >
+                  {publishing ? "Publishing…" : "Publish to Unstuck"}
+                </button>
+                <span className="publish-hint">
+                  {viewer ? `Posting as ${viewer.name}. ` : ""}Everyone will be
+                  able to read it.
+                </span>
               </div>
             </>
           )}

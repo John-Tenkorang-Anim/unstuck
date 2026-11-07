@@ -46,22 +46,53 @@ npm run start -- --port 3100
 - Shown working for coursework: maths steps, code with its output, and data
   tables, each step, line and row addressable by feedback. Graded work can be
   marked hints only.
-- Photos and short video in notes and sessions, by paste, drop or file choice,
-  with pinned spots and marked moments. Drafts keep files on the device.
-- A video player whose marked moments are keyboard-reachable chapters.
+- Shared critique sessions. People choose a display name, publish a photo,
+  video, PDF or their working, and others add notes pinned to a spot, page,
+  step, line, row or second. Owners move the status and resolve notes. Data
+  blocks also draw a scatter chart with an optional best-fit line.
 
-Sample photos and film come from Wikimedia Commons under the licenses shown on
-the About page. See the [search, media and sessions note](../../docs/architecture/0002-search-media-and-sessions.md).
-- Server-rendered field notes with context, outcome labels, explanations,
-  source sections, sharing, and saved-entry controls.
-- Open questions and a personal notebook with persistent device-local bookmarks.
-- Six contribution kinds and a three-step composer, with validation, private
-  draft autosave, restoration, review, and JSON export matching `EntryCreate`.
-- Approved-media gallery with responsive image variants, alt text, native video,
-  reviewed captions, descriptive transcripts, audio-described variants, explicit
-  low-data consent, quality selection, and per-attachment error recovery.
-- About/principles pages, missing-page handling, reduced-motion support,
-  keyboard focus styles, skip navigation, mobile navigation, and light reading.
+## Shared data
+
+Sharing needs PostgreSQL 16. Start a private local cluster and set the URL:
+
+```sh
+npm run db:start        # creates .pgdata/ and listens on 127.0.0.1:5433
+export DATABASE_URL=postgresql://unstuck@127.0.0.1:5433/unstuck
+```
+
+The app creates its tables in a `web` schema on first use. Without
+`DATABASE_URL` it still shows the samples, and publishing explains that a
+database is needed. Uploaded file bytes are kept in `.data/` (or
+`UNSTUCK_DATA_DIR`); the database holds their details and review status.
+
+- **Accounts:** a name and optional role. The first post shows a recovery code
+  once; `/account` uses it to sign in on another device or makes a new one.
+- **Moderation:** anyone can report a session, note or field note. Three
+  reports from different people hide it. People who enter
+  `UNSTUCK_MODERATOR_CODE` on `/account` get the `/moderation` queue, where every
+  decision needs a written reason and is logged.
+- **Uploads:** identified by content, size-limited, images re-encoded with
+  metadata removed, PDFs with scripts or embedded files refused, and an optional
+  external scanner (`UNSTUCK_SCAN_URL`). `UNSTUCK_UPLOAD_REVIEW` holds uploads for
+  a moderator; it defaults to `all` in production.
+- **Rate limits:** per account and per address, enforced in the database.
+
+Tests create and drop their own database. Locally they use the cluster from
+`npm run db:start`; in CI, `UNSTUCK_TEST_DATABASE_URL`.
+
+- **Known-abuse imagery:** every photo gets a PDQ hash, the format industry
+  hash-sharing programmes distribute. Point `UNSTUCK_HASH_LIST` at a programme's
+  list and matching uploads are quarantined where nothing serves them, the
+  uploader is suspended, and moderators see an incident with reporting steps.
+  Moderators can re-check every stored photo when the list changes. Joining a
+  programme and filing reports are steps the operator takes.
+- **Appeals:** people can appeal a hidden item or a suspension once, from
+  `/account`. A moderator who didn't make the original decision rules on it.
+- **File storage:** the local disk by default, or any S3-compatible bucket
+  (`UNSTUCK_S3_*`) so several machines can serve the same files.
+
+Videos and PDFs can't be hash-matched yet; in production they wait for a
+moderator by default.
 
 ## Data modes
 

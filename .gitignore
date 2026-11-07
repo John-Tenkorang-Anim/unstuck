@@ -22,4 +22,5 @@ htmlcov/
 !.env.example
 playwright-report/
 test-results/
+.pgdata/
 .data/

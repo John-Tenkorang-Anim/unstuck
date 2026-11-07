@@ -4,8 +4,9 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { SessionWorkspace } from "@/components/session-workspace";
 import { getNotebook } from "@/lib/api";
+import { currentAccount, publicAccount } from "@/lib/auth.server";
 import { examples } from "@/lib/data";
-import { sessionById } from "@/lib/sessions";
+import { loadSession } from "@/lib/shared.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
@@ -13,9 +14,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  return {
-    title: sessionById((await params).id)?.title ?? "Session not found",
-  };
+  const loaded = await loadSession((await params).id);
+  return { title: loaded?.session.title ?? "Session not found" };
 }
 export default async function SessionPage({
   params,
@@ -24,9 +24,12 @@ export default async function SessionPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const session = sessionById((await params).id);
-  const { mode } = await getNotebook();
-  if (!session || mode !== "examples") notFound();
+  // Owners and moderators can see their own hidden sessions and files under review.
+  const account = await currentAccount();
+  const loaded = await loadSession((await params).id, account);
+  if (!loaded) notFound();
+  if (loaded.sample && (await getNotebook()).mode !== "examples") notFound();
+  const { session, notes, owner, sample } = loaded;
   const t = Number((await searchParams).t);
   const entry = session.entryId
     ? examples.find((e) => e.id === session.entryId)
@@ -44,14 +47,27 @@ export default async function SessionPage({
           </>
         )}
       </nav>
-      <p className="example-notice">
-        <span className="example-tag">Sample data</span> A fictional session.
-        Notes you add stay on this device.
-      </p>
+      {loaded.hidden && (
+        <p className="review-notice" role="status">
+          This session is hidden from everyone else.{" "}
+          <Link className="text-link" href="/account#standing">
+            See why, or appeal
+          </Link>
+        </p>
+      )}
+      {sample && (
+        <p className="example-notice">
+          <span className="example-tag">Sample data</span> A fictional session.
+          Notes you add are shared with everyone.
+        </p>
+      )}
       <SessionWorkspace
         session={session}
         clip={entry?.clip}
         start={Number.isFinite(t) && t >= 0 ? t : undefined}
+        initialNotes={notes}
+        viewer={publicAccount(account)}
+        isOwner={!!account && account.id === owner}
       />
     </div>
   );

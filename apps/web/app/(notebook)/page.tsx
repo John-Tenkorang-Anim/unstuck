@@ -1,6 +1,7 @@
 import { Discovery } from "@/components/discovery";
 import { getNotebook } from "@/lib/api";
 import { sampleSessions } from "@/lib/sessions";
+import { listSharedSessions } from "@/lib/shared.server";
 export default async function Home({
   searchParams,
 }: {
@@ -11,7 +12,10 @@ export default async function Home({
   return (
     <Discovery
       notebook={notebook}
-      sessions={notebook.mode === "examples" ? sampleSessions : []}
+      sessions={[
+        ...(await listSharedSessions()),
+        ...(notebook.mode === "examples" ? sampleSessions : []),
+      ]}
       initialTopic={typeof params.topic === "string" ? params.topic : ""}
       initialQuery={typeof params.q === "string" ? params.q : ""}
       initialOutcome={typeof params.outcome === "string" ? params.outcome : ""}

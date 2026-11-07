@@ -6,6 +6,7 @@ import type { EntryView as ApiEntry } from "./contracts/entry-v1";
 import { summarizeEntry } from "./types";
 import { parseEntry, parseFeed } from "./platform/contracts.server";
 import { readJson, PlatformUnavailable } from "./platform/http";
+import { publishedEntries, publishedEntry } from "./entries.server";
 function adapt(entry: ApiEntry): Entry {
   const templateTopic: Record<string, Topic> = {
     farming_food: "Food & farming",
@@ -54,7 +55,15 @@ function adapt(entry: ApiEntry): Entry {
     license: entry.license,
   };
 }
+/** Published field notes come first, then the API's feed or the samples. */
 export async function getNotebook(): Promise<Notebook> {
+  const published = (await publishedEntries()).map(summarizeEntry);
+  const notebook = await getFeed();
+  return notebook.mode === "unavailable" && published.length
+    ? { entries: published, mode: "live" }
+    : { ...notebook, entries: [...published, ...notebook.entries] };
+}
+async function getFeed(): Promise<Notebook> {
   const base = process.env.UNSTUCK_API_URL;
   if (!base) return { entries: examples.map(summarizeEntry), mode: "examples" };
   try {
@@ -73,6 +82,8 @@ export async function getNotebook(): Promise<Notebook> {
   }
 }
 export async function getEntry(id: string): Promise<Entry | undefined> {
+  const published = await publishedEntry(id).catch(() => undefined);
+  if (published) return published;
   const base = process.env.UNSTUCK_API_URL;
   if (!base) return examples.find((entry) => entry.id === id);
   try {

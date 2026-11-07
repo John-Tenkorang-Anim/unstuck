@@ -53,6 +53,8 @@ export function SessionCard({
 
 function describeWork(session: Session) {
   const block = session.blocks?.[0];
+  if (session.pdf) return "PDF of the work";
+  if (session.clip && !session.entryId) return "Video of the work";
   if (!block) return "Inquiry on a video";
   if (block.kind === "steps")
     return `Worked solution · ${block.steps.length} steps`;

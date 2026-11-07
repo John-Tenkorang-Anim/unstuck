@@ -553,10 +553,10 @@ function Showcase({
                 aria-label={`Watch: ${clip.title}`}
               >
                 <img
-                  src={clip.poster.src}
+                  src={clip.poster?.src}
                   alt=""
-                  width={clip.poster.width}
-                  height={clip.poster.height}
+                  width={clip.poster?.width}
+                  height={clip.poster?.height}
                   loading="lazy"
                 />
                 <span className="feature-play">
