@@ -56,6 +56,14 @@ npm run start -- --port 3100
   video, PDF or their working, and others add notes pinned to a spot, page,
   step, line, row or second. Owners move the status and resolve notes. Data
   blocks also draw a scatter chart with an optional best-fit line.
+- A "Why it happened" discussion on every field note, built for very long
+  threads. Explanations are ranked by how many different people bring
+  supporting or disputing evidence. Responses split into all, questions and
+  tried-it, and can be searched, sorted by most helpful, newest or oldest,
+  and paged. Long responses are clamped, and replies load on request.
+- A panel for the person who posted, showing what is new since their last
+  visit, and a "Your posts" page at `/you` that lists every post with its new
+  and unanswered counts.
 
 ## Shared data
 
@@ -82,6 +90,9 @@ database is needed. Uploaded file bytes are kept in `.data/` (or
   external scanner (`UNSTUCK_SCAN_URL`). `UNSTUCK_UPLOAD_REVIEW` holds uploads for
   a moderator; it defaults to `all` in production.
 - **Rate limits:** per account and per address, enforced in the database.
+
+To try a large discussion locally, seed one with
+`node scripts/seed-discussion.mjs <entry-id> [responses] [people]`.
 
 Tests create and drop their own database. Locally they use the cluster from
 `npm run db:start`; in CI, `UNSTUCK_TEST_DATABASE_URL`.

@@ -46,12 +46,19 @@ export default async function Moderation() {
       preview: await preview(r.target_type, r.target_id),
     })),
   );
-  const href = (type: string, id: string, sessionId?: string) =>
-    type === "session"
-      ? `/sessions/${id}`
-      : type === "entry"
-        ? `/entries/${id}`
-        : `/sessions/${sessionId}#note-${id}`;
+  const href = (
+    type: string,
+    id: string,
+    sessionId?: string,
+    entryId?: string,
+  ) =>
+    type === "comment" || type === "explanation"
+      ? `/entries/${entryId}#why`
+      : type === "session"
+        ? `/sessions/${id}`
+        : type === "entry"
+          ? `/entries/${id}`
+          : `/sessions/${sessionId}#note-${id}`;
   return (
     <div className="frame moderation">
       <header className="page-bar">
@@ -133,6 +140,8 @@ export default async function Moderation() {
                         session: "Hidden session",
                         note: "Hidden note",
                         entry: "Hidden field note",
+                        comment: "Hidden comment",
+                        explanation: "Hidden explanation",
                       }[appeal.target_type]
                     }
                   </span>
@@ -190,9 +199,13 @@ export default async function Moderation() {
                 <div className="mod-item-head">
                   <span className="mod-type">
                     {
-                      { entry: "Field note", session: "Session", note: "Note" }[
-                        item.target_type
-                      ]
+                      {
+                        entry: "Field note",
+                        session: "Session",
+                        note: "Note",
+                        comment: "Comment",
+                        explanation: "Explanation",
+                      }[item.target_type]
                     }
                   </span>
                   <span>
@@ -210,6 +223,7 @@ export default async function Moderation() {
                         item.target_type,
                         item.target_id,
                         item.preview.sessionId,
+                        item.preview.entryId,
                       )}
                     >
                       {item.preview.title.slice(0, 160) || "Untitled"}

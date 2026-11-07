@@ -111,6 +111,27 @@ lock).
 Not covered: hash matching for video frames and PDF pages, which are held for
 moderator review in production instead.
 
+## Discussion at scale (decided outside the spec)
+
+A popular field note can collect 100,000 responses, so nothing renders them all.
+
+- **Pages, not lists:** the first 20 responses are rendered on the server and
+  later pages come from `/api/entries/{id}/discussion`. Pages use a keyset
+  cursor on (helpful, created, id), so page 5,000 costs the same as page 1. The
+  cursor keeps Postgres's microsecond timestamps; rounding them to
+  milliseconds skipped responses posted in the same millisecond.
+- **Counts in one query:** totals, questions, unanswered questions and tried-it
+  outcomes come from a single aggregate. Explanation states come from distinct
+  supporters and disputers, not votes. Supported means at least three
+  supporters and twice as many as disputers. Disputed means at least three
+  disputers who outnumber supporters.
+- **Helpful only sorts.** People can't mark their own responses helpful.
+- **Owners see what changed:** `web.last_seen` records each visit, and the
+  post's page and `/you` count new responses, questions, tried-it reports and
+  unanswered questions since then.
+- **Measured:** with 104,981 responses, the entry rendered on the server in
+  about 50 ms, and every page, tab and search answered in under 10 ms.
+
 ## Not yet backed by the API
 
 - Hybrid keyword and vector search over anchors and transcripts (spec 11.1).

@@ -8,7 +8,13 @@ import {
 } from "@/lib/store.server";
 
 export const dynamic = "force-dynamic";
-const types: TargetType[] = ["session", "note", "entry"];
+const types: TargetType[] = [
+  "session",
+  "note",
+  "entry",
+  "comment",
+  "explanation",
+];
 
 /** Report a session, note or field note. Enough reports hide it until reviewed. */
 export async function POST(request: Request) {

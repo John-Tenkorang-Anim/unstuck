@@ -7,6 +7,7 @@ import { getNotebook } from "@/lib/api";
 import { currentAccount, publicAccount } from "@/lib/auth.server";
 import { examples } from "@/lib/data";
 import { loadSession } from "@/lib/shared.server";
+import { markSessionSeen } from "@/lib/discussion.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
@@ -30,6 +31,8 @@ export default async function SessionPage({
   if (!loaded) notFound();
   if (loaded.sample && (await getNotebook()).mode !== "examples") notFound();
   const { session, notes, owner, sample } = loaded;
+  if (account && account.id === owner)
+    await markSessionSeen(account, session.id);
   const t = Number((await searchParams).t);
   const entry = session.entryId
     ? examples.find((e) => e.id === session.entryId)

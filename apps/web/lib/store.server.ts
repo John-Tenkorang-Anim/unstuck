@@ -52,7 +52,8 @@ export interface StoredNote extends SessionNote {
   created: string;
   hidden?: boolean;
 }
-export type TargetType = "session" | "note" | "entry";
+export type TargetType =
+  "session" | "note" | "entry" | "comment" | "explanation";
 
 export const newId = () => randomUUID();
 export const hashToken = (token: string) =>
@@ -292,6 +293,7 @@ export const limits = {
   entry: { max: 10, seconds: 3600 },
   note: { max: 60, seconds: 3600 },
   report: { max: 20, seconds: 3600 },
+  helpful: { max: 300, seconds: 3600 },
 };
 /**
  * Count recent events for a key and refuse once the window is full. The
@@ -671,6 +673,8 @@ const tables: Record<TargetType, string> = {
   session: "web.sessions",
   note: "web.notes",
   entry: "web.entries",
+  comment: "web.comments",
+  explanation: "web.explanations",
 };
 /**
  * File a report. Each person can report a thing once. When enough different
@@ -797,23 +801,32 @@ export async function moderationQueue() {
 }
 /** A short preview of reported content, for the moderation queue. */
 export async function preview(type: TargetType, id: string) {
+  // Comments and explanations keep their text in columns; the rest in `data`.
+  const select =
+    type === "comment"
+      ? "left(t.body, 200) AS title, '' AS body, t.entry_id"
+      : type === "explanation"
+        ? "t.title, t.detail AS body, t.entry_id"
+        : "coalesce(t.data->>'title', left(t.data->>'body', 200)) AS title, coalesce(t.data->>'wentWrong', t.data->>'excerpt', '') AS body, NULL AS entry_id";
   const [row] = await query<{
-    data: Record<string, unknown>;
+    title: string;
+    body: string;
+    entry_id: string | null;
     owner: string;
     hidden: boolean;
     name: string;
   }>(
-    `SELECT t.data, t.owner, t.hidden, a.name FROM ${tables[type]} t JOIN web.accounts a ON a.id = t.owner WHERE t.id = $1`,
+    `SELECT ${select}, t.owner, t.hidden, a.name FROM ${tables[type]} t JOIN web.accounts a ON a.id = t.owner WHERE t.id = $1`,
     [id],
   );
   if (!row) return undefined;
-  const d = row.data;
   return {
-    title: String(d.title ?? d.body ?? ""),
-    body: String(d.wentWrong ?? d.excerpt ?? (d.title ? "" : "")),
+    title: row.title ?? "",
+    body: row.body ?? "",
     owner: row.owner,
     ownerName: row.name,
     hidden: row.hidden,
+    entryId: row.entry_id ?? undefined,
     sessionId:
       type === "note"
         ? String(
@@ -877,7 +890,9 @@ export async function standing(account: Account) {
   const hidden = await query<{ type: TargetType; id: string; title: string }>(
     `SELECT 'session' AS type, id::text, data->>'title' AS title FROM web.sessions WHERE owner = $1 AND hidden
      UNION ALL SELECT 'entry', id::text, data->>'title' FROM web.entries WHERE owner = $1 AND hidden
-     UNION ALL SELECT 'note', id::text, left(data->>'body', 120) FROM web.notes WHERE owner = $1 AND hidden`,
+     UNION ALL SELECT 'note', id::text, left(data->>'body', 120) FROM web.notes WHERE owner = $1 AND hidden
+     UNION ALL SELECT 'comment', id::text, left(body, 120) FROM web.comments WHERE owner = $1 AND hidden
+     UNION ALL SELECT 'explanation', id::text, title FROM web.explanations WHERE owner = $1 AND hidden`,
     [account.id],
   );
   const appeals = await query<Appeal>(

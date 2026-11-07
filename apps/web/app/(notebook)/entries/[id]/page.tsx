@@ -14,6 +14,14 @@ import { MomentPlayer } from "@/components/moment-player";
 import { Picture } from "@/components/picture";
 import { sampleSessions } from "@/lib/sessions";
 import { ReportButton } from "@/components/report-button";
+import { Discussion } from "@/components/discussion";
+import { currentAccount, publicAccount } from "@/lib/auth.server";
+import { hasDatabase } from "@/lib/db.server";
+import {
+  discussionSummary,
+  listComments,
+  ownerInsights,
+} from "@/lib/discussion.server";
 export async function generateMetadata({
   params,
 }: {
@@ -36,6 +44,19 @@ export default async function EntryPage({
   if (!entry) notFound();
   const t = Number((await searchParams).t);
   const start = Number.isFinite(t) && t >= 0 ? t : undefined;
+  const viewer = await currentAccount();
+  const isOwner = !!viewer && !!entry.owner && viewer.id === entry.owner;
+  const [summary, firstPage, insights] = await Promise.all([
+    discussionSummary(entry),
+    listComments(entry.id, { viewer: viewer?.id }).catch(() => ({
+      items: [],
+      next: null,
+      count: 0,
+    })),
+    isOwner && viewer
+      ? ownerInsights(viewer, entry.id)
+      : Promise.resolve(undefined),
+  ]);
   const sessions = entry.example
     ? sampleSessions.filter((session) => session.entryId === entry.id)
     : [];
@@ -202,43 +223,15 @@ export default async function EntryPage({
             questions.
           </p>
           <EntryActions id={entry.id} />
-          <section className="why-board" id="why">
-            <div className="why-head">
-              <h2>Why it happened</h2>
-              <p>
-                Possible explanations, grounded in what people observed. Support
-                is evidence, not a vote.
-              </p>
-            </div>
-            {entry.evidence.length ? (
-              entry.evidence.map((evidence) => (
-                <div
-                  key={evidence.label}
-                  className="evidence-row"
-                  data-state={evidence.state}
-                >
-                  <span className="evidence-state">
-                    <span className="evidence-dot" aria-hidden="true" />
-                    {evidence.state}
-                  </span>
-                  <div>
-                    <h3>{evidence.label}</h3>
-                    <p>{evidence.detail}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="quiet-notice">
-                No explanations have been published for this note yet.
-              </p>
-            )}
-            <Link
-              href={`/new?kind=experience&relates=${encodeURIComponent(entry.id)}`}
-              className="text-link"
-            >
-              Bring another perspective <ArrowUpRight size={14} />
-            </Link>
-          </section>
+          <Discussion
+            entryId={entry.id}
+            summary={summary}
+            first={firstPage}
+            viewer={publicAccount(viewer)}
+            isOwner={isOwner}
+            insights={insights}
+            enabled={hasDatabase()}
+          />
         </article>
         <aside className="detail-aside">
           <div className="context-panel">

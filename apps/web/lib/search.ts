@@ -323,7 +323,8 @@ export function search(
         score += idf * termScore;
       }
       if (!score) return;
-      score *= 0.6 + 0.4 * (covered / terms.length);
+      // Results that contain every word should outrank ones that repeat a single word.
+      score *= 0.25 + 0.75 * (covered / terms.length) ** 2;
       if (
         `${doc.title} ${doc.summary}`
           .toLowerCase()

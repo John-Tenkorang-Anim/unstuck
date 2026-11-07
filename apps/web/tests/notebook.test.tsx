@@ -63,7 +63,7 @@ describe("finding a way forward", () => {
     );
     expect(
       within(screen.getAllByRole("article")[0]).getByRole("heading"),
-    ).toHaveTextContent("Two clay pots");
+    ).toHaveTextContent("Clay pot cooler");
     await user.click(screen.getByRole("heading", { level: 1 }));
     await user.keyboard("/");
     expect(screen.getByRole("searchbox")).toHaveFocus();

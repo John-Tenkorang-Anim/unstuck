@@ -12,7 +12,14 @@ import {
 } from "@/lib/store.server";
 
 export const dynamic = "force-dynamic";
-const types: AppealTarget[] = ["session", "note", "entry", "account"];
+const types: AppealTarget[] = [
+  "session",
+  "note",
+  "entry",
+  "comment",
+  "explanation",
+  "account",
+];
 
 /** Appeal a hidden item or a suspension. Suspended accounts can still appeal. */
 export async function POST(request: Request) {

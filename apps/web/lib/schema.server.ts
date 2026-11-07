@@ -132,4 +132,55 @@ CREATE TABLE IF NOT EXISTS web.appeals (
   decided timestamptz,
   UNIQUE (target_type, target_id, appellant)
 );
+
+-- Discussion on field notes: explanations, evidence, questions, tried-it
+-- reports and replies. Every list is read with keyset pagination on these
+-- indexes, so it stays fast with hundreds of thousands of comments.
+CREATE TABLE IF NOT EXISTS web.explanations (
+  id uuid PRIMARY KEY,
+  entry_id text NOT NULL,
+  owner uuid NOT NULL REFERENCES web.accounts(id),
+  title text NOT NULL,
+  detail text NOT NULL DEFAULT '',
+  hidden boolean NOT NULL DEFAULT false,
+  created timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS explanations_entry ON web.explanations (entry_id, created);
+CREATE TABLE IF NOT EXISTS web.comments (
+  id uuid PRIMARY KEY,
+  entry_id text NOT NULL,
+  explanation_id text,
+  parent_id uuid,
+  owner uuid NOT NULL REFERENCES web.accounts(id),
+  kind text NOT NULL CHECK (kind IN ('comment', 'question', 'supports', 'disputes', 'worked', 'didnt')),
+  body text NOT NULL,
+  helpful integer NOT NULL DEFAULT 0,
+  hidden boolean NOT NULL DEFAULT false,
+  created timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS comments_new ON web.comments (entry_id, created DESC, id DESC) WHERE parent_id IS NULL AND NOT hidden;
+CREATE INDEX IF NOT EXISTS comments_helpful ON web.comments (entry_id, helpful DESC, created DESC, id DESC) WHERE parent_id IS NULL AND NOT hidden;
+CREATE INDEX IF NOT EXISTS comments_kind ON web.comments (entry_id, kind, created DESC, id DESC) WHERE parent_id IS NULL AND NOT hidden;
+CREATE INDEX IF NOT EXISTS comments_explanation ON web.comments (explanation_id, created DESC, id DESC) WHERE NOT hidden;
+CREATE INDEX IF NOT EXISTS comments_parent ON web.comments (parent_id, created) WHERE parent_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS comments_owner ON web.comments (owner, created DESC);
+CREATE INDEX IF NOT EXISTS comments_search ON web.comments USING gin (to_tsvector('simple', body));
+CREATE TABLE IF NOT EXISTS web.comment_helpful (
+  comment_id uuid NOT NULL REFERENCES web.comments(id) ON DELETE CASCADE,
+  account_id uuid NOT NULL REFERENCES web.accounts(id),
+  PRIMARY KEY (comment_id, account_id)
+);
+-- When someone last looked at their own post, for "new since your last visit".
+CREATE TABLE IF NOT EXISTS web.last_seen (
+  account_id uuid NOT NULL REFERENCES web.accounts(id),
+  target text NOT NULL,
+  seen timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (account_id, target)
+);
+ALTER TABLE web.reports DROP CONSTRAINT IF EXISTS reports_target_type_check;
+ALTER TABLE web.reports ADD CONSTRAINT reports_target_type_check
+  CHECK (target_type IN ('session', 'note', 'entry', 'comment', 'explanation'));
+ALTER TABLE web.appeals DROP CONSTRAINT IF EXISTS appeals_target_type_check;
+ALTER TABLE web.appeals ADD CONSTRAINT appeals_target_type_check
+  CHECK (target_type IN ('session', 'note', 'entry', 'comment', 'explanation', 'account'));
 `;

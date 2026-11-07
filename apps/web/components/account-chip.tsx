@@ -29,6 +29,13 @@ export function AccountChip() {
           </p>
           <Link
             className="account-link"
+            href="/you"
+            onClick={() => setOpen(false)}
+          >
+            Your posts
+          </Link>
+          <Link
+            className="account-link"
             href="/account"
             onClick={() => setOpen(false)}
           >

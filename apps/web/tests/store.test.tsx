@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import pg from "pg";
 import sharp from "sharp";
+import type { Account } from "@/lib/store.server";
 
 const admin =
   process.env.UNSTUCK_TEST_DATABASE_URL ??
@@ -422,5 +423,155 @@ describe("object storage", () => {
     await storage().remove("files", "abc");
     expect(objects.has("/unstuck-test/files/abc")).toBe(false);
     delete process.env.UNSTUCK_S3_BUCKET;
+  });
+});
+
+describe("discussion at scale", () => {
+  const people = async (n: number, prefix: string) => {
+    const s = await store();
+    return Promise.all(
+      Array.from({ length: n }, async (_, i): Promise<Account> => ({
+        ...(await s.insertAccount(`${prefix} ${i}`, "Student")).account,
+        moderator: false,
+        suspended: false,
+        created: new Date().toISOString(),
+      })),
+    );
+  };
+  it("pages through responses with a cursor, without repeats or gaps", async () => {
+    const d = await import("@/lib/discussion.server");
+    const [writer] = await people(1, "Pager");
+    const entry = "the-cache-was-not-the-problem";
+    for (let i = 0; i < 45; i++)
+      await d.addComment(writer, entry, {
+        kind: i % 5 === 0 ? "question" : "comment",
+        body: `Response number ${i}`,
+      });
+    const seen = new Set<string>();
+    let cursor: string | undefined;
+    let pages = 0;
+    do {
+      const page = await d.listComments(entry, {
+        sort: "newest",
+        cursor,
+        limit: 20,
+      });
+      expect(page.count).toBe(45);
+      page.items.forEach((c) => seen.add(c.id));
+      cursor = page.next ?? undefined;
+      pages++;
+    } while (cursor);
+    expect(pages).toBe(3);
+    expect(seen.size).toBe(45);
+    const questions = await d.listComments(entry, { view: "questions" });
+    expect(questions.count).toBe(9);
+    const found = await d.listComments(entry, { q: "number 17" });
+    expect(found.items.some((c) => c.body === "Response number 17")).toBe(true);
+  });
+  it("ranks explanations by distinct people’s evidence, never by votes", async () => {
+    const d = await import("@/lib/discussion.server");
+    const { getEntry } = await import("@/lib/api");
+    const entry = "a-chair-worth-fixing";
+    const [author, ...others] = await people(8, "Witness");
+    const id = await d.addExplanation(author, entry, {
+      title: "The tenon shrank as the wood dried",
+    });
+    const state = async () =>
+      (await d.discussionSummary((await getEntry(entry))!)).explanations.find(
+        (e) => e.id === id,
+      )!;
+    expect((await state()).state).toBe("proposed");
+    // One person repeating themselves counts once.
+    for (let i = 0; i < 3; i++)
+      await d.addComment(others[0], entry, {
+        kind: "supports",
+        body: "Same here, the joint was loose again.",
+        explanationId: id,
+      });
+    expect((await state()).state).toBe("proposed");
+    for (const person of others.slice(1, 3))
+      await d.addComment(person, entry, {
+        kind: "supports",
+        body: "Measured the tenon; it was undersized.",
+        explanationId: id,
+      });
+    expect(await state()).toMatchObject({ state: "supported", supports: 3 });
+    for (const person of others.slice(3, 7))
+      await d.addComment(person, entry, {
+        kind: "disputes",
+        body: "Mine was a dry fit and still failed.",
+        explanationId: id,
+      });
+    expect(await state()).toMatchObject({ state: "disputed", disputes: 4 });
+    await expect(
+      d.addComment(author, entry, {
+        kind: "supports",
+        body: "Evidence for something else",
+        explanationId: "sample-99",
+      }),
+    ).rejects.toThrow(/Choose the explanation/);
+  });
+  it("lets others mark a response helpful once, but not its author", async () => {
+    const d = await import("@/lib/discussion.server");
+    const [author, reader] = await people(2, "Helper");
+    const id = await d.addComment(author, "what-the-rain-changed", {
+      kind: "comment",
+      body: "Check the drainage under each bed.",
+    });
+    await expect(d.toggleHelpful(author, id)).rejects.toThrow(/your own/);
+    expect(await d.toggleHelpful(reader, id)).toEqual({
+      helped: true,
+      helpful: 1,
+    });
+    expect(await d.toggleHelpful(reader, id)).toEqual({
+      helped: false,
+      helpful: 0,
+    });
+  });
+  it("tells a poster what changed since their last visit and lists their posts", async () => {
+    const d = await import("@/lib/discussion.server");
+    const { createEntry } = await import("@/lib/entries.server");
+    const [owner, asker, tester] = await people(3, "Poster");
+    const form = new FormData();
+    form.set(
+      "entry",
+      JSON.stringify({
+        kind: "experience",
+        template: "farming_food",
+        outcome: "worked",
+        title: "Shade cloth over the nursery bed",
+        goal: "Keep seedlings alive through the dry season.",
+      }),
+    );
+    const entry = await createEntry(owner, form);
+    expect((await d.ownerInsights(owner, entry)).firstVisit).toBe(true);
+    const question = await d.addComment(asker, entry, {
+      kind: "question",
+      body: "Did you take the cloth off at night?",
+    });
+    await d.addComment(tester, entry, {
+      kind: "didnt",
+      body: "In the rains the bed stayed too wet.",
+    });
+    expect(await d.ownerInsights(owner, entry)).toMatchObject({
+      firstVisit: false,
+      responses: 2,
+      questions: 1,
+      tried: 1,
+    });
+    // Seen now, so nothing is new until someone else posts.
+    expect((await d.ownerInsights(owner, entry)).responses).toBe(0);
+    const attention = await d.myPosts(owner, { filter: "attention" });
+    expect(attention.items).toHaveLength(1);
+    expect(attention.items[0]).toMatchObject({ id: entry, unanswered: 1 });
+    await d.addComment(owner, entry, {
+      kind: "comment",
+      body: "Yes, every evening.",
+      parentId: question,
+    });
+    expect(
+      (await d.myPosts(owner, { filter: "attention" })).items,
+    ).toHaveLength(0);
+    expect((await d.myPosts(owner, {})).items[0].responses).toBe(3);
   });
 });

@@ -107,9 +107,9 @@ export const examples: Entry[] = [
   {
     id: "tacoma-narrows-1940",
     kind: "research",
-    title: "Tacoma Narrows, 1940: the bridge that twisted itself apart",
+    title: "Tacoma Narrows Bridge, 1940: why the deck twisted until it failed",
     excerpt:
-      "A new suspension bridge with a slender, solid-sided deck. Moderate wind set it twisting, and four months after opening the centre span fell. Filmed from start to finish.",
+      "A suspension bridge with a narrow, solid-sided deck failed four months after it opened. The film shows the deck switch from up-and-down waves to twisting in a moderate wind, then the centre span falls.",
     topic: "Making & fixing",
     outcome: "failed",
     place: "Tacoma, Washington, USA",
@@ -220,9 +220,9 @@ export const examples: Entry[] = [
   {
     id: "two-pots-one-small-breakthrough",
     kind: "solution",
-    title: "Two clay pots. No fridge. A little more time.",
+    title: "Clay pot cooler kept tomatoes firm longer, except on humid days",
     excerpt:
-      "An experiment in keeping tomatoes fresh without electricity. The surprising part? The air mattered as much as the water.",
+      "I stored tomatoes in a pot-in-pot cooler with damp sand, kept in the shade. In dry weather they stayed firm longer than the comparison batch. On humid days the difference was small.",
     topic: "Food & farming",
     outcome: "worked",
     place: "Northern Ghana",
@@ -275,9 +275,9 @@ export const examples: Entry[] = [
   {
     id: "the-cache-was-not-the-problem",
     kind: "experience",
-    title: "The cache wasn’t broken. Our assumption was.",
+    title: "Dashboard cache returned data from the wrong workspace",
     excerpt:
-      "Three hours of debugging, one missing cache key, and a lesson about testing the thing you think you know.",
+      "Our cache key used the filter arguments but not the workspace ID, so two workspaces could share a cached result. It took about three hours to find.",
     topic: "Software",
     outcome: "failed",
     place: "A small remote team",
@@ -323,9 +323,10 @@ export const examples: Entry[] = [
   {
     id: "a-chair-worth-fixing",
     kind: "experience",
-    title: "A broken chair. A better question.",
+    title:
+      "Loose chair joint: extra glue failed after a day, a refitted joint is holding",
     excerpt:
-      "The first repair held for a day. The second started with understanding where the force was going.",
+      "Adding glue to a loose joint didn’t last. Cleaning out the old glue and getting a tighter fit worked better, but it has only been in use for a few weeks.",
     topic: "Making & fixing",
     outcome: "mixed",
     place: "Kumasi, Ghana",
@@ -367,9 +368,10 @@ export const examples: Entry[] = [
   {
     id: "what-the-rain-changed",
     kind: "discovery",
-    title: "Same seeds. Same soil. A different story.",
+    title:
+      "Same seeds in two beds grew at different rates, so I’m testing the water",
     excerpt:
-      "Two garden beds became an accidental lesson in looking more closely at the water.",
+      "Two beds planted on the same day with the same seed grew at different speeds. The main difference is the water source, but shade and drainage differ too.",
     topic: "Food & farming",
     outcome: "ongoing",
     place: "Nairobi, Kenya",
@@ -408,9 +410,9 @@ export const examples: Entry[] = [
   {
     id: "a-cooler-room-without-a-bigger-bill",
     kind: "problem",
-    title: "Can a room stay cooler without using more power?",
+    title: "How can I keep a west-facing room cooler without using more power?",
     excerpt:
-      "A west-facing room, a small budget, and a few things already tried. What would you test next?",
+      "My small west-facing room in Accra gets hot every afternoon. I’ve tried opening windows earlier and moving furniture away from the window. Budget is under $20. What should I test next?",
     topic: "Everyday life",
     outcome: null,
     place: "Accra, Ghana",
@@ -448,9 +450,10 @@ export const examples: Entry[] = [
   {
     id: "small-data-better-questions",
     kind: "research",
-    title: "The result we didn’t expect was the one worth sharing.",
+    title:
+      "Classroom intervention made no measurable difference across 12 students",
     excerpt:
-      "A small classroom experiment that did not support the original hypothesis—and what it taught the group.",
+      "We expected the intervention to improve a repeated measurement. Across 12 students it didn’t. This covers the method, what we recorded and the limits of a sample this small.",
     topic: "Research",
     outcome: "failed",
     place: "A community classroom",

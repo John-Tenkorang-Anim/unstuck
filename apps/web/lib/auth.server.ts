@@ -37,7 +37,13 @@ export async function requester() {
 /** The signed-in account for this request, if any. */
 export async function currentAccount(): Promise<Account | undefined> {
   if (!hasDatabase()) return undefined;
-  const token = (await cookies()).get(COOKIE)?.value;
+  // Outside a request (scripts and tests) there is nobody signed in.
+  let token: string | undefined;
+  try {
+    token = (await cookies()).get(COOKIE)?.value;
+  } catch {
+    return undefined;
+  }
   if (!token) return undefined;
   return accountByToken(token).catch(() => undefined);
 }

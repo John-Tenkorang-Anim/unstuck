@@ -30,7 +30,10 @@ test("the complete field note and its context are readable without JavaScript", 
     "/entries/two-pots-one-small-breakthrough",
   );
   assert.equal(response.status, 200);
-  assert.match(document.querySelector("main h1").textContent, /Two clay pots/);
+  assert.match(
+    document.querySelector("main h1").textContent,
+    /Clay pot cooler/,
+  );
   assert.equal(document.querySelectorAll(".story-body > section").length, 4);
   assert.match(document.querySelector(".context-panel").textContent, /Ghana/);
   assert.match(
@@ -72,7 +75,7 @@ test("open questions contain only the matching entry on first render", async () 
   assert.equal(document.querySelectorAll("main article").length, 1);
   assert.match(
     document.querySelector("main article h3").textContent,
-    /Can a room stay cooler/,
+    /keep a west-facing room cooler/,
   );
 });
 
@@ -558,5 +561,59 @@ test("an owner can appeal a hidden session and a moderator can restore it", asyn
   assert.equal(
     (await fetch(new URL(`/sessions/${body.id}`, base))).status,
     200,
+  );
+});
+
+test("people respond to a field note, mark answers helpful, and the poster sees what changed", async () => {
+  const entry = "a-cooler-room-without-a-bigger-bill";
+  const asker = cookieOf(await post("/api/account", { name: "Kofi" }));
+  const helper = cookieOf(await post("/api/account", { name: "Efua" }));
+  const signedOut = await post(`/api/entries/${entry}/comments`, {
+    kind: "comment",
+    body: "Hello",
+  });
+  assert.equal(signedOut.status, 401);
+  const asked = await post(
+    `/api/entries/${entry}/comments`,
+    { kind: "question", body: "Which way do your windows face?" },
+    asker,
+  );
+  assert.equal(asked.status, 201);
+  const { id } = await asked.json();
+  const reply = await post(
+    `/api/entries/${entry}/comments`,
+    { kind: "comment", body: "West, mostly.", parentId: id },
+    helper,
+  );
+  assert.equal(reply.status, 201);
+  assert.equal(
+    (await post(`/api/comments/${id}/helpful`, {}, asker)).status,
+    400,
+  );
+  const helped = await post(`/api/comments/${id}/helpful`, {}, helper);
+  assert.deepEqual(await helped.json(), { helped: true, helpful: 1 });
+  const page = await (
+    await fetch(
+      new URL(`/api/entries/${entry}/discussion?view=questions`, base),
+    )
+  ).json();
+  const mine = page.items.find((c) => c.id === id);
+  assert.equal(mine.replies, 1);
+  assert.equal(mine.helpful, 1);
+  const replies = await (
+    await fetch(new URL(`/api/comments/${id}/replies`, base))
+  ).json();
+  assert.equal(replies.items[0].body, "West, mostly.");
+  const { document } = await documentAt(`/entries/${entry}`);
+  assert.match(document.querySelector("#why").textContent, /responses? from/);
+  assert.equal(
+    (
+      await post(
+        `/api/entries/${entry}/comments`,
+        { kind: "supports", body: "Evidence", explanationId: "sample-99" },
+        helper,
+      )
+    ).status,
+    400,
   );
 });
