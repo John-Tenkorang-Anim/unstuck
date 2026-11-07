@@ -6,13 +6,18 @@ import {
   BookOpen,
   MessageCircleQuestion,
   Search,
+  Users,
 } from "lucide-react";
 import { JoinButton } from "@/components/community-actions";
 import { AskBar, Library, QuestionList } from "@/components/question-list";
 import { ReportButton } from "@/components/report-button";
 import { currentAccount } from "@/lib/auth.server";
-import { isQuestion, spectralClass } from "@/lib/communities";
-import { communityBySlug, communityStats } from "@/lib/communities.server";
+import { isQuestion, platformRules, spectralClass } from "@/lib/communities";
+import {
+  communityBySlug,
+  communityStats,
+  listMembers,
+} from "@/lib/communities.server";
 import { hasDatabase } from "@/lib/db.server";
 import {
   communityPool,
@@ -51,7 +56,11 @@ export default async function CommunityPage({
   if (!community) notFound();
   // Moderators' links use the id; everyone else sees the readable address.
   if (community.slug !== slug) redirect(`/communities/${community.slug}`);
-  const tab = query.tab === "library" ? "library" : "questions";
+  const tab =
+    query.tab === "library" || query.tab === "members"
+      ? query.tab
+      : "questions";
+  const memberPage = Math.max(1, Number(query.page) || 1);
   const show: Show =
     query.show === "all" || query.show === "answered" ? query.show : "open";
   const q = typeof query.q === "string" ? query.q.trim() : "";
@@ -60,6 +69,8 @@ export default async function CommunityPage({
     questionItems({ communities: [slug], show, q }),
     tab === "library" ? communityPool(slug) : Promise.resolve([]),
   ]);
+  const people =
+    tab === "members" ? await listMembers(slug, memberPage) : undefined;
   const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
   const library = pool.filter(
     (e) =>
@@ -118,8 +129,7 @@ export default async function CommunityPage({
         </div>
         <div className="community-head-actions">
           <JoinButton
-            slug={slug}
-            name={community.name}
+            community={community}
             joined={stats.joined}
             members={stats.members}
             enabled={hasDatabase()}
@@ -159,23 +169,32 @@ export default async function CommunityPage({
           <BookOpen size={16} aria-hidden="true" /> Library
           <span>{number(stats.library)}</span>
         </Link>
-        <form className="community-search" action={base}>
-          {tab === "library" && (
-            <input type="hidden" name="tab" value="library" />
-          )}
-          <Search size={15} aria-hidden="true" />
-          <input
-            type="search"
-            name="q"
-            defaultValue={q}
-            aria-label={
-              tab === "library" ? "Search the library" : "Search questions"
-            }
-            placeholder={
-              tab === "library" ? "Search the library" : "Search questions"
-            }
-          />
-        </form>
+        <Link
+          href={`${base}?tab=members`}
+          aria-current={tab === "members" ? "page" : undefined}
+        >
+          <Users size={16} aria-hidden="true" /> Members
+          <span>{number(stats.members)}</span>
+        </Link>
+        {tab !== "members" && (
+          <form className="community-search" action={base}>
+            {tab === "library" && (
+              <input type="hidden" name="tab" value="library" />
+            )}
+            <Search size={15} aria-hidden="true" />
+            <input
+              type="search"
+              name="q"
+              defaultValue={q}
+              aria-label={
+                tab === "library" ? "Search the library" : "Search questions"
+              }
+              placeholder={
+                tab === "library" ? "Search the library" : "Search questions"
+              }
+            />
+          </form>
+        )}
       </nav>
 
       {tab === "questions" ? (
@@ -209,6 +228,68 @@ export default async function CommunityPage({
               <p>Ask the first one with the box above.</p>
             </div>
           )}
+        </section>
+      ) : tab === "members" && people ? (
+        <section className="members" aria-label="Members">
+          <aside className="members-rules" aria-labelledby="rules-title">
+            <h2 id="rules-title">What members agree to</h2>
+            <ol>
+              {community.rules.map((rule) => (
+                <li key={rule}>{rule}</li>
+              ))}
+            </ol>
+            <p>Across Unstuck: {platformRules.join(" ")}</p>
+          </aside>
+          <div>
+            {people.items.length ? (
+              <ul className="member-list">
+                {people.items.map((m) => (
+                  <li key={m.name + m.joined} className="member">
+                    <span className="member-initial" aria-hidden="true">
+                      {m.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <div>
+                      <p className="member-name">
+                        <strong>{m.name}</strong>
+                        {m.role && <span>{m.role}</span>}
+                        <time dateTime={m.joined}>
+                          Joined{" "}
+                          {new Date(m.joined).toLocaleDateString("en", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </time>
+                      </p>
+                      {m.intro && <p className="member-intro">{m.intro}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="empty-state">
+                <h3>No members yet.</h3>
+                <p>Be the first to join, and introduce yourself.</p>
+              </div>
+            )}
+            {people.pages > 1 && (
+              <nav className="you-pages" aria-label="Pages">
+                {memberPage > 1 && (
+                  <Link href={`${base}?tab=members&page=${memberPage - 1}`}>
+                    Previous
+                  </Link>
+                )}
+                <span>
+                  Page {memberPage} of {people.pages}
+                </span>
+                {memberPage < people.pages && (
+                  <Link href={`${base}?tab=members&page=${memberPage + 1}`}>
+                    Next
+                  </Link>
+                )}
+              </nav>
+            )}
+          </div>
         </section>
       ) : library.length ? (
         <Library entries={library} />

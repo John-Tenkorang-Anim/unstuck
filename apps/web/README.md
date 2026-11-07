@@ -67,8 +67,10 @@ npm run start -- --port 3100
   only when someone asks for it, and `?discuss=1` keeps that open in a link.
   On phones the discussion is a full-screen sheet.
 - Open communities at `/communities`. Anyone can start, join, read and post
-  in one. Each community has its own questions and a library of notes shelved
-  by outcome.
+  in one. Each community has its own questions, a library of notes shelved by
+  outcome, and a members list. Joining opens a dialog with what members get
+  and the community's rules. People agree to the rules and can introduce
+  themselves. Founders write the rules when they create a community.
 - When posting, people choose where it appears: everyone, one or more
   communities, or both. Community-only posts stay out of the public feed and
   search.

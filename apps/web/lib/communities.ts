@@ -6,6 +6,8 @@ export interface Community {
   name: string;
   about: string;
   topic: Topic;
+  /** What members agree to when they join. */
+  rules: string[];
   /** Sample communities ship with the app; the rest are created by people. */
   sample?: boolean;
   id?: string;
@@ -27,6 +29,11 @@ export const sampleCommunities: Community[] = [
     about:
       "Small farms and kitchen gardens: storage, soil, water, pests and what the weather did this year.",
     topic: "Food & farming",
+    rules: [
+      "Say where you farm and what the weather was doing.",
+      "Share what you measured, even roughly.",
+      "Name products only when they mattered to the result.",
+    ],
     sample: true,
   },
   {
@@ -35,6 +42,11 @@ export const sampleCommunities: Community[] = [
     about:
       "Furniture, plumbing, heat and the repairs you would rather do yourself before calling someone.",
     topic: "Making & fixing",
+    rules: [
+      "Photos of the problem help more than descriptions.",
+      "Say when a repair needs a professional, such as gas or mains wiring.",
+      "Report back on whether a fix held.",
+    ],
     sample: true,
   },
   {
@@ -43,6 +55,11 @@ export const sampleCommunities: Community[] = [
     about:
       "Bugs that only appear in production, builds that fail in CI, and the fixes that held.",
     topic: "Software",
+    rules: [
+      "Include versions and the exact error.",
+      "Remove secrets and customer data from logs before posting.",
+      "Say what you already ruled out.",
+    ],
     sample: true,
   },
   {
@@ -51,6 +68,11 @@ export const sampleCommunities: Community[] = [
     about:
       "Homework and lab work, shown step by step. Hints first, so you still learn it yourself.",
     topic: "Research",
+    rules: [
+      "Show your working, not just the answer you got.",
+      "Give hints first. Full solutions only if the asker says it isn’t graded.",
+      "Be kind. Everyone here is learning.",
+    ],
     sample: true,
   },
   {
@@ -59,6 +81,11 @@ export const sampleCommunities: Community[] = [
     about:
       "Documented failures in structures and machines, and what designers changed afterwards.",
     topic: "Making & fixing",
+    rules: [
+      "Cite sources for historical cases.",
+      "Separate what is known from what is your interpretation.",
+      "No blame aimed at named individuals.",
+    ],
     sample: true,
   },
   {
@@ -67,6 +94,11 @@ export const sampleCommunities: Community[] = [
     about:
       "Teachers and students testing ideas in real classrooms, including the results that showed nothing.",
     topic: "Research",
+    rules: [
+      "Never post students’ names, faces or identifiable work.",
+      "Describe your method and sample size.",
+      "Null results are welcome here.",
+    ],
     sample: true,
   },
 ];
@@ -93,4 +125,17 @@ export function spectralClass(slug: string) {
   let hash = 0;
   for (const char of slug) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   return spectralClasses[hash % spectralClasses.length];
+}
+
+/** Members' shared promises, on top of each community's own rules. */
+export const platformRules = [
+  "Keep people private: no names, faces or contact details without consent.",
+  "Share experience, not professional advice.",
+  "Disagree with ideas, not people.",
+];
+export interface Member {
+  name: string;
+  role: string;
+  intro: string;
+  joined: string;
 }

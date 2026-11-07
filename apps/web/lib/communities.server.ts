@@ -7,6 +7,7 @@ import {
   slugify,
   type Community,
   type CommunityStats,
+  type Member,
 } from "./communities";
 import { clean, newId, StoreError, type Account } from "./store.server";
 
@@ -15,11 +16,17 @@ type Row = {
   id: string;
   slug: string;
   owner: string;
-  data: { name: string; about: string; topic: Community["topic"] };
+  data: {
+    name: string;
+    about: string;
+    topic: Community["topic"];
+    rules?: string[];
+  };
   hidden: boolean;
 };
 const fromRow = (r: Row): Community => ({
   ...r.data,
+  rules: r.data.rules ?? [],
   slug: r.slug,
   id: r.id,
   owner: r.owner,
@@ -142,10 +149,19 @@ export async function communityStats(
 /** Start an open community. Its creator joins it automatically. */
 export async function createCommunity(
   account: Account,
-  input: { name?: unknown; about?: unknown; topic?: unknown },
+  input: { name?: unknown; about?: unknown; topic?: unknown; rules?: unknown },
 ) {
   const name = clean.text(input.name, 3, 60, "The name");
   const about = clean.text(input.about, 10, 300, "The description");
+  const rawRules = Array.isArray(input.rules)
+    ? input.rules
+    : typeof input.rules === "string"
+      ? input.rules.split("\n")
+      : [];
+  const rules = rawRules.map((rule) => String(rule).trim()).filter(Boolean);
+  if (!rules.length || rules.length > 5)
+    throw new StoreError("Write between one and five rules for members.");
+  rules.forEach((rule) => clean.text(rule, 3, 200, "Each rule"));
   const topic = topics.find((t) => t === input.topic);
   if (!topic) throw new StoreError("Choose the field it belongs to.");
   const slug = slugify(name);
@@ -157,35 +173,69 @@ export async function createCommunity(
   await transaction(async (client) => {
     const inserted = await client.query(
       "INSERT INTO web.communities (id, slug, owner, data) VALUES ($1,$2,$3,$4) ON CONFLICT (slug) DO NOTHING",
-      [id, slug, account.id, { name, about, topic }],
+      [id, slug, account.id, { name, about, topic, rules }],
     );
     if (!inserted.rowCount)
       throw new StoreError("A community with that name already exists.");
     await client.query(
-      "INSERT INTO web.community_members (community, account_id) VALUES ($1,$2)",
+      "INSERT INTO web.community_members (community, account_id, agreed) VALUES ($1,$2,now())",
       [slug, account.id],
     );
   });
   return slug;
 }
 
-/** Join or leave. Communities are open, so joining needs no approval. */
+/**
+ * Join or leave. Communities are open, so nobody approves a member, but
+ * joining means agreeing to the community's rules. An introduction is optional.
+ */
 export async function setMembership(
   account: Account,
   slug: string,
   join: boolean,
+  input: { agree?: unknown; intro?: unknown } = {},
 ) {
   if (!(await communityBySlug(slug)))
     throw new StoreError("That community doesn’t exist.", 404);
-  await query(
-    join
-      ? "INSERT INTO web.community_members (community, account_id) VALUES ($1,$2) ON CONFLICT DO NOTHING"
-      : "DELETE FROM web.community_members WHERE community = $1 AND account_id = $2",
-    [slug, account.id],
-  );
+  if (join) {
+    if (input.agree !== true)
+      throw new StoreError("Agree to the community’s rules to join.");
+    const intro =
+      typeof input.intro === "string" ? input.intro.trim().slice(0, 280) : "";
+    await query(
+      `INSERT INTO web.community_members (community, account_id, intro, agreed) VALUES ($1,$2,$3,now())
+       ON CONFLICT (community, account_id) DO UPDATE SET intro = EXCLUDED.intro, agreed = now()`,
+      [slug, account.id, intro],
+    );
+  } else
+    await query(
+      "DELETE FROM web.community_members WHERE community = $1 AND account_id = $2",
+      [slug, account.id],
+    );
   const [{ n }] = await query<{ n: number }>(
     "SELECT count(*)::int AS n FROM web.community_members WHERE community = $1",
     [slug],
   );
   return { joined: join, members: n };
+}
+
+/** Newest members first, with their introductions. Paged for large communities. */
+export async function listMembers(slug: string, page = 1, size = 50) {
+  if (!hasDatabase()) return { items: [] as Member[], pages: 1 };
+  const [rows, [{ n }]] = await Promise.all([
+    query<{ name: string; role: string; intro: string; joined: Date }>(
+      `SELECT a.name, a.role, m.intro, m.joined FROM web.community_members m
+       JOIN web.accounts a ON a.id = m.account_id AND NOT a.suspended
+       WHERE m.community = $1 ORDER BY m.joined DESC LIMIT $2 OFFSET $3`,
+      [slug, size, (page - 1) * size],
+    ),
+    query<{ n: number }>(
+      "SELECT count(*)::int AS n FROM web.community_members WHERE community = $1",
+      [slug],
+    ),
+  ]);
+  return {
+    items: rows.map((r) => ({ ...r, joined: r.joined.toISOString() })),
+    pages: Math.max(1, Math.ceil(n / size)),
+  };
 }

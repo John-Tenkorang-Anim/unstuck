@@ -194,6 +194,10 @@ CREATE TABLE IF NOT EXISTS web.community_members (
   PRIMARY KEY (community, account_id)
 );
 CREATE INDEX IF NOT EXISTS community_members_account ON web.community_members (account_id, joined DESC);
+-- Joining is deliberate: members agree to the community's rules and may introduce themselves.
+ALTER TABLE web.community_members ADD COLUMN IF NOT EXISTS intro text NOT NULL DEFAULT '';
+ALTER TABLE web.community_members ADD COLUMN IF NOT EXISTS agreed timestamptz;
+CREATE INDEX IF NOT EXISTS community_members_recent ON web.community_members (community, joined DESC);
 CREATE INDEX IF NOT EXISTS entries_communities ON web.entries USING gin ((data->'communities'));
 ALTER TABLE web.reports DROP CONSTRAINT IF EXISTS reports_target_type_check;
 ALTER TABLE web.reports ADD CONSTRAINT reports_target_type_check

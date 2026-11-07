@@ -134,6 +134,10 @@ A popular field note can collect 100,000 responses, so nothing renders them all.
 
 ## Communities and where posts appear (decided outside the spec)
 
+- **Joining is deliberate, not gated:** nobody approves members. Joining
+  requires agreeing to the community's rules, and the server refuses a join
+  without that agreement. Members can add an introduction of up to 280
+  characters, shown on the members list.
 - **Open by design:** communities can't be private. Anyone can read, join and
   post. Sample communities live in code. Communities people create are kept in
   `web.communities`, and memberships in `web.community_members`, keyed by

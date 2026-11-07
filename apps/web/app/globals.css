@@ -7721,3 +7721,259 @@ body:has(.entry-layout.is-discussing) .site-footer {
 .home-door:nth-child(even):hover {
   background: var(--accent-wash);
 }
+
+/* Joining a community -------------------------------------------------------- */
+.join-dialog {
+  top: max(24px, 6vh);
+  display: flex;
+  flex-direction: column;
+  width: min(580px, calc(100vw - 24px));
+  max-height: calc(100dvh - max(48px, 12vh));
+  background: var(--bg);
+}
+.join-dialog-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+  padding: 22px 22px 16px;
+  border-bottom: 0.5px solid var(--rule);
+}
+.join-dialog-head h2 {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.join-dialog-head p {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.join-dialog-body {
+  display: grid;
+  gap: 18px;
+  overflow-y: auto;
+  padding: 18px 22px 0;
+}
+.join-dialog-body h3 {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.join-perks {
+  display: grid;
+  gap: 8px;
+}
+.join-perks li {
+  display: flex;
+  gap: 10px;
+  font-size: 14.5px;
+  line-height: 1.4;
+}
+.join-perks svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent-solid);
+}
+.join-rules {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px 14px 34px;
+  border-radius: var(--r-m);
+  background: var(--surface);
+  font-size: 14.5px;
+  line-height: 1.4;
+  list-style: decimal;
+}
+.join-rules li::marker {
+  color: var(--brand);
+  font-weight: 700;
+}
+.join-platform {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+.join-who-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.join-who-fields label,
+.join-intro {
+  display: grid;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.join-intro small {
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.join-who-fields input,
+.join-intro textarea {
+  min-width: 0;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: var(--fill);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  resize: vertical;
+}
+.join-agree {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-s);
+  background: var(--brand-wash);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.join-agree input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand-solid);
+}
+.join-dialog-foot {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 14px 22px 18px;
+  background: var(--bg);
+  border-top: 0.5px solid var(--rule);
+}
+.join-dialog-body .join-dialog-foot {
+  margin-inline: -22px;
+}
+.join-dialog-foot .join-count {
+  margin-right: auto;
+}
+.join-dialog-foot .field-error {
+  flex-basis: 100%;
+}
+.join-leave {
+  color: var(--failed-text);
+}
+.join-next {
+  display: grid;
+  gap: 8px;
+  padding: 18px 22px 22px;
+}
+.join-next a {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: var(--r-m);
+  background: var(--surface);
+  transition: background-color 0.2s;
+}
+.join-next a:hover {
+  background: var(--brand-wash);
+}
+.join-next strong {
+  color: var(--brand);
+}
+.join-next span {
+  font-size: 13.5px;
+  color: var(--ink-3);
+}
+
+/* Members ------------------------------------------------------------------ */
+.members {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  margin-top: 24px;
+}
+.members-rules {
+  position: sticky;
+  top: calc(var(--bar) + 20px);
+  align-self: start;
+  padding: 18px 20px;
+  border-radius: var(--r-l);
+  background: var(--surface);
+}
+.members-rules h2 {
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.members-rules ol {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  list-style: decimal;
+}
+.members-rules p {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.member-list {
+  border-top: 0.5px solid var(--rule);
+}
+.member {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 0.5px solid var(--rule);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
+.member-initial {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-weight: 700;
+}
+.member-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  font-size: 15px;
+}
+.member-name span,
+.member-name time {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.member-intro {
+  margin-top: 4px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+@media (max-width: 760px) {
+  .members {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .members-rules {
+    position: static;
+  }
+  .join-who-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

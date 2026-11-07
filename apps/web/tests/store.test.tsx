@@ -593,6 +593,7 @@ describe("communities", () => {
       name: "Fish smokers of Elmina",
       about: "Smoking fish over wood, and what made it spoil.",
       topic: "Food & farming",
+      rules: "Say which wood you use.\nNo selling.",
     });
     expect(slug).toBe("fish-smokers-of-elmina");
     await expect(
@@ -600,17 +601,30 @@ describe("communities", () => {
         name: "Smallholder growers",
         about: "Trying to take a sample's name.",
         topic: "Food & farming",
+        rules: ["Be kind."],
       }),
     ).rejects.toThrow(/already exists/);
     const reader = await make("Reader");
-    expect(await c.setMembership(reader, slug, true)).toEqual({
+    // Joining means agreeing to the rules; an introduction is optional.
+    await expect(c.setMembership(reader, slug, true)).rejects.toThrow(
+      /Agree to the community/,
+    );
+    expect(
+      await c.setMembership(reader, slug, true, {
+        agree: true,
+        intro: "I smoke tilapia for the Saturday market.",
+      }),
+    ).toEqual({ joined: true, members: 2 });
+    expect(await c.setMembership(reader, slug, true, { agree: true })).toEqual({
       joined: true,
       members: 2,
     });
-    expect(await c.setMembership(reader, slug, true)).toEqual({
-      joined: true,
-      members: 2,
-    });
+    const members = await c.listMembers(slug);
+    expect(members.items.map((m) => m.name)).toEqual(["Reader", "Founder"]);
+    expect((await c.communityBySlug(slug))?.rules).toEqual([
+      "Say which wood you use.",
+      "No selling.",
+    ]);
     const form = new FormData();
     form.set(
       "entry",

@@ -123,8 +123,7 @@ export default async function Communities({
                     {c.name.slice(0, 1)}
                   </span>
                   <JoinButton
-                    slug={c.slug}
-                    name={c.name}
+                    community={c}
                     joined={s.joined}
                     members={s.members}
                     enabled={hasDatabase()}

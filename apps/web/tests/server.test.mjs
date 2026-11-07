@@ -627,6 +627,7 @@ test("people start and join communities, and ask a question there only", async (
       name: "Solar dryers",
       about: "Drying fruit and fish with sunlight, and what spoiled.",
       topic: "Food & farming",
+      rules: ["Say what you dried and for how long."],
     },
     founder,
   );
@@ -639,14 +640,21 @@ test("people start and join communities, and ask a question there only", async (
       name: "Solar Dryers!",
       about: "A second one with the same name.",
       topic: "Food & farming",
+      rules: ["Be kind."],
     },
     founder,
   );
   assert.equal(again.status, 400);
   const member = cookieOf(await post("/api/account", { name: "Yaw" }));
-  const joined = await post(
+  const refused = await post(
     `/api/communities/${slug}/membership`,
     { join: true },
+    member,
+  );
+  assert.equal(refused.status, 400);
+  const joined = await post(
+    `/api/communities/${slug}/membership`,
+    { join: true, agree: true, intro: "I dry mangoes in Kintampo." },
     member,
   );
   assert.deepEqual(await joined.json(), { joined: true, members: 2 });
@@ -683,6 +691,17 @@ test("people start and join communities, and ask a question there only", async (
   assert.equal(posted.status, 201);
   const { id } = await posted.json();
 
+  const { document: people } = await documentAt(
+    `/communities/${slug}?tab=members`,
+  );
+  assert.match(
+    people.querySelector(".member-list").textContent,
+    /I dry mangoes in Kintampo/,
+  );
+  assert.match(
+    people.querySelector(".members-rules").textContent,
+    /Say what you dried/,
+  );
   const { document: community } = await documentAt(`/communities/${slug}`);
   assert.match(community.querySelector(".q-list").textContent, /Mango slices/);
   const { document: everyone } = await documentAt("/questions?show=all");
