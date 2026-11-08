@@ -1,4 +1,5 @@
 "use client";
+import { MathInput } from "./math-input";
 import dynamic from "next/dynamic";
 import { useMemo, useState, type MouseEvent } from "react";
 import {
@@ -360,11 +361,11 @@ export function SessionWorkspace({
       <div className="session-brief">
         <p>
           <strong className="tint-brand">What went wrong</strong>{" "}
-          {session.wentWrong}
+          <MathText text={session.wentWrong} />
         </p>
         <p>
           <strong className="tint-brand">What they’re asking</strong>{" "}
-          {session.ask}
+          <MathText text={session.ask} />
         </p>
       </div>
       <div className="session-grid">
@@ -641,7 +642,7 @@ export function SessionWorkspace({
             <label className="sr-only" htmlFor="note-body">
               Your note
             </label>
-            <textarea
+            <MathInput
               id="note-body"
               rows={3}
               placeholder={
@@ -650,9 +651,7 @@ export function SessionWorkspace({
                   : "Be specific: what you see, why it matters, what to try."
               }
               value={draft.body}
-              onChange={(event) =>
-                setDraft({ ...draft, body: event.target.value })
-              }
+              onValue={(body) => setDraft({ ...draft, body })}
             />
             {!viewer && (
               <div className="form-row post-as">

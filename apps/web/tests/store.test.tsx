@@ -576,6 +576,61 @@ describe("discussion at scale", () => {
   });
 });
 
+describe("replying to a reply", () => {
+  it("threads a reply under the response, names who it answers, and tells them", async () => {
+    const s = await store();
+    const d = await import("@/lib/discussion.server");
+    const make = async (name: string): Promise<Account> => ({
+      ...(await s.insertAccount(name, "")).account,
+      moderator: false,
+      suspended: false,
+      created: new Date().toISOString(),
+    });
+    const [kofi, esi, yaw] = await Promise.all(
+      ["Kofi", "Esi", "Yaw"].map(make),
+    );
+    const entry = "maize-yellowing-after-first-rains";
+    const top = await d.addComment(kofi, entry, {
+      kind: "question",
+      body: "Did the yellowing start after the heavy rain?",
+    });
+    const first = await d.addComment(esi, entry, {
+      kind: "comment",
+      body: "Mine did. Waterlogging starves roots of nitrogen.",
+      parentId: top,
+    });
+    await d.addComment(yaw, entry, {
+      kind: "comment",
+      body: "How long was the water standing?",
+      parentId: top,
+      replyTo: first,
+    });
+    const replies = await d.listReplies(top);
+    expect(replies.map((r) => [r.author, r.replyToName ?? null])).toEqual([
+      ["Esi", null],
+      ["Yaw", "Esi"],
+    ]);
+    // A reply can only answer something in the same thread.
+    const other = await d.addComment(kofi, entry, {
+      kind: "comment",
+      body: "Another thread entirely.",
+    });
+    await expect(
+      d.addComment(yaw, entry, {
+        kind: "comment",
+        body: "Wrong thread",
+        parentId: top,
+        replyTo: other,
+      }),
+    ).rejects.toThrow(/reply target/);
+    const forEsi = await d.repliesToMe(esi);
+    expect(forEsi).toHaveLength(1);
+    expect(forEsi[0]).toMatchObject({ author: "Yaw", fresh: true });
+    expect((await d.repliesToMe(esi))[0].fresh).toBe(false);
+    expect((await d.repliesToMe(kofi)).map((r) => r.author)).toEqual(["Esi"]);
+  });
+});
+
 describe("communities", () => {
   it("creates open communities, counts members and keeps community-only posts out of the public feed", async () => {
     const s = await store();

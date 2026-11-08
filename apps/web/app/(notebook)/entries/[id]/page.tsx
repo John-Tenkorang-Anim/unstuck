@@ -16,6 +16,7 @@ import { sampleSessions } from "@/lib/sessions";
 import { ReportButton } from "@/components/report-button";
 import { Discussion } from "@/components/discussion";
 import { EntryLayout } from "@/components/entry-layout";
+import { MathText } from "@/components/work-blocks";
 import { listCommunities } from "@/lib/communities.server";
 import { sampleCommunities, type Community } from "@/lib/communities";
 import { currentAccount, publicAccount } from "@/lib/auth.server";
@@ -252,7 +253,9 @@ export default async function EntryPage({
                   </div>
                   <div>
                     <h2>{section.title}</h2>
-                    <p>{section.body}</p>
+                    <p>
+                      <MathText text={section.body} />
+                    </p>
                   </div>
                 </section>
               ))}

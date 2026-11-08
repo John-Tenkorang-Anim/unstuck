@@ -165,6 +165,9 @@ CREATE INDEX IF NOT EXISTS comments_explanation ON web.comments (explanation_id,
 CREATE INDEX IF NOT EXISTS comments_parent ON web.comments (parent_id, created) WHERE parent_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS comments_owner ON web.comments (owner, created DESC);
 CREATE INDEX IF NOT EXISTS comments_search ON web.comments USING gin (to_tsvector('simple', body));
+-- Replies can answer a specific reply in the thread, like on YouTube or X.
+ALTER TABLE web.comments ADD COLUMN IF NOT EXISTS reply_to uuid;
+CREATE INDEX IF NOT EXISTS comments_reply_to ON web.comments (reply_to, created DESC) WHERE reply_to IS NOT NULL;
 CREATE TABLE IF NOT EXISTS web.comment_helpful (
   comment_id uuid NOT NULL REFERENCES web.comments(id) ON DELETE CASCADE,
   account_id uuid NOT NULL REFERENCES web.accounts(id),

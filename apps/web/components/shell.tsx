@@ -130,9 +130,9 @@ export function Shell({ children }: { children: ReactNode }) {
       active: path === "/discover" || path.startsWith("/entries"),
     },
     {
-      label: "Questions",
-      href: "/questions",
-      active: path === "/questions",
+      label: "Search & ask",
+      href: "/search",
+      active: path === "/search",
     },
     {
       label: "Communities",
@@ -145,7 +145,6 @@ export function Shell({ children }: { children: ReactNode }) {
       active: path.startsWith("/sessions"),
     },
     { label: "Notebook", href: "/notebook", active: path === "/notebook" },
-    { label: "Search", href: "/search", active: path === "/search" },
   ];
   const links = navigation.map((item) => (
     <Link

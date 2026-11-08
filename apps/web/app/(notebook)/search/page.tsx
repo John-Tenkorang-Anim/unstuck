@@ -12,6 +12,13 @@ import {
   type ResultType,
 } from "@/lib/search";
 import { fieldBySlug, fields } from "@/lib/taxonomy";
+import { QuestionList } from "@/components/question-list";
+import { currentAccount } from "@/lib/auth.server";
+import type { Community } from "@/lib/communities";
+import { joinedSlugs, listCommunities } from "@/lib/communities.server";
+import { hasDatabase } from "@/lib/db.server";
+import { responseCounts } from "@/lib/discussion.server";
+import { questionItems, type Show } from "@/lib/questions.server";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
@@ -20,7 +27,9 @@ export async function generateMetadata({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const q = (await searchParams).q;
-  return { title: typeof q === "string" && q ? `${q} · Search` : "Search" };
+  return {
+    title: typeof q === "string" && q ? `${q} · Search` : "Search and ask",
+  };
 }
 const one = (value: string | string[] | undefined) =>
   typeof value === "string" ? value : "";
@@ -39,24 +48,53 @@ export default async function SearchPage({
 }) {
   const params = await searchParams;
   const q = one(params.q).slice(0, 200);
+  const exact = one(params.exact) === "1";
   const type = (resultTypes.find((t) => t.key === one(params.type))?.key ??
     "all") as ResultType;
   const field = fieldBySlug(one(params.field));
-  const { docs, mode } = await getCorpus();
-  const { results, counts, fieldCounts } = search(docs, q, {
+  const show: Show =
+    params.show === "all" || params.show === "answered"
+      ? (params.show as Show)
+      : "open";
+  const where = one(params.where) === "mine" ? "mine" : "everyone";
+  const page = Math.max(1, Number(one(params.page)) || 1);
+  const account = hasDatabase() ? await currentAccount() : undefined;
+  const [{ docs, mode }, communities, mine] = await Promise.all([
+    getCorpus(),
+    listCommunities().catch(() => []),
+    joinedSlugs(account),
+  ]);
+  const ranked = search(docs, exact ? `"${q}"` : q, {
     type,
     field: field?.name,
   });
+  // If a corrected spelling found nothing, fall back to the words as typed.
+  const { results, corrected } =
+    ranked.results.length || !q ? ranked : { ...ranked, corrected: null };
   const link = (change: Record<string, string>) => {
     const next = new URLSearchParams({
       ...(q ? { q } : {}),
       ...(type !== "all" ? { type } : {}),
       ...(field ? { field: field.slug } : {}),
+      ...(type === "questions" && show !== "open" ? { show } : {}),
+      ...(type === "questions" && where !== "everyone" ? { where } : {}),
       ...change,
     });
     for (const [key, value] of [...next]) if (!value) next.delete(key);
     return `/search${next.size ? `?${next}` : ""}`;
   };
+  const questionDocs = results.filter((r) => r.doc.types.has("questions"));
+  const answers = await responseCounts(questionDocs.map((r) => r.doc.id));
+  // Suggest the communities where similar problems were posted, then yours.
+  const suggested = [
+    ...new Set([
+      ...(q ? results.slice(0, 6).flatMap((r) => r.doc.communities ?? []) : []),
+      ...mine,
+    ]),
+  ]
+    .map((slug) => communities.find((c) => c.slug === slug))
+    .filter((c): c is Community => !!c)
+    .slice(0, 4);
   const summary = summarize(results);
   const moments = q
     ? results
@@ -67,37 +105,70 @@ export default async function SearchPage({
         )
         .slice(0, 6)
     : [];
+  const landing = !q && type === "all" && !field;
+  const waiting = landing
+    ? await questionItems({ show: "open", size: 6 }).catch(() => undefined)
+    : undefined;
+  const questions =
+    type === "questions"
+      ? await questionItems({
+          communities: where === "mine" ? mine : undefined,
+          show,
+          field: field?.name,
+          q,
+          page,
+        })
+      : undefined;
   return (
     <div className="serp frame">
+      {landing && (
+        <header className="serp-hero">
+          <h1>
+            Has anyone been <span className="tint-brand">stuck on this?</span>
+          </h1>
+          <p>
+            Search what people tried and how it went. If nobody has, ask, and
+            the people who’ve been there will help.
+          </p>
+        </header>
+      )}
       <form className="serp-bar" action="/search" role="search">
         <Search size={20} aria-hidden="true" />
         <input
           type="search"
           name="q"
           defaultValue={q}
-          aria-label="Search everything"
-          placeholder="What are you trying to figure out?"
+          aria-label="Search, or describe your problem"
+          placeholder="Describe your problem, or search for it"
           autoComplete="off"
         />
         {type !== "all" && <input type="hidden" name="type" value={type} />}
         {field && <input type="hidden" name="field" value={field.slug} />}
+        <button
+          className="button button-outline serp-ask"
+          formAction="/new"
+          name="kind"
+          value="problem"
+          title="Post it as a question"
+        >
+          Ask
+        </button>
         <button className="button button-dark">Search</button>
       </form>
       <nav className="serp-tabs" aria-label="Result types">
         {resultTypes.map((t) => (
           <Link
             key={t.key}
-            href={link({ type: t.key === "all" ? "" : t.key })}
+            href={link({ type: t.key === "all" ? "" : t.key, page: "" })}
             aria-current={type === t.key ? "page" : undefined}
           >
             {t.label}
-            <span aria-hidden="true">{counts[t.key]}</span>
           </Link>
         ))}
       </nav>
       <div className="serp-fields" aria-label="Fields">
         <Link
-          href={link({ field: "" })}
+          href={link({ field: "", page: "" })}
           aria-current={!field ? "true" : undefined}
         >
           Every field
@@ -105,11 +176,10 @@ export default async function SearchPage({
         {fields.map((f) => (
           <Link
             key={f.slug}
-            href={link({ field: f.slug })}
+            href={link({ field: f.slug, page: "" })}
             aria-current={field?.slug === f.slug ? "true" : undefined}
           >
             {f.name}
-            <span aria-hidden="true">{fieldCounts.get(f.name) ?? 0}</span>
           </Link>
         ))}
       </div>
@@ -120,14 +190,112 @@ export default async function SearchPage({
           credited.
         </p>
       )}
-      {!q && type === "all" && !field ? (
-        <Directory counts={fieldCounts} />
+      {q && corrected && !exact && (
+        <p className="serp-corrected">
+          Showing results for <b>{corrected}</b>.{" "}
+          <Link href={link({ exact: "1" })}>Search only for “{q}”</Link>
+        </p>
+      )}
+
+      {type === "questions" && questions ? (
+        <div className="serp-grid">
+          <div className="serp-main">
+            <nav className="serp-filters" aria-label="Show">
+              {(
+                [
+                  ["open", "Waiting for an answer"],
+                  ["answered", "Answered"],
+                  ["all", "Every question"],
+                ] as const
+              ).map(([value, label]) => (
+                <Link
+                  key={value}
+                  href={link({ show: value === "open" ? "" : value, page: "" })}
+                  aria-current={show === value ? "true" : undefined}
+                >
+                  {label}
+                </Link>
+              ))}
+              <span className="serp-filters-gap" aria-hidden="true" />
+              <Link
+                href={link({ where: "", page: "" })}
+                aria-current={where === "everyone" ? "true" : undefined}
+              >
+                Everyone
+              </Link>
+              <Link
+                href={link({ where: "mine", page: "" })}
+                aria-current={where === "mine" ? "true" : undefined}
+              >
+                My communities
+              </Link>
+            </nav>
+            {where === "mine" && !mine.length ? (
+              <div className="empty-state">
+                <h3>You haven’t joined a community yet.</h3>
+                <p>Join one and its questions gather here.</p>
+                <Link className="button button-dark" href="/communities">
+                  Find a community
+                </Link>
+              </div>
+            ) : questions.items.length ? (
+              <QuestionList items={questions.items} />
+            ) : (
+              <div className="empty-state">
+                <h3>
+                  {show === "open"
+                    ? "Every question here has a response."
+                    : "No questions match."}
+                </h3>
+              </div>
+            )}
+            {questions.pages > 1 && (
+              <nav className="you-pages" aria-label="Pages">
+                {questions.page > 1 && (
+                  <Link href={link({ page: String(questions.page - 1) })}>
+                    Previous
+                  </Link>
+                )}
+                <span>
+                  Page {questions.page} of {questions.pages}
+                </span>
+                {questions.page < questions.pages && (
+                  <Link href={link({ page: String(questions.page + 1) })}>
+                    Next
+                  </Link>
+                )}
+              </nav>
+            )}
+          </div>
+          <aside className="serp-side">
+            <AskCard
+              q={q}
+              found={questions.items.length > 0}
+              suggested={suggested}
+            />
+          </aside>
+        </div>
+      ) : landing ? (
+        <div className="serp-landing">
+          {waiting && waiting.items.length > 0 && (
+            <section aria-labelledby="waiting-title">
+              <div className="feature-head">
+                <h2 id="waiting-title">Waiting for an answer</h2>
+                <Link className="text-link" href="/search?type=questions">
+                  All open questions <ArrowUpRight size={14} />
+                </Link>
+              </div>
+              <QuestionList items={waiting.items} />
+            </section>
+          )}
+          <Directory />
+        </div>
       ) : (
         <div className="serp-grid">
           <div className="serp-main">
             <h1 className="serp-count">
               {results.length
-                ? `${results.length} ${results.length === 1 ? "result" : "results"}${q ? ` for “${q}”` : ""}`
+                ? `${results.length} ${results.length === 1 ? "result" : "results"}${q ? ` for “${corrected && !exact ? corrected : q}”` : ""}`
                 : `Nothing found${q ? ` for “${q}”` : ""}`}
             </h1>
             {moments.length > 0 && (
@@ -162,100 +330,167 @@ export default async function SearchPage({
             {results.length ? (
               <ol className="serp-results">
                 {results.map((result) => (
-                  <ResultItem key={result.doc.id} result={result} />
+                  <ResultItem
+                    key={result.doc.id}
+                    result={result}
+                    responses={answers.get(result.doc.id)?.responses}
+                  />
                 ))}
               </ol>
             ) : (
               <div className="serp-empty">
-                <p>Try fewer words, another field, or one of these searches.</p>
+                <p>
+                  Try fewer or different words, or one of these searches. Or ask
+                  it, and people who’ve been there will see it.
+                </p>
                 <Suggest />
-                <Link className="button button-dark" href="/new?kind=problem">
-                  Ask it as a question
-                </Link>
               </div>
             )}
           </div>
-          {summary.total > 0 && (
-            <aside className="evidence" aria-labelledby="evidence-title">
-              <h2 id="evidence-title">What the attempts say</h2>
-              <p className="evidence-sub">
-                Counted from {summary.total}{" "}
-                {summary.total === 1 ? "matching entry" : "matching entries"}.
-              </p>
-              <div className="evidence-bar" aria-hidden="true">
-                {summary.outcomes.map((o) => (
-                  <span
-                    key={o.key}
-                    data-outcome={o.key}
-                    style={{ flexGrow: o.count }}
-                  />
-                ))}
-                {summary.open > 0 && (
-                  <span
-                    data-outcome="open"
-                    style={{ flexGrow: summary.open }}
-                  />
-                )}
-              </div>
-              <ul className="evidence-counts">
-                {summary.outcomes.map((o) => (
-                  <li key={o.key} data-outcome={o.key}>
-                    <OutcomeGlyph outcome={o.key} /> {o.label}
-                    <b>{o.count}</b>
-                  </li>
-                ))}
-                {summary.open > 0 && (
-                  <li data-outcome="open">
-                    <OutcomeGlyph outcome="open" /> No result yet
-                    <b>{summary.open}</b>
-                  </li>
-                )}
-              </ul>
-              {summary.breaks.length > 0 && (
-                <>
-                  <h3>Where it broke</h3>
-                  <ul className="evidence-list">
-                    {summary.breaks.map(({ moment, doc }) => (
-                      <li key={doc.id + moment.at}>
-                        <Link
-                          href={`${doc.href}?t=${Math.floor(moment.at)}#clip`}
-                        >
-                          <span className="moment-time">
-                            {clock(moment.at)}
-                          </span>
-                          {moment.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              {summary.explanations.length > 0 && (
-                <>
-                  <h3>Explanations on record</h3>
-                  <ul className="evidence-list">
-                    {summary.explanations.map((e) => (
-                      <li key={e.doc.id + e.label} data-state={e.state}>
-                        <Link href={`${e.doc.href}#why`}>
-                          <span className="evidence-state">
-                            <span className="evidence-dot" aria-hidden="true" />
-                            {e.state}
-                          </span>
-                          {e.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </aside>
-          )}
+          <aside className="serp-side">
+            <AskCard q={q} found={results.length > 0} suggested={suggested} />
+            {summary.total > 0 && <Evidence summary={summary} />}
+          </aside>
         </div>
       )}
     </div>
   );
 }
-function ResultItem({ result }: { result: Result }) {
+
+/**
+ * The second half of every search: if the answer isn't here, ask. The question
+ * keeps the words already typed and goes to the community most likely to know.
+ */
+function AskCard({
+  q,
+  found,
+  suggested,
+}: {
+  q: string;
+  found: boolean;
+  suggested: Community[];
+}) {
+  return (
+    <section className="ask-card" aria-labelledby="ask-card-title">
+      <h2 id="ask-card-title">
+        {!q
+          ? "Stuck on something yourself?"
+          : found
+            ? "Didn’t find your answer?"
+            : "Nobody has posted this yet."}
+      </h2>
+      <p>
+        Ask it. People who’ve been stuck on the same thing will see it and help.
+      </p>
+      <form action="/new">
+        <input type="hidden" name="kind" value="problem" />
+        <label className="sr-only" htmlFor="ask-card-q">
+          Your question
+        </label>
+        <textarea
+          id="ask-card-q"
+          name="q"
+          rows={2}
+          maxLength={160}
+          defaultValue={q}
+          placeholder="What are you stuck on?"
+        />
+        {suggested.length > 0 && (
+          <label className="ask-card-where">
+            <span>Ask in</span>
+            <select name="community" defaultValue={suggested[0].slug}>
+              {suggested.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+              <option value="">Everyone</option>
+            </select>
+          </label>
+        )}
+        <button className="button button-dark">Ask the question</button>
+      </form>
+    </section>
+  );
+}
+
+function Evidence({ summary }: { summary: ReturnType<typeof summarize> }) {
+  return (
+    <section className="evidence" aria-labelledby="evidence-title">
+      <h2 id="evidence-title">What the attempts say</h2>
+      <p className="evidence-sub">
+        Counted from {summary.total}{" "}
+        {summary.total === 1 ? "matching entry" : "matching entries"}.
+      </p>
+      <div className="evidence-bar" aria-hidden="true">
+        {summary.outcomes.map((o) => (
+          <span
+            key={o.key}
+            data-outcome={o.key}
+            style={{ flexGrow: o.count }}
+          />
+        ))}
+        {summary.open > 0 && (
+          <span data-outcome="open" style={{ flexGrow: summary.open }} />
+        )}
+      </div>
+      <ul className="evidence-counts">
+        {summary.outcomes.map((o) => (
+          <li key={o.key} data-outcome={o.key}>
+            <OutcomeGlyph outcome={o.key} /> {o.label}
+            <b>{o.count}</b>
+          </li>
+        ))}
+        {summary.open > 0 && (
+          <li data-outcome="open">
+            <OutcomeGlyph outcome="open" /> No result yet
+            <b>{summary.open}</b>
+          </li>
+        )}
+      </ul>
+      {summary.breaks.length > 0 && (
+        <>
+          <h3>Where it broke</h3>
+          <ul className="evidence-list">
+            {summary.breaks.map(({ moment, doc }) => (
+              <li key={doc.id + moment.at}>
+                <Link href={`${doc.href}?t=${Math.floor(moment.at)}#clip`}>
+                  <span className="moment-time">{clock(moment.at)}</span>
+                  {moment.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {summary.explanations.length > 0 && (
+        <>
+          <h3>Explanations on record</h3>
+          <ul className="evidence-list">
+            {summary.explanations.map((e) => (
+              <li key={e.doc.id + e.label} data-state={e.state}>
+                <Link href={`${e.doc.href}?discuss=1`}>
+                  <span className="evidence-state">
+                    <span className="evidence-dot" aria-hidden="true" />
+                    {e.state}
+                  </span>
+                  {e.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+function ResultItem({
+  result,
+  responses,
+}: {
+  result: Result;
+  responses?: number;
+}) {
   const { doc } = result;
   const outcome = doc.source === "entry" ? (doc.outcome ?? "open") : null;
   return (
@@ -292,9 +527,22 @@ function ResultItem({ result }: { result: Result }) {
           </ul>
         )}
         <p className="result-stats">
-          {doc.source === "entry"
-            ? `${doc.tried} tried · ${doc.helped} found it useful`
-            : `${doc.helped} notes in this session`}
+          {doc.types.has("questions") ? (
+            <>
+              <span className="result-open">
+                {responses
+                  ? `${responses} ${responses === 1 ? "response" : "responses"}`
+                  : "No answers yet"}
+              </span>
+              <Link href={`${doc.href}?discuss=1`}>
+                {responses ? "Join in" : "Answer it"}
+              </Link>
+            </>
+          ) : doc.source === "entry" ? (
+            `${doc.tried} tried · ${doc.helped} found it useful`
+          ) : (
+            `${doc.helped} notes in this session`
+          )}
         </p>
       </div>
       {doc.picture && (
@@ -332,14 +580,12 @@ function Suggest() {
     </ul>
   );
 }
-function Directory({ counts }: { counts: Map<string, number> }) {
+function Directory() {
   return (
     <section className="directory" aria-labelledby="directory-title">
-      <p className="serp-count">Try a search</p>
-      <Suggest />
-      <h1 id="directory-title" className="directory-title">
+      <h2 id="directory-title" className="directory-title">
         Browse by field
-      </h1>
+      </h2>
       <div className="directory-grid">
         {fields.map((f) => (
           <Link
@@ -347,18 +593,12 @@ function Directory({ counts }: { counts: Map<string, number> }) {
             className="directory-card"
             href={`/search?field=${f.slug}`}
           >
-            <span className="directory-count">{counts.get(f.name) ?? 0}</span>
             <strong>
               {f.name} <ArrowUpRight size={15} />
             </strong>
             <span>{f.summary}</span>
             <span className="directory-specialties">
               {f.specialties.map((s) => s.name).join(" · ")}
-            </span>
-            <span className="directory-professions">
-              {[...new Set(f.specialties.flatMap((s) => s.professions))]
-                .slice(0, 4)
-                .join(" · ")}
             </span>
           </Link>
         ))}

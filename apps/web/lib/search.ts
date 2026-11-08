@@ -19,12 +19,12 @@ export type ResultType =
   | "critique";
 export const resultTypes: { key: ResultType; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "questions", label: "Open questions" },
+  { key: "fixes", label: "What worked" },
+  { key: "failures", label: "What failed" },
   { key: "videos", label: "Videos" },
   { key: "photos", label: "Photos" },
-  { key: "failures", label: "Failures" },
-  { key: "fixes", label: "Fixes" },
   { key: "research", label: "Research" },
-  { key: "questions", label: "Questions" },
   { key: "critique", label: "Critique" },
 ];
 export type AnchorKind = "moment" | "photo" | "section" | "evidence" | "note";
@@ -55,6 +55,8 @@ export interface Doc {
   anchors: Anchor[];
   evidence: Entry["evidence"];
   context: Record<string, string>;
+  /** Communities an entry was posted to, to suggest where to ask next. */
+  communities?: string[];
 }
 export type Segment = { text: string; hit: boolean };
 export interface Result {
@@ -87,6 +89,73 @@ export function tokens(text: string) {
     .filter((word) => word && !stop.has(word))
     .map(stem);
 }
+/** Words people use for the same thing. Any one finds the others. */
+const synonymGroups = [
+  ["fridge", "refrigerator", "refrigeration"],
+  ["fail", "failure", "broke", "broken", "collapse"],
+  ["error", "bug", "crash", "exception"],
+  ["fix", "repair", "solution", "solve"],
+  ["mold", "mould"],
+  ["color", "colour"],
+  ["hot", "heat", "warm"],
+  ["cool", "cold", "chill"],
+  ["math", "maths", "mathematics"],
+  ["memory", "ram", "heap"],
+  ["video", "film", "clip"],
+  ["photo", "picture", "image"],
+];
+const synonyms = new Map<string, string[]>();
+for (const group of synonymGroups) {
+  const stems = group.map(stem);
+  for (const s of stems)
+    synonyms.set(s, [
+      ...new Set([...(synonyms.get(s) ?? []), ...stems.filter((o) => o !== s)]),
+    ]);
+}
+
+/** "exact phrases", -excluded words, and everything else as plain words. */
+export function parseQuery(query: string) {
+  const phrases: string[] = [];
+  const excluded: string[] = [];
+  const rest = query
+    .replace(/"([^"]+)"/g, (_, phrase: string) => {
+      phrases.push(phrase.trim().toLowerCase());
+      return ` ${phrase} `;
+    })
+    .replace(/(^|\s)-(\S+)/g, (_, space: string, word: string) => {
+      excluded.push(...tokens(word));
+      return space;
+    });
+  return { words: rest, phrases: phrases.filter(Boolean), excluded };
+}
+
+/** Edit distance with transpositions, giving up once it passes `limit`. */
+function distance(a: string, b: string, limit: number) {
+  if (Math.abs(a.length - b.length) > limit) return limit + 1;
+  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  let before: number[] = [];
+  for (let i = 1; i <= a.length; i++) {
+    const current = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let value = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + cost,
+      );
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
+        value = Math.min(value, before[j - 2] + 1);
+      current.push(value);
+      best = Math.min(best, value);
+    }
+    if (best > limit) return limit + 1;
+    before = previous;
+    previous = current;
+  }
+  return previous[b.length];
+}
+
 export const clock = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
@@ -109,6 +178,7 @@ export function entryDoc(entry: Entry): Doc {
     id: entry.id,
     source: "entry",
     href,
+    communities: entry.communities ?? [],
     title: entry.title,
     summary: entry.excerpt,
     field: entry.topic,
@@ -283,9 +353,49 @@ export function search(
   query: string,
   filters: { type?: ResultType; field?: string } = {},
 ) {
-  const terms = [...new Set(tokens(query))];
-  const termSet = new Set(terms);
+  const parsed = parseQuery(query);
   const tokenized = docs.map((doc) => doc.fields.map((f) => tokens(f.text)));
+  const vocabulary = new Map<string, number>();
+  tokenized.forEach((doc) =>
+    new Set(doc.flat()).forEach((word) =>
+      vocabulary.set(word, (vocabulary.get(word) ?? 0) + 1),
+    ),
+  );
+  // Misspelled words become the closest word people actually used.
+  const corrections = new Map<string, string>();
+  const terms = [...new Set(tokens(parsed.words))].map((term) => {
+    if (
+      vocabulary.has(term) ||
+      synonyms.has(term) ||
+      /^\d/.test(term) ||
+      term.length < 4
+    )
+      return term;
+    const limit = term.length >= 8 ? 2 : 1;
+    let best: [string, number, number] | null = null;
+    // Candidates: every word in the notes, plus the synonym list's words.
+    const candidates: [string, number][] = [
+      ...vocabulary,
+      ...[...synonyms.keys()]
+        .filter((w) => !vocabulary.has(w))
+        .map((w): [string, number] => [w, 0]),
+    ];
+    for (const [word, df] of candidates) {
+      const d = distance(term, word, limit);
+      if (
+        d <= limit &&
+        (!best || d < best[1] || (d === best[1] && df > best[2]))
+      )
+        best = [word, d, df];
+    }
+    if (!best) return term;
+    corrections.set(term, best[0]);
+    return best[0];
+  });
+  const termSet = new Set(
+    terms.flatMap((t) => [t, ...(synonyms.get(t) ?? [])]),
+  );
+  const alternatives = (term: string) => [term, ...(synonyms.get(term) ?? [])];
   const average = Array.from({ length: 8 }, (_, i) =>
     Math.max(
       1,
@@ -296,14 +406,30 @@ export function search(
   const documentFrequency = new Map(
     terms.map((term) => [
       term,
-      tokenized.filter((doc) => doc.some((field) => field.includes(term)))
-        .length,
+      tokenized.filter((doc) =>
+        doc.some((field) => alternatives(term).some((t) => field.includes(t))),
+      ).length,
     ]),
   );
   const n = docs.length;
   const scored: Result[] = [];
   docs.forEach((doc, index) => {
     if (filters.field && doc.field !== filters.field) return;
+    if (
+      parsed.excluded.length &&
+      tokenized[index].some((field) =>
+        field.some((w) => parsed.excluded.includes(w)),
+      )
+    )
+      return;
+    if (parsed.phrases.length) {
+      const text = doc.fields
+        .map((f) => f.text)
+        .join(" ")
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+      if (!parsed.phrases.every((p) => text.includes(p))) return;
+    }
     let score = 0;
     if (terms.length) {
       let covered = 0;
@@ -313,7 +439,11 @@ export function search(
         let termScore = 0;
         doc.fields.forEach((field, i) => {
           const words = tokenized[index][i];
-          const tf = words.filter((w) => w === term).length;
+          const alts = alternatives(term);
+          // An exact word counts fully; a synonym a little less.
+          const tf =
+            words.filter((w) => w === term).length +
+            0.7 * words.filter((w) => w !== term && alts.includes(w)).length;
           if (!tf) return;
           const norm =
             1.2 * (0.25 + 0.75 * (words.length / average[Math.min(i, 7)]));
@@ -364,8 +494,16 @@ export function search(
   ) as Record<ResultType, number>;
   const type = filters.type ?? "all";
   const results = scored.filter((r) => r.doc.types.has(type));
+  // "Showing results for …" when a word was corrected.
+  const corrected = corrections.size
+    ? parsed.words.replace(/[\p{L}\p{N}]+/gu, (word) => {
+        const fixed = corrections.get(stem(word.toLowerCase()));
+        return fixed ?? word;
+      })
+    : null;
   return {
     terms,
+    corrected,
     results,
     counts,
     fieldCounts: countBy(scored, (r) => r.doc.field),

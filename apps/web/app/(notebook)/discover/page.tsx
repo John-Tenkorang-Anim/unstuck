@@ -8,8 +8,6 @@ import { currentAccount } from "@/lib/auth.server";
 import { communityStats, listCommunities } from "@/lib/communities.server";
 import { hasDatabase } from "@/lib/db.server";
 import { questionItems } from "@/lib/questions.server";
-import { sampleSessions } from "@/lib/sessions";
-import { listSharedSessions } from "@/lib/shared.server";
 
 export const dynamic = "force-dynamic";
 const number = (n: number) => n.toLocaleString("en");
@@ -21,10 +19,9 @@ export default async function Home({
 }) {
   const params = await searchParams;
   const account = hasDatabase() ? await currentAccount() : undefined;
-  const [notebook, shared, waiting, communities] = await Promise.all([
+  const [notebook, waiting, communities] = await Promise.all([
     getNotebook(),
-    listSharedSessions(),
-    questionItems({ show: "open", size: 4 }).catch(() => undefined),
+    questionItems({ show: "open", size: 3 }).catch(() => undefined),
     listCommunities().catch(() => []),
   ]);
   const stats = await communityStats(
@@ -40,24 +37,20 @@ export default async function Home({
           (stats[b.slug]?.library ?? 0) -
           ((stats[a.slug]?.questions ?? 0) + (stats[a.slug]?.library ?? 0)),
     )
-    .slice(0, 6);
+    .slice(0, 4);
   return (
     <Discovery
       notebook={notebook}
-      sessions={[
-        ...shared,
-        ...(notebook.mode === "examples" ? sampleSessions : []),
-      ]}
       initialTopic={typeof params.topic === "string" ? params.topic : ""}
       initialQuery={typeof params.q === "string" ? params.q : ""}
       initialOutcome={typeof params.outcome === "string" ? params.outcome : ""}
       featured={
-        <div className="frame discover-featured">
+        <div key="featured" className="frame discover-featured">
           {waiting && waiting.items.length > 0 && (
             <section aria-labelledby="waiting-title">
               <div className="feature-head">
                 <h2 id="waiting-title">Waiting for an answer</h2>
-                <Link className="text-link" href="/questions">
+                <Link className="text-link" href="/search?type=questions">
                   {number(waiting.total)} open questions{" "}
                   <ChevronRight size={15} />
                 </Link>

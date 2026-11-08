@@ -34,7 +34,7 @@ const fixed: Command[] = [
     id: "questions",
     group: "Go to",
     label: "Open questions",
-    href: "/questions",
+    href: "/search?type=questions",
   },
   { id: "notebook", group: "Go to", label: "Your notebook", href: "/notebook" },
   { id: "about", group: "Go to", label: "How Unstuck works", href: "/about" },

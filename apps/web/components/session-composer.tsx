@@ -1,4 +1,5 @@
 "use client";
+import { MathInput } from "./math-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -314,25 +315,25 @@ export function SessionComposer() {
           </fieldset>
           <div className="form-field">
             <label htmlFor="session-wentWrong">What went wrong?</label>
-            <textarea
+            <MathInput
               id="session-wentWrong"
               rows={3}
               value={draft.wentWrong}
               aria-invalid={!!errors.wentWrong}
-              placeholder="What you expected, and what happened instead."
-              onChange={(e) => set({ wentWrong: e.target.value })}
+              placeholder="What you expected, and what happened instead. Maths works between $ signs."
+              onValue={(wentWrong) => set({ wentWrong })}
             />
             {error("wentWrong")}
           </div>
           <div className="form-field">
             <label htmlFor="session-ask">What feedback would help?</label>
-            <textarea
+            <MathInput
               id="session-ask"
               rows={3}
               value={draft.ask}
               aria-invalid={!!errors.ask}
               placeholder="Which part to fix first, or whether my approach makes sense."
-              onChange={(e) => set({ ask: e.target.value })}
+              onValue={(ask) => set({ ask })}
             />
             {error("ask")}
           </div>

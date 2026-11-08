@@ -6,27 +6,47 @@ import { parseCsv } from "@/lib/csv";
 import { DataChart } from "./data-chart";
 import type { Block } from "@/lib/sessions";
 
-/** Text with inline maths between $…$, typeset with MathML for screen readers. */
+/**
+ * Text with maths: inline between $…$ and on its own line between $$…$$,
+ * typeset with MathML for screen readers. Anything else stays plain text.
+ */
 export function MathText({ text }: { text: string }) {
-  const parts = text.split(/(\$[^$]+\$)/g);
+  // Like Pandoc: inline maths can't start or end with a space, and a closing $
+  // can't be followed by a digit, so prices such as "$20 and $30" stay text.
+  const parts = text.split(
+    /(\$\$[\s\S]+?\$\$|\$(?!\s)[^$\n]*?[^\s$]\$(?!\d)|\$[^\s$]\$(?!\d))/g,
+  );
   return (
     <>
-      {parts.map((part, i) =>
-        part.length > 2 && part.startsWith("$") && part.endsWith("$") ? (
+      {parts.map((part, i) => {
+        const display =
+          part.length > 4 && part.startsWith("$$") && part.endsWith("$$");
+        const inline =
+          !display &&
+          part.length > 2 &&
+          part.startsWith("$") &&
+          part.endsWith("$");
+        if (!display && !inline) return <Fragment key={i}>{part}</Fragment>;
+        return (
           <span
             key={i}
-            className="math"
+            className={display ? "math math-display" : "math"}
             dangerouslySetInnerHTML={{
-              __html: katex.renderToString(part.slice(1, -1), {
-                throwOnError: false,
-                output: "htmlAndMathml",
-              }),
+              __html: katex.renderToString(
+                display ? part.slice(2, -2) : part.slice(1, -1),
+                {
+                  throwOnError: false,
+                  output: "htmlAndMathml",
+                  displayMode: display,
+                  trust: false,
+                  maxSize: 20,
+                  maxExpand: 200,
+                },
+              ),
             }}
           />
-        ) : (
-          <Fragment key={i}>{part}</Fragment>
-        ),
-      )}
+        );
+      })}
     </>
   );
 }

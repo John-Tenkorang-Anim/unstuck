@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-const base = "http://127.0.0.1:3200";
+const base = process.env.UNSTUCK_TEST_URL ?? "http://127.0.0.1:3200";
 const path = "/entries/33333333-3333-4333-8333-333333333333";
 async function read(path, headers = {}) {
   const response = await fetch(new URL(path, base), { headers });

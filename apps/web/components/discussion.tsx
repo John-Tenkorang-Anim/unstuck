@@ -2,6 +2,8 @@
 import { useState, type FormEvent } from "react";
 import {
   ChevronDown,
+  CornerDownRight,
+  X,
   MessageSquare,
   Plus,
   Search,
@@ -10,6 +12,8 @@ import {
 import { postJson, useAccount, type Viewer } from "./use-account";
 import { useNotebook } from "./notebook-provider";
 import { ReportButton } from "./report-button";
+import { MathInput } from "./math-input";
+import { MathText } from "./work-blocks";
 
 type Kind =
   "comment" | "question" | "supports" | "disputes" | "worked" | "didnt";
@@ -27,6 +31,8 @@ export interface DiscussionComment {
   helpedByMe: boolean;
   replies: number;
   created: string;
+  replyTo?: string | null;
+  replyToName?: string | null;
 }
 export interface DiscussionExplanation {
   id: string;
@@ -514,7 +520,9 @@ function Body({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <p className={`disc-body ${long && !open ? "is-clamped" : ""}`}>{text}</p>
+      <p className={`disc-body ${long && !open ? "is-clamped" : ""}`}>
+        <MathText text={text} />
+      </p>
       {long && (
         <button
           className="text-link disc-readmore"
@@ -540,34 +548,28 @@ function CommentRow({
   signIn: (name: string, role: string) => Promise<Viewer>;
   enabled: boolean;
 }) {
-  const { notice } = useNotebook();
-  const [helpful, setHelpful] = useState({
-    count: comment.helpful,
-    mine: comment.helpedByMe,
-  });
   const [replies, setReplies] = useState<DiscussionComment[] | null>(null);
-  const [replying, setReplying] = useState(false);
   const [replyCount, setReplyCount] = useState(comment.replies);
-  async function markHelpful() {
-    if (!viewer) {
-      notice("Choose a name on your account page to mark responses helpful.");
-      return;
-    }
-    try {
-      const result = await postJson<{ helped: boolean; helpful: number }>(
-        `/api/comments/${comment.id}/helpful`,
-      );
-      setHelpful({ count: result.helpful, mine: result.helped });
-    } catch (error) {
-      notice(error instanceof Error ? error.message : "That didn’t work.");
-    }
+  // Who the open reply box answers: the response itself or one of its replies.
+  const [target, setTarget] = useState<{ id: string; name: string } | null>(
+    null,
+  );
+  const [fresh, setFresh] = useState<string | null>(null);
+  async function loadReplies() {
+    const items: DiscussionComment[] = (
+      await fetch(`/api/comments/${comment.id}/replies`).then((r) => r.json())
+    ).items;
+    setReplies(items);
+    return items;
   }
-  async function showReplies() {
-    if (replies) return setReplies(null);
-    setReplies(
-      (await fetch(`/api/comments/${comment.id}/replies`).then((r) => r.json()))
-        .items,
-    );
+  async function toggleReplies() {
+    if (replies) setReplies(null);
+    else await loadReplies();
+  }
+  async function replyTo(id: string, name: string) {
+    // Like YouTube, open the thread and put the reply box at its end.
+    if (!replies && replyCount) await loadReplies();
+    setTarget({ id, name });
   }
   return (
     <li
@@ -590,69 +592,31 @@ function CommentRow({
           <p className="disc-about">On “{comment.explanationTitle}”</p>
         )}
         <Body text={comment.body} />
-        <div className="disc-actions">
-          <button
-            className={`disc-action disc-helpful ${helpful.mine ? "is-on" : ""}`}
-            aria-pressed={helpful.mine}
-            title={helpful.mine ? "You marked this helpful" : "Mark as helpful"}
-            onClick={markHelpful}
-          >
-            <ThumbsUp
-              size={14}
-              aria-hidden="true"
-              fill={helpful.mine ? "currentColor" : "none"}
-            />
-            Helpful
-            {helpful.count ? (
-              <span className="disc-count-pill">{number(helpful.count)}</span>
-            ) : null}
-          </button>
-          {enabled && (
-            <button
-              className="disc-action"
-              onClick={() => setReplying(!replying)}
-            >
-              <MessageSquare size={14} aria-hidden="true" /> Reply
-            </button>
-          )}
+        <Actions
+          comment={comment}
+          viewer={viewer}
+          enabled={enabled}
+          onReply={() => replyTo(comment.id, comment.author)}
+        >
           {replyCount > 0 && (
             <button
               className="disc-action disc-disclose"
               aria-expanded={!!replies}
-              onClick={showReplies}
+              onClick={toggleReplies}
             >
               {number(replyCount)} {replyCount === 1 ? "reply" : "replies"}
               <ChevronDown size={14} aria-hidden="true" />
             </button>
           )}
-          {viewer?.id !== comment.by && (
-            <ReportButton type="comment" id={comment.id} />
-          )}
-        </div>
-        {replying && (
-          <Composer
-            entryId={entryId}
-            initial={{ kind: "comment", parentId: comment.id }}
-            viewer={viewer}
-            signIn={signIn}
-            onCancel={() => setReplying(false)}
-            onDone={async () => {
-              setReplying(false);
-              setReplyCount((n) => n + 1);
-              setReplies(
-                (
-                  await fetch(`/api/comments/${comment.id}/replies`).then((r) =>
-                    r.json(),
-                  )
-                ).items,
-              );
-            }}
-          />
-        )}
-        {replies && (
+        </Actions>
+        {(replies?.length || target) && (
           <ul className="disc-replies">
-            {replies.map((r) => (
-              <li key={r.id} className="disc-item disc-reply">
+            {replies?.map((r) => (
+              <li
+                key={r.id}
+                id={`comment-${r.id}`}
+                className={`disc-item disc-reply ${fresh === r.id ? "is-fresh" : ""}`}
+              >
                 <Avatar name={r.author} />
                 <div className="disc-item-main">
                   <p className="disc-meta">
@@ -661,14 +625,120 @@ function CommentRow({
                     <span aria-hidden="true">·</span>
                     <span>{ago(r.created)}</span>
                   </p>
+                  {r.replyTo && r.replyToName && (
+                    <a className="disc-replying" href={`#comment-${r.replyTo}`}>
+                      <CornerDownRight size={12} aria-hidden="true" /> Replying
+                      to {r.replyToName}
+                    </a>
+                  )}
                   <Body text={r.body} />
+                  <Actions
+                    comment={r}
+                    viewer={viewer}
+                    enabled={enabled}
+                    onReply={() => replyTo(r.id, r.author)}
+                  />
                 </div>
               </li>
             ))}
+            {target && (
+              <li className="disc-reply-box">
+                <Composer
+                  key={target.id}
+                  entryId={entryId}
+                  initial={{
+                    kind: "comment",
+                    parentId: comment.id,
+                    replyTo: target.id,
+                  }}
+                  replyingTo={target.name}
+                  onClearTarget={() =>
+                    setTarget({ id: comment.id, name: comment.author })
+                  }
+                  viewer={viewer}
+                  signIn={signIn}
+                  onCancel={() => setTarget(null)}
+                  onDone={async () => {
+                    setTarget(null);
+                    setReplyCount((n) => n + 1);
+                    const items = await loadReplies();
+                    setFresh(items.at(-1)?.id ?? null);
+                  }}
+                />
+              </li>
+            )}
           </ul>
         )}
       </div>
     </li>
+  );
+}
+
+/** Helpful, Reply and Report, the same on responses and on replies. */
+function Actions({
+  comment,
+  viewer,
+  enabled,
+  onReply,
+  children,
+}: {
+  comment: DiscussionComment;
+  viewer: Viewer;
+  enabled: boolean;
+  onReply: () => void;
+  children?: React.ReactNode;
+}) {
+  const { notice } = useNotebook();
+  const [helpful, setHelpful] = useState({
+    count: comment.helpful,
+    mine: comment.helpedByMe,
+  });
+  async function markHelpful() {
+    if (!viewer) {
+      notice("Choose a name on your account page to mark responses helpful.");
+      return;
+    }
+    try {
+      const result = await postJson<{ helped: boolean; helpful: number }>(
+        `/api/comments/${comment.id}/helpful`,
+      );
+      setHelpful({ count: result.helpful, mine: result.helped });
+    } catch (error) {
+      notice(error instanceof Error ? error.message : "That didn’t work.");
+    }
+  }
+  return (
+    <div className="disc-actions">
+      <button
+        className={`disc-action disc-helpful ${helpful.mine ? "is-on" : ""}`}
+        aria-pressed={helpful.mine}
+        title={helpful.mine ? "You marked this helpful" : "Mark as helpful"}
+        onClick={markHelpful}
+      >
+        <ThumbsUp
+          size={14}
+          aria-hidden="true"
+          fill={helpful.mine ? "currentColor" : "none"}
+        />
+        Helpful
+        {helpful.count ? (
+          <span className="disc-count-pill">{number(helpful.count)}</span>
+        ) : null}
+      </button>
+      {enabled && (
+        <button
+          className="disc-action"
+          onClick={onReply}
+          aria-label={`Reply to ${comment.author}`}
+        >
+          <MessageSquare size={14} aria-hidden="true" /> Reply
+        </button>
+      )}
+      {children}
+      {viewer?.id !== comment.by && (
+        <ReportButton type="comment" id={comment.id} />
+      )}
+    </div>
   );
 }
 
@@ -678,14 +748,24 @@ function Composer({
   viewer,
   signIn,
   explanationTitle,
+  replyingTo,
+  onClearTarget,
   onCancel,
   onDone,
 }: {
   entryId: string;
-  initial: { kind: Kind; explanationId?: string; parentId?: string };
+  initial: {
+    kind: Kind;
+    explanationId?: string;
+    parentId?: string;
+    replyTo?: string;
+  };
   viewer: Viewer;
   signIn: (name: string, role: string) => Promise<Viewer>;
   explanationTitle?: string;
+  /** Shown as "Replying to …" so nobody has to type a name to tag someone. */
+  replyingTo?: string;
+  onClearTarget?: () => void;
   onCancel: () => void;
   onDone: () => void;
 }) {
@@ -710,6 +790,7 @@ function Composer({
         body,
         explanationId: initial.explanationId,
         parentId: initial.parentId,
+        replyTo: initial.replyTo,
       });
       setBody("");
       onDone();
@@ -725,6 +806,22 @@ function Composer({
     <form className="disc-composer" onSubmit={submit}>
       {explanationTitle && (
         <p className="disc-meta">Evidence about “{explanationTitle}”</p>
+      )}
+      {replyingTo && (
+        <p className="disc-replying-to">
+          <CornerDownRight size={13} aria-hidden="true" /> Replying to{" "}
+          <b>{replyingTo}</b>
+          {onClearTarget && initial.replyTo !== initial.parentId && (
+            <button
+              type="button"
+              className="disc-action"
+              onClick={onClearTarget}
+              aria-label={`Stop replying to ${replyingTo}`}
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          )}
+        </p>
       )}
       {choices.length > 1 && (
         <div
@@ -759,9 +856,8 @@ function Composer({
       >
         Your response
       </label>
-      <textarea
+      <MathInput
         id={`body-${initial.parentId ?? initial.explanationId ?? "new"}`}
-        ref={grow}
         autoFocus
         rows={3}
         value={body}
@@ -780,10 +876,8 @@ function Composer({
               ? "What you observed or measured, and how."
               : "Be specific. Say what you saw and what you’d try."
         }
-        onChange={(e) => {
-          setBody(e.target.value);
-          grow(e.target);
-        }}
+        onValue={setBody}
+        onGrow={grow}
       />
       {!viewer && (
         <div className="form-row post-as">

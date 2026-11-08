@@ -112,36 +112,7 @@ describe("finding a way forward", () => {
   });
 });
 
-describe("the outcome atlas", () => {
-  it("states every recorded cell in words and offers no target for a gap", () => {
-    discover();
-    expect(
-      screen.getByRole("link", {
-        name: "Food & farming, it worked: 1 note, 24 tried",
-      }),
-    ).toHaveAttribute(
-      "href",
-      "/discover?topic=Food+%26+farming&outcome=worked#discover",
-    );
-    expect(
-      within(screen.getByRole("table")).getAllByText("Nothing recorded").length,
-    ).toBeGreaterThan(0);
-  });
-  it("filters the ledger from a cell, and a second selection clears it", async () => {
-    const user = userEvent.setup();
-    discover();
-    const name = "Software, it didn’t work: 1 note, 18 tried";
-    await user.click(screen.getByRole("link", { name }));
-    expect(screen.getAllByRole("article")).toHaveLength(1);
-    expect(screen.getByRole("link", { name })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
-    expect(window.location.search).toBe("?topic=Software&outcome=failed");
-    await user.click(screen.getByRole("link", { name }));
-    expect(screen.getAllByRole("article")).toHaveLength(10);
-    expect(window.location.search).toBe("");
-  });
+describe("feed filters", () => {
   it("restores a filter from a shared address and ignores unknown outcomes", () => {
     const shared = discover({ initialOutcome: "mixed" });
     expect(screen.getAllByRole("article")).toHaveLength(1);

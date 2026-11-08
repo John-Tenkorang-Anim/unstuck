@@ -8,6 +8,7 @@ import { getNotebook } from "@/lib/api";
 import { currentAccount } from "@/lib/auth.server";
 import { communityStats, myCommunities } from "@/lib/communities.server";
 import { hasDatabase } from "@/lib/db.server";
+import { repliesToMe } from "@/lib/discussion.server";
 
 export const metadata: Metadata = { title: "Your notebook" };
 const number = (n: number) => n.toLocaleString("en");
@@ -33,6 +34,7 @@ export default async function Notebook({
   const filter = params.show === "attention" ? "attention" : "all";
   const page = Math.max(1, Number(params.page) || 1);
   const joined = tab === "communities" ? await myCommunities(account) : [];
+  const replies = tab === "posts" && account ? await repliesToMe(account) : [];
   const stats = joined.length
     ? await communityStats(
         joined.map((c) => c.slug),
@@ -53,9 +55,9 @@ export default async function Notebook({
         </h1>
         <p className="page-lede">
           What you asked and shared, what you saved, and your communities.
-          Looking for other people’s problems to help with? Go to{" "}
-          <Link className="text-link" href="/questions">
-            Questions
+          Looking for other people’s problems to help with? See{" "}
+          <Link className="text-link" href="/search?type=questions">
+            open questions
           </Link>
           .
         </p>
@@ -78,6 +80,32 @@ export default async function Notebook({
       {tab === "posts" &&
         (account ? (
           <section className="you" aria-label="Your posts">
+            {replies.length > 0 && filter === "all" && page === 1 && (
+              <section className="replies-to-you" aria-labelledby="rty-title">
+                <h2 id="rty-title" className="section-title">
+                  Replies to you
+                  {replies.some((r) => r.fresh) && (
+                    <span className="you-new">
+                      {replies.filter((r) => r.fresh).length} new
+                    </span>
+                  )}
+                </h2>
+                <ul>
+                  {replies.slice(0, 6).map((r) => (
+                    <li key={r.id} data-fresh={r.fresh || undefined}>
+                      <Link
+                        href={`/entries/${r.entryId}?discuss=1#comment-${r.parentId}`}
+                      >
+                        <span className="rty-meta">
+                          <b>{r.author}</b> replied on {r.entryTitle}
+                        </span>
+                        <span className="rty-body">{r.body}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             <nav className="serp-fields" aria-label="Show">
               <Link
                 href="/notebook?tab=posts"

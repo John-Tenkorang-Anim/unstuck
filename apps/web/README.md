@@ -74,10 +74,23 @@ npm run start -- --port 3100
 - When posting, people choose where it appears: everyone, one or more
   communities, or both. Community-only posts stay out of the public feed and
   search.
-- Questions at `/questions` hold everyone's open problems, with filters for
-  unanswered, your communities and field. The notebook at `/notebook` holds
-  what is yours: your posts with new and unanswered counts, saved notes and
-  your communities. `/you` redirects there.
+- Search and ask are one place, at `/search`. People search first and see how
+  others got unstuck. If nothing fits, the ask card beside the results keeps
+  the words typed and suggests the community where similar problems were
+  posted. Open questions are a tab of the same page, and `/questions`
+  redirects there. Search forgives misspellings and says "Showing results
+  for …". It knows common synonyms, and supports `"exact phrases"` and
+  `-excluded` words.
+- The notebook at `/notebook` holds what is yours: your posts with new and
+  unanswered counts, replies to you, saved notes and your communities. `/you`
+  redirects there.
+- Maths anywhere people write: responses, field notes, critique notes and
+  worked steps. A Σ palette inserts fractions, powers, roots, integrals, Greek
+  letters and operators. ⌘/Ctrl+M starts an equation, and a live preview
+  typesets it. Inline maths goes between `$…$` and display maths between
+  `$$…$$`. Prices such as "$20 and $30" stay plain text.
+- Replies work like YouTube or X. Reply on any reply and the new one is
+  labelled "Replying to …", so nobody has to type a name to tag someone.
 - Discover lets people search or ask from one bar, then offers doors to ask,
   help, get feedback or find a community.
 
@@ -169,6 +182,9 @@ executing scripts. Set `UNSTUCK_TEST_URL` to test a different local port.
 `npm run test:production` starts and stops its own production server and runs
 HTTP/SSR checks, including a 50 KiB compressed HTML-document budget. This budget
 excludes script, style, font and media transfers; it is not a whole-page budget.
+It uses port 3100 (3200 for the media checks) and stops if something is already
+running there, such as `npm run dev`. Set `UNSTUCK_TEST_PORT` to use another
+port.
 
 CI runs `npm run test:browser` against an isolated, read-only synthetic API on
 loopback. Its media-response fixtures test delivery policy and recovery, not real

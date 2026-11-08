@@ -1,7 +1,8 @@
 "use client";
 import { Code2, Plus, Sigma, Table2, Trash2 } from "lucide-react";
 import type { Block } from "@/lib/sessions";
-import { MathText, parseCsv } from "./work-blocks";
+import { parseCsv } from "./work-blocks";
+import { MathInput } from "./math-input";
 
 /** Compose shown working: maths steps, code with its output, or a data table. */
 export function WorkingEditor({
@@ -103,32 +104,24 @@ export function WorkingEditor({
                     {i + 1}
                   </span>
                   <div>
-                    <textarea
+                    <MathInput
                       rows={2}
                       aria-label={`Step ${i + 1}`}
                       value={step}
                       placeholder={
                         i === 0
-                          ? "Write maths between $ signs, for example $\\int x \\sin x \\, dx$"
+                          ? "Use Σ for symbols, or write maths between $ signs, like $\\int x \\sin x \\, dx$"
                           : "Next step"
                       }
-                      onChange={(e) =>
+                      onValue={(value) =>
                         update(index, {
                           ...block,
                           steps: block.steps.map((s, j) =>
-                            j === i ? e.target.value : s,
+                            j === i ? value : s,
                           ),
                         })
                       }
                     />
-                    {step.includes("$") && (
-                      <p
-                        className="step-preview"
-                        aria-label={`Preview of step ${i + 1}`}
-                      >
-                        <MathText text={step} />
-                      </p>
-                    )}
                   </div>
                   <button
                     type="button"

@@ -39,6 +39,9 @@ export interface Comment {
   helpedByMe: boolean;
   replies: number;
   created: string;
+  /** For a reply to a reply: who it answers, so the thread reads like a conversation. */
+  replyTo?: string | null;
+  replyToName?: string | null;
 }
 export interface Summary {
   total: number;
@@ -305,10 +308,16 @@ export async function listReplies(parentId: string, viewer?: string) {
     helpful: number;
     helped: boolean;
     created: Date;
+    reply_to: string | null;
+    reply_to_name: string | null;
   }>(
     `SELECT c.id, c.kind, c.body, a.name AS author, a.role, c.owner, c.helpful, c.created,
-            EXISTS (SELECT 1 FROM web.comment_helpful h WHERE h.comment_id = c.id AND h.account_id = $2::uuid) AS helped
+            EXISTS (SELECT 1 FROM web.comment_helpful h WHERE h.comment_id = c.id AND h.account_id = $2::uuid) AS helped,
+            CASE WHEN c.reply_to <> c.parent_id THEN c.reply_to END AS reply_to,
+            CASE WHEN c.reply_to <> c.parent_id THEN ta.name END AS reply_to_name
      FROM web.comments c JOIN web.accounts a ON a.id = c.owner
+     LEFT JOIN web.comments t ON t.id = c.reply_to
+     LEFT JOIN web.accounts ta ON ta.id = t.owner
      WHERE c.parent_id = $1 AND NOT c.hidden ORDER BY c.created LIMIT 200`,
     [parentId, viewer ?? null],
   );
@@ -324,6 +333,8 @@ export async function listReplies(parentId: string, viewer?: string) {
     helpedByMe: r.helped,
     replies: 0,
     created: r.created.toISOString(),
+    replyTo: r.reply_to,
+    replyToName: r.reply_to_name,
   }));
 }
 
@@ -343,6 +354,7 @@ export async function addComment(
     body?: unknown;
     explanationId?: unknown;
     parentId?: unknown;
+    replyTo?: unknown;
   },
 ) {
   const entry = await entryOrFail(entryId);
@@ -352,6 +364,7 @@ export async function addComment(
   const body = clean.text(input.body, 2, 5000, "Your response");
   let explanationId: string | null = null;
   let parentId: string | null = null;
+  let replyTo: string | null = null;
   if (typeof input.parentId === "string" && input.parentId) {
     if (!isUuid(input.parentId))
       throw new StoreError("That reply target doesn’t exist.", 404);
@@ -361,6 +374,18 @@ export async function addComment(
     );
     if (!parent) throw new StoreError("That reply target doesn’t exist.", 404);
     parentId = input.parentId;
+    // Answering a reply: it must be in the same thread.
+    if (typeof input.replyTo === "string" && input.replyTo !== parentId) {
+      if (!isUuid(input.replyTo))
+        throw new StoreError("That reply target doesn’t exist.", 404);
+      const [target] = await query(
+        "SELECT 1 FROM web.comments WHERE id = $1 AND parent_id = $2 AND NOT hidden",
+        [input.replyTo, parentId],
+      );
+      if (!target)
+        throw new StoreError("That reply target doesn’t exist.", 404);
+      replyTo = input.replyTo;
+    } else replyTo = parentId;
   } else if (kind === "supports" || kind === "disputes") {
     const id = String(input.explanationId ?? "");
     const sampleIndex = /^sample-(\d+)$/.exec(id);
@@ -380,12 +405,13 @@ export async function addComment(
   }
   const id = newId();
   await query(
-    "INSERT INTO web.comments (id, entry_id, explanation_id, parent_id, owner, kind, body) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+    "INSERT INTO web.comments (id, entry_id, explanation_id, parent_id, reply_to, owner, kind, body) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
     [
       id,
       entryId,
       explanationId,
       parentId,
+      replyTo,
       account.id,
       parentId ? "comment" : kind,
       body,
@@ -568,4 +594,50 @@ export async function responseCounts(ids: string[]) {
     }),
   );
   return counts;
+}
+
+/**
+ * Replies to what someone wrote, newest first, so they can carry on the
+ * conversation. Marks them seen, and says which are new since the last look.
+ */
+export async function repliesToMe(account: Account, limit = 20) {
+  if (!hasDatabase()) return [];
+  const rows = await query<{
+    id: string;
+    body: string;
+    author: string;
+    entry_id: string;
+    parent_id: string;
+    created: Date;
+    fresh: boolean;
+  }>(
+    `SELECT r.id, left(r.body, 280) AS body, a.name AS author, r.entry_id, r.parent_id, r.created,
+            r.created > coalesce((SELECT seen FROM web.last_seen WHERE account_id = $1 AND target = 'replies'), '-infinity') AS fresh
+     FROM web.comments r
+     JOIN web.comments t ON t.id = r.reply_to AND t.owner = $1
+     JOIN web.accounts a ON a.id = r.owner
+     WHERE r.owner <> $1 AND NOT r.hidden
+     ORDER BY r.created DESC LIMIT $2`,
+    [account.id, limit],
+  );
+  await query(
+    `INSERT INTO web.last_seen (account_id, target, seen) VALUES ($1,'replies',clock_timestamp())
+     ON CONFLICT (account_id, target) DO UPDATE SET seen = clock_timestamp()`,
+    [account.id],
+  );
+  const titles = new Map<string, string>();
+  for (const id of new Set(rows.map((r) => r.entry_id))) {
+    const entry = await getEntry(id).catch(() => undefined);
+    if (entry) titles.set(id, entry.title);
+  }
+  return rows.map((r) => ({
+    id: r.id,
+    body: r.body,
+    author: r.author,
+    entryId: r.entry_id,
+    entryTitle: titles.get(r.entry_id) ?? "A field note",
+    parentId: r.parent_id,
+    created: r.created.toISOString(),
+    fresh: r.fresh,
+  }));
 }

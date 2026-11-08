@@ -1,4 +1,5 @@
 "use client";
+import { MathInput } from "./math-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -442,13 +443,13 @@ export function Composer({
         {optional && <span>optional</span>}
       </label>
       {multiline ? (
-        <textarea
+        <MathInput
           id={key}
           value={draft[key]}
           maxLength={10000}
           placeholder={placeholder}
           rows={4}
-          onChange={(e) => update(key, e.target.value)}
+          onValue={(value) => update(key, value)}
           aria-invalid={!!errors[key]}
           aria-describedby={errors[key] ? `${key}-error` : undefined}
         />

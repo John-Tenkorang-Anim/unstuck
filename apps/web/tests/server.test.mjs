@@ -71,7 +71,7 @@ test("critique sessions and their pinned feedback render without JavaScript", as
 });
 
 test("open questions are listed with their answer counts on first render", async () => {
-  const { document } = await documentAt("/questions");
+  const { document } = await documentAt("/search?type=questions");
   const titles = [...document.querySelectorAll(".q-row h3")].map(
     (h) => h.textContent,
   );
@@ -733,16 +733,46 @@ test("the discussion opens beside the note from a shareable address", async () =
   assert.ok(open.document.querySelector('a.note-toggle[aria-expanded="true"]'));
 });
 
-test("questions, communities and the notebook are separate, linked places", async () => {
-  const { response, document } = await documentAt("/questions");
+test("search and questions are one place: search first, then ask a community", async () => {
+  const { response, document } = await documentAt("/search?type=questions");
   assert.equal(response.status, 200);
   assert.ok(document.querySelectorAll(".q-row").length >= 1);
+  // The same bar searches or asks, and the ask card keeps the words typed.
   assert.ok(
     document.querySelector(
-      'form.ask-bar[action="/new"] input[name="kind"][value="problem"]',
+      'form.serp-bar button[formaction="/new"][name="kind"][value="problem"]',
     ),
   );
-  assert.ok(document.querySelector('.section-hero a[href="/notebook"]'));
+  const old = await fetch(new URL("/questions?show=all", base), {
+    redirect: "manual",
+  });
+  assert.equal(old.status, 307);
+  assert.match(
+    old.headers.get("location"),
+    /\/search\?type=questions&show=all/,
+  );
+  const none = await documentAt("/search?q=quantum+knitting");
+  const ask = none.document.querySelector(".ask-card form[action='/new']");
+  assert.ok(ask);
+  assert.equal(
+    ask.querySelector("textarea[name=q]").textContent,
+    "quantum knitting",
+  );
+  const found = await documentAt("/search?q=maize+yellow+leaves");
+  assert.equal(
+    found.document.querySelector(".ask-card select[name=community]").value ??
+      found.document.querySelector(".ask-card option[selected]")?.value ??
+      found.document.querySelector(".ask-card option").value,
+    "smallholder-growers",
+  );
+  // No counts beside result-type tabs or fields: titles stand alone.
+  assert.equal(document.querySelectorAll(".serp-tabs a span").length, 0);
+  assert.equal(document.querySelectorAll(".serp-fields a span").length, 0);
+  const typo = await documentAt("/search?q=pendulam");
+  assert.match(
+    typo.document.querySelector(".serp-corrected").textContent,
+    /pendulum/,
+  );
   const library = await documentAt(
     "/communities/smallholder-growers?tab=library",
   );
@@ -758,11 +788,10 @@ test("questions, communities and the notebook are separate, linked places", asyn
   );
   for (const href of [
     "/discover",
-    "/questions",
+    "/search",
     "/communities",
     "/sessions",
     "/notebook",
-    "/search",
   ])
     assert.ok(nav.includes(href), href);
   for (const href of nav) {

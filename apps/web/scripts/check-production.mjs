@@ -40,7 +40,19 @@ async function start(args, url, env = {}) {
 try {
   if (media)
     await start(["scripts/fixture-api.mjs"], "http://127.0.0.1:3201/healthz");
-  const port = media ? "3200" : "3100";
+  const port = process.env.UNSTUCK_TEST_PORT ?? (media ? "3200" : "3100");
+  // Something already answering here (such as a dev server) would be tested
+  // instead of this build, with the wrong settings. Refuse rather than guess.
+  const busy = await fetch(`http://127.0.0.1:${port}`, {
+    signal: AbortSignal.timeout(1000),
+  }).then(
+    () => true,
+    () => false,
+  );
+  if (busy)
+    throw new Error(
+      `Port ${port} is already in use. Stop that server or set UNSTUCK_TEST_PORT.`,
+    );
   await start(
     ["scripts/start.mjs", "--port", port],
     `http://127.0.0.1:${port}`,
@@ -58,7 +70,10 @@ try {
   const tests = spawn(
     process.execPath,
     ["--test", media ? "tests/live-media.test.mjs" : "tests/server.test.mjs"],
-    { stdio: "inherit" },
+    {
+      stdio: "inherit",
+      env: { ...process.env, UNSTUCK_TEST_URL: `http://127.0.0.1:${port}` },
+    },
   );
   const [code] = await once(tests, "exit");
   if (code !== 0) throw new Error("Production HTTP checks failed");

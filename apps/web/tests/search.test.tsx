@@ -5,6 +5,9 @@ import { examples } from "@/lib/data";
 import { entryDoc, search, sessionDoc, summarize, tokens } from "@/lib/search";
 import { sampleSessions, sessionById } from "@/lib/sessions";
 import { NotebookProvider } from "@/components/notebook-provider";
+import { MathInput } from "@/components/math-input";
+import { MathText } from "@/components/work-blocks";
+import { useState } from "react";
 import { SessionWorkspace } from "@/components/session-workspace";
 
 const viewer = { id: "acct-1", name: "Ama", role: "Student" };
@@ -86,6 +89,35 @@ describe("search and retrieval", () => {
   });
 });
 
+describe("forgiving search", () => {
+  const corpus = () => [
+    ...examples.map(entryDoc),
+    ...sampleSessions.map(sessionDoc),
+  ];
+  it("corrects close misspellings and says what it searched for", () => {
+    const { results, corrected } = search(corpus(), "pendulam");
+    expect(corrected).toBe("pendulum");
+    expect(results[0].doc.title).toMatch(/pendulum/i);
+    expect(search(corpus(), "refrigerater").corrected).toBe("refrigerator");
+  });
+  it("matches synonyms, exact phrases and leaves out excluded words", () => {
+    expect(search(corpus(), "fridge").results[0].doc.title).toMatch(
+      /Clay pot cooler/,
+    );
+    expect(search(corpus(), '"clay pot"').results).toHaveLength(1);
+    expect(search(corpus(), '"pot clay"').results).toHaveLength(0);
+    const all = search(corpus(), "cache").results.map((r) => r.doc.title);
+    const without = search(corpus(), "cache -workspace").results.map(
+      (r) => r.doc.title,
+    );
+    expect(all.some((t) => /wrong workspace/.test(t))).toBe(true);
+    expect(without.some((t) => /wrong workspace/.test(t))).toBe(false);
+  });
+  it("doesn't correct words people actually used", () => {
+    expect(search(corpus(), "clay pot").corrected).toBeNull();
+  });
+});
+
 describe("shown working", () => {
   it("lets feedback point at a single step, code line or data row", async () => {
     const user = userEvent.setup();
@@ -122,6 +154,33 @@ describe("shown working", () => {
     expect(
       screen.getByRole("button", { name: "Step 2, 1 notes" }),
     ).toBeVisible();
+  });
+  it("renders inline and display maths, and leaves prices as text", () => {
+    render(
+      <p data-testid="m">
+        <MathText text="Costs $20 and $30. Then $T = 2\\pi$ and $$\\int_0^1 x\\,dx$$" />
+      </p>,
+    );
+    const box = screen.getByTestId("m");
+    expect(box).toHaveTextContent("Costs $20 and $30.");
+    expect(box.querySelectorAll(".katex").length).toBe(2);
+    expect(box.querySelector(".math-display")).not.toBeNull();
+  });
+  it("inserts maths from the palette with the cursor in the first slot", async () => {
+    const user = userEvent.setup();
+    function Box() {
+      const [value, setValue] = useState("Period ");
+      return <MathInput aria-label="Work" value={value} onValue={setValue} />;
+    }
+    render(<Box />);
+    const box = screen.getByRole("textbox", { name: "Work" });
+    await user.click(box);
+    await user.keyboard("{End}");
+    await user.click(screen.getByRole("button", { name: "Maths symbols" }));
+    await user.click(screen.getByRole("button", { name: "Fraction" }));
+    await user.keyboard("L");
+    expect(box).toHaveValue("Period $\\frac{L}{}$");
+    expect(screen.getByText("Preview")).toBeVisible();
   });
   it("finds coursework by its code and course", () => {
     expect(search(docs, "range len window").results[0].doc.id).toBe(
