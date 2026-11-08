@@ -21,7 +21,17 @@ export function ReportButton({
   type,
   id,
 }: {
-  type: "session" | "note" | "entry" | "comment" | "explanation" | "community";
+  type:
+    | "session"
+    | "note"
+    | "entry"
+    | "comment"
+    | "explanation"
+    | "community"
+    | "improvement"
+    | "problem"
+    | "test"
+    | "workspace";
   id: string;
 }) {
   const { viewer } = useAccount();

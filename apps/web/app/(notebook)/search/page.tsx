@@ -12,7 +12,6 @@ import {
   type Result,
   type ResultType,
 } from "@/lib/search";
-import { fieldBySlug, fields } from "@/lib/taxonomy";
 import { QuestionList } from "@/components/question-list";
 import { currentAccount } from "@/lib/auth.server";
 import type { Community } from "@/lib/communities";
@@ -52,7 +51,8 @@ export default async function SearchPage({
   const exact = one(params.exact) === "1";
   const type = (resultTypes.find((t) => t.key === one(params.type))?.key ??
     "all") as ResultType;
-  const field = fieldBySlug(one(params.field));
+  // Categories are communities: anyone can create one or join it.
+  const category = one(params.category);
   const show: Show =
     params.show === "all" || params.show === "answered"
       ? (params.show as Show)
@@ -60,7 +60,7 @@ export default async function SearchPage({
   const where = one(params.where) === "mine" ? "mine" : "everyone";
   const page = Math.max(1, Number(one(params.page)) || 1);
   // An empty search is the home page: one box, nothing else.
-  if (!q && type === "all" && !field) redirect("/discover");
+  if (!q && type === "all" && !category) redirect("/discover");
   const account = hasDatabase() ? await currentAccount() : undefined;
   const [{ docs, mode }, communities, mine] = await Promise.all([
     getCorpus(),
@@ -69,16 +69,21 @@ export default async function SearchPage({
   ]);
   const ranked = search(docs, exact ? `"${q}"` : q, {
     type,
-    field: field?.name,
   });
   // If a corrected spelling found nothing, fall back to the words as typed.
-  const { results, corrected } =
+  const unfiltered =
     ranked.results.length || !q ? ranked : { ...ranked, corrected: null };
+  const { corrected } = unfiltered;
+  const results = category
+    ? unfiltered.results.filter((r) =>
+        (r.doc.communities ?? []).includes(category),
+      )
+    : unfiltered.results;
   const link = (change: Record<string, string>) => {
     const next = new URLSearchParams({
       ...(q ? { q } : {}),
       ...(type !== "all" ? { type } : {}),
-      ...(field ? { field: field.slug } : {}),
+      ...(category ? { category } : {}),
       ...(type === "questions" && show !== "open" ? { show } : {}),
       ...(type === "questions" && where !== "everyone" ? { where } : {}),
       ...change,
@@ -111,9 +116,12 @@ export default async function SearchPage({
   const questions =
     type === "questions"
       ? await questionItems({
-          communities: where === "mine" ? mine : undefined,
+          communities: category
+            ? [category]
+            : where === "mine"
+              ? mine
+              : undefined,
           show,
-          field: field?.name,
           q,
           page,
         })
@@ -131,7 +139,7 @@ export default async function SearchPage({
           autoComplete="off"
         />
         {type !== "all" && <input type="hidden" name="type" value={type} />}
-        {field && <input type="hidden" name="field" value={field.slug} />}
+        {category && <input type="hidden" name="category" value={category} />}
         {/* Search comes first so pressing Enter searches. */}
         <button className="button button-dark">Search</button>
         <button
@@ -155,22 +163,23 @@ export default async function SearchPage({
           </Link>
         ))}
       </nav>
-      <div className="serp-fields" aria-label="Fields">
+      <div className="serp-fields" aria-label="Categories">
         <Link
-          href={link({ field: "", page: "" })}
-          aria-current={!field ? "true" : undefined}
+          href={link({ category: "", page: "" })}
+          aria-current={!category ? "true" : undefined}
         >
-          Every field
+          Every category
         </Link>
-        {fields.map((f) => (
+        {communities.slice(0, 8).map((c) => (
           <Link
-            key={f.slug}
-            href={link({ field: f.slug, page: "" })}
-            aria-current={field?.slug === f.slug ? "true" : undefined}
+            key={c.slug}
+            href={link({ category: c.slug, page: "" })}
+            aria-current={category === c.slug ? "true" : undefined}
           >
-            {f.name}
+            {c.name}
           </Link>
         ))}
+        <Link href="/communities">All categories</Link>
       </div>
       {mode === "examples" && (
         <p className="example-notice serp-notice">

@@ -3,7 +3,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CornerDownLeft, Search } from "lucide-react";
-import { fields } from "@/lib/taxonomy";
 import type { Outcome } from "@/lib/types";
 import { OutcomeGlyph } from "./glyph";
 
@@ -49,12 +48,6 @@ const fixed: Command[] = [
     label: "Get feedback on your work",
     href: "/sessions/new",
   },
-  ...fields.map((field) => ({
-    id: `field-${field.slug}`,
-    group: "Fields",
-    label: field.name,
-    href: `/search?field=${field.slug}`,
-  })),
 ];
 let cached: IndexEntry[] | undefined;
 

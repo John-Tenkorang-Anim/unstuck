@@ -44,6 +44,8 @@ beforeAll(async () => {
     join(tmpdir(), "unstuck-files-"),
   );
   process.env.UNSTUCK_UPLOAD_REVIEW = "media";
+  // Existing discussion fixtures deliberately reference labelled sample entries.
+  process.env.UNSTUCK_SHOW_EXAMPLES = "true";
   hashList = join(process.env.UNSTUCK_DATA_DIR!, "hashes.txt");
   await writeFile(hashList, "# test list\n");
   process.env.UNSTUCK_HASH_LIST = hashList;
@@ -707,5 +709,453 @@ describe("communities", () => {
     expect((await c.myCommunities(reader)).map((x) => x.slug)).toContain(slug);
     await c.setMembership(reader, slug, false);
     expect((await c.communityStats([slug], reader))[slug].joined).toBe(false);
+  });
+});
+
+/** The newer collaboration workflows exercise real SQL, not repository mocks. */
+async function collaborationActor(
+  name = `Person ${Math.random().toString(36).slice(2, 8)}`,
+) {
+  const s = await store();
+  const { account } = await s.insertAccount(name, "");
+  return (await s.accountById(account.id))!;
+}
+async function collaborationProblem(owner: Account) {
+  const { createProblem } = await import("@/lib/problems.server");
+  return createProblem(owner, {
+    title: "How can this community reduce food waste?",
+    summary: "A shared question for the collaboration regression tests.",
+    category: "Community",
+  });
+}
+async function collaborationProposal(
+  owner: Account,
+  extra: Record<string, unknown> = {},
+) {
+  const { proposeImprovement } = await import("@/lib/improvements.server");
+  const problemId = await collaborationProblem(owner);
+  return proposeImprovement(owner, {
+    problemId,
+    title: "Try an earlier collection time",
+    change: "Move collection to the morning and record participation.",
+    reasoning: "An earlier time may fit more participants’ schedules.",
+    ...extra,
+  });
+}
+
+describe("collaboration access boundaries", () => {
+  it("keeps restricted contents private while exposing only a directory title", async () => {
+    const w = await import("@/lib/workspaces.server");
+    const owner = await collaborationActor(),
+      outsider = await collaborationActor();
+    const id = await w.createWorkspace(owner, {
+      title: "Restricted research team",
+      goal: "SECRET GOAL: unannounced experiment",
+      strategy: "SECRET STRATEGY",
+      visibility: "restricted",
+    });
+    await w.addItem(owner, id, {
+      kind: "evidence",
+      title: "Confidential measurements",
+      body: "SECRET RESULTS",
+    });
+    expect(await w.getWorkspace(id)).toBeUndefined();
+    expect(await w.getWorkspace(id, outsider)).toBeUndefined();
+    const listing = (await w.listWorkspaces()).find((x) => x.id === id)!;
+    expect(listing.title).toBe("Restricted research team");
+    expect(JSON.stringify(listing)).not.toContain("SECRET");
+    expect(listing.members).toHaveLength(0);
+    expect((await w.workspacePreview(id))?.title).toBe(listing.title);
+    await w.setMemberRole(owner, id, outsider.name, "viewer");
+    expect((await w.getWorkspace(id, outsider))?.workspace.items[0].body).toBe(
+      "SECRET RESULTS",
+    );
+    const privateId = await w.createWorkspace(owner, {
+      title: "A private team",
+      goal: "This must stay out of the directory",
+    });
+    expect((await w.listWorkspaces()).some((x) => x.id === privateId)).toBe(
+      false,
+    );
+    expect(await w.workspacePreview(privateId)).toBeUndefined();
+  });
+  it("revokes a contributor’s write access after demotion to viewer", async () => {
+    const w = await import("@/lib/workspaces.server");
+    const owner = await collaborationActor(),
+      contributor = await collaborationActor();
+    const id = await w.createWorkspace(owner, {
+      title: "A public team",
+      goal: "Track useful improvements in the community",
+      visibility: "public",
+    });
+    await w.joinWorkspace(contributor, id);
+    const item = await w.addItem(contributor, id, {
+      kind: "idea",
+      title: "A useful proposal",
+    });
+    await w.moveItem(contributor, id, item, "review");
+    await w.setMemberRole(owner, id, contributor.name, "viewer");
+    await expect(
+      w.moveItem(contributor, id, item, "ready"),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      w.addItem(contributor, id, { kind: "idea", title: "No longer allowed" }),
+    ).rejects.toMatchObject({ status: 403 });
+    expect((await w.getWorkspace(id))?.workspace.items[0].status).toBe(
+      "review",
+    );
+  });
+  it("rejects ambiguous invitations and inherited item kinds, and refuses external disguised links", async () => {
+    const w = await import("@/lib/workspaces.server");
+    const owner = await collaborationActor();
+    await collaborationActor("A shared display name");
+    await collaborationActor("A shared display name");
+    const id = await w.createWorkspace(owner, {
+      title: "A private team",
+      goal: "A workspace with deliberately private material",
+    });
+    await expect(
+      w.setMemberRole(owner, id, "A shared display name", "editor"),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      w.addItem(owner, id, { kind: "toString", title: "Invalid kind" }),
+    ).rejects.toThrow("Choose what");
+    await w.addItem(owner, id, {
+      kind: "idea",
+      title: "A link to test",
+      href: "//external.example",
+    });
+    expect(
+      (await w.getWorkspace(id, owner))?.workspace.items[0].link,
+    ).toBeUndefined();
+  });
+  it("does not allow outsiders to discuss or resolve a private proposal draft", async () => {
+    const i = await import("@/lib/improvements.server");
+    const owner = await collaborationActor(),
+      outsider = await collaborationActor();
+    const id = await collaborationProposal(owner, { draft: true });
+    await expect(
+      i.addImprovementEvent(outsider, id, {
+        kind: "comment",
+        body: "Trying to write into a private draft",
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(await i.getImprovement(id, outsider.id)).toBeUndefined();
+    const event = await i.addImprovementEvent(owner, id, {
+      kind: "question",
+      body: "A private question for later",
+    });
+    await expect(
+      i.resolveImprovementEvent(outsider, id, event, true),
+    ).rejects.toMatchObject({ status: 404 });
+    expect((await i.getImprovement(id, owner.id))?.events).toHaveLength(2);
+  });
+});
+
+describe("concurrent collaboration writes", () => {
+  it("keeps every parallel test run and preserves a simultaneous results update", async () => {
+    const t = await import("@/lib/tests.server");
+    const owner = await collaborationActor();
+    const id = await t.createTest(
+      owner,
+      {
+        title: "Participation at an earlier time",
+        plan: { objective: "Measure participation for each collection time" },
+      },
+      {},
+    );
+    await Promise.all([
+      ...Array.from({ length: 8 }, (_, n) =>
+        t.updateTest(owner, id, {
+          action: "run",
+          measurement: `Run ${n}: ${10 + n} participants`,
+          date: "2026-11-08",
+        }),
+      ),
+      t.updateTest(owner, id, {
+        action: "results",
+        summary: "The recorded runs are available for review",
+        rows: [
+          {
+            measure: "Participation",
+            observed: "Eight runs",
+            criterion: "Complete the pilot",
+            met: true,
+          },
+        ],
+      }),
+    ]);
+    const result = await t.getTest(id);
+    expect(result?.runs).toHaveLength(8);
+    expect(new Set(result?.runs.map((r) => r.measurement)).size).toBe(8);
+    expect(result?.results?.summary).toBe(
+      "The recorded runs are available for review",
+    );
+  });
+  it("serializes proposal transitions and merges independent detail revisions", async () => {
+    const i = await import("@/lib/improvements.server");
+    const owner = await collaborationActor();
+    const id = await collaborationProposal(owner);
+    const changes = await Promise.allSettled([
+      i.setImprovementStatus(owner, id, {
+        status: "ready",
+        note: "Ready after review",
+      }),
+      i.setImprovementStatus(owner, id, {
+        status: "ready",
+        note: "A concurrent request",
+      }),
+    ]);
+    expect(changes.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    await Promise.all([
+      i.reviseImprovement(owner, id, { benefit: "A newly recorded benefit" }),
+      i.reviseImprovement(owner, id, { risks: "A separately recorded risk" }),
+    ]);
+    const proposal = await i.getImprovement(id);
+    expect(proposal?.events.filter((e) => e.kind === "status")).toHaveLength(1);
+    expect(proposal?.benefit).toBe("A newly recorded benefit");
+    expect(proposal?.risks).toBe("A separately recorded risk");
+  });
+  it("includes live proposal activity and does not confuse people who share a display name", async () => {
+    const i = await import("@/lib/improvements.server");
+    const { activityFor } = await import("@/lib/activity.server");
+    const owner = await collaborationActor("Same name in activity"),
+      other = await collaborationActor("Same name in activity");
+    const id = await collaborationProposal(owner);
+    await i.addImprovementEvent(other, id, {
+      kind: "concern",
+      body: "Will the revised time exclude shift workers?",
+    });
+    const proposal = (await i.allImprovements(300)).find((x) => x.id === id);
+    expect(proposal?.events).toHaveLength(2);
+    expect(
+      (await activityFor(owner)).some(
+        (x) => x.kind === "review" && x.group === proposal?.title,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("durable detail lookup", () => {
+  it("loads an older saved draft beyond the first directory page without exposing it to another person", async () => {
+    const d = await import("@/lib/drafts.server");
+    const owner = await collaborationActor(),
+      other = await collaborationActor();
+    const id = await d.saveDraft(owner, {
+      data: { title: "The oldest draft" },
+    });
+    for (let n = 0; n < 52; n++)
+      await d.saveDraft(owner, { data: { title: `A newer draft ${n}` } });
+    expect((await d.getDraft(owner, id))?.title).toBe("The oldest draft");
+    expect(await d.getDraft(other, id)).toBeUndefined();
+  });
+});
+
+describe("reviewed publishing and identity", () => {
+  it("uses distinct public handles for same-name people and expires sessions", async () => {
+    const { query } = await import("@/lib/db.server");
+    const p = await import("@/lib/profile.server");
+    const w = await import("@/lib/workspaces.server");
+    const owner = await collaborationActor(),
+      first = await collaborationActor("Two people named Adwoa"),
+      second = await collaborationActor("Two people named Adwoa");
+    expect(first.publicId).not.toBe(first.id);
+    expect(first.publicId).not.toBe(second.publicId);
+    expect(await p.profileByName(first.name)).toBeUndefined();
+    expect((await p.profileByName(`p_${first.publicId}`))?.id).toBe(first.id);
+    const id = await w.createWorkspace(owner, {
+      title: "Handle invitations",
+      goal: "Invite exactly the person intended",
+    });
+    await w.setMemberRole(
+      owner,
+      id,
+      `https://example.com/people/p_${first.publicId}?tab=contributions`,
+      "viewer",
+    );
+    expect((await w.getWorkspace(id, first))?.role).toBe("viewer");
+    expect(await w.getWorkspace(id, second)).toBeUndefined();
+    const s = await store();
+    const { token } = await s.insertAccount("An expiring browser", "");
+    expect(await s.accountByToken(token)).toBeDefined();
+    await query(
+      "UPDATE web.tokens SET expires_at = now() - interval '1 second' WHERE token_hash = $1",
+      [s.hashToken(token)],
+    );
+    expect(await s.accountByToken(token)).toBeUndefined();
+  });
+  it("bounds decoded image dimensions and ignores forged client dimensions", async () => {
+    const s = await store();
+    const { createEntry, publishedEntry } =
+      await import("@/lib/entries.server");
+    const owner = await collaborationActor();
+    const bytes = await sharp({
+      create: { width: 2400, height: 1200, channels: 3, background: "#4a6" },
+    })
+      .jpeg()
+      .toBuffer();
+    const form = new FormData();
+    form.set(
+      "entry",
+      JSON.stringify({
+        title: "A bounded photo upload",
+        classification: "worked",
+        trying: "Keep pictures efficient to render",
+        happened: "The uploaded photo was resized before delivery",
+      }),
+    );
+    form.set(
+      "media",
+      JSON.stringify([
+        { alt: "A plain green sample", width: 999999, height: 1 },
+      ]),
+    );
+    form.set(
+      "file-0",
+      new File([new Uint8Array(bytes)], "image.jpg", { type: "image/jpeg" }),
+    );
+    const id = await createEntry(owner, form);
+    const entry = await publishedEntry(id);
+    expect(entry?.cover).toMatchObject({ width: 1600, height: 800 });
+    const fileId = entry!.cover!.src.split("/").at(-1)!;
+    expect((await s.fileById(fileId))?.status).toBe("approved");
+    expect(
+      (await sharp(await readFile(s.filePath(fileId))).metadata()).width,
+    ).toBe(1600);
+  });
+  it("removes earlier staged attachments if a later attachment rejects publication", async () => {
+    const { createEntry } = await import("@/lib/entries.server");
+    const { query } = await import("@/lib/db.server");
+    const owner = await collaborationActor();
+    const bytes = await sharp({
+      create: { width: 4, height: 4, channels: 3, background: "#779" },
+    })
+      .png()
+      .toBuffer();
+    const form = new FormData();
+    form.set(
+      "entry",
+      JSON.stringify({
+        title: "An aborted publication",
+        classification: "failed",
+        trying: "Publish two attachments",
+        happened: "One attachment could not be read",
+      }),
+    );
+    form.set(
+      "media",
+      JSON.stringify([
+        { alt: "An acceptable first image" },
+        { alt: "An invalid second image" },
+      ]),
+    );
+    form.set("file-0", new File([new Uint8Array(bytes)], "valid.png"));
+    form.set("file-1", new File(["invalid bytes"], "invalid.png"));
+    await expect(createEntry(owner, form)).rejects.toThrow(/Only JPEG/);
+    expect(
+      await query("SELECT id FROM web.files WHERE owner = $1", [owner.id]),
+    ).toHaveLength(0);
+    expect(
+      await query("SELECT id FROM web.entries WHERE owner = $1", [owner.id]),
+    ).toHaveLength(0);
+  });
+  it("preserves independent plan field edits and resolves old problems outside the directory window", async () => {
+    const { query } = await import("@/lib/db.server");
+    const i = await import("@/lib/improvements.server");
+    const p = await import("@/lib/problems.server");
+    const owner = await collaborationActor();
+    const proposal = await collaborationProposal(owner);
+    await Promise.all([
+      i.reviseImprovement(owner, proposal, {
+        plan: { objective: "Record the participation rate" },
+      }),
+      i.reviseImprovement(owner, proposal, {
+        plan: { procedure: "Count participants every morning" },
+      }),
+    ]);
+    expect((await i.getImprovement(proposal))?.plan).toMatchObject({
+      objective: "Record the participation rate",
+      procedure: "Count participants every morning",
+    });
+    const oldest = await collaborationProblem(owner);
+    await query(
+      "UPDATE web.problems SET created = now() - interval '2 days' WHERE id = $1",
+      [oldest],
+    );
+    const s = await store();
+    const ids = Array.from({ length: 302 }, () => s.newId());
+    await query(
+      "INSERT INTO web.problems (id, owner, data) SELECT id, $2::uuid, $3::jsonb FROM unnest($1::uuid[]) id",
+      [
+        ids,
+        owner.id,
+        JSON.stringify({
+          title: "A newer public problem",
+          summary: "Used only for directory pagination regression",
+          category: "General",
+          needs: [],
+          constraints: [],
+          known: [],
+          unknowns: [],
+        }),
+      ],
+    );
+    expect((await p.listProblems()).some((x) => x.id === oldest)).toBe(false);
+    expect((await p.problemWork(oldest))?.problem.id).toBe(oldest);
+  });
+  it("follows public people, categories and workspace updates without revealing restricted items", async () => {
+    const { query } = await import("@/lib/db.server");
+    const { setFollow } = await import("@/lib/follows.server");
+    const { activityFor } = await import("@/lib/activity.server");
+    const { createEntry } = await import("@/lib/entries.server");
+    const w = await import("@/lib/workspaces.server");
+    const owner = await collaborationActor(),
+      reader = await collaborationActor();
+    const publicId = await w.createWorkspace(owner, {
+      title: "Public activity team",
+      goal: "Share progress with the public",
+      visibility: "public",
+    });
+    const restrictedId = await w.createWorkspace(owner, {
+      title: "Restricted activity team",
+      goal: "Keep the work inside this team",
+      visibility: "restricted",
+    });
+    for (const [type, id] of [
+      ["person", owner.publicId!],
+      ["category", "software"],
+      ["workspace", publicId],
+      ["workspace", restrictedId],
+    ])
+      await setFollow(reader, type, id, true);
+    await query(
+      "UPDATE web.follows SET created = now() - interval '1 day' WHERE account = $1",
+      [reader.id],
+    );
+    const form = new FormData();
+    form.set(
+      "entry",
+      JSON.stringify({
+        title: "An attempt worth following",
+        classification: "worked",
+        trying: "Record progress for our followers",
+        happened: "A new published experience is available",
+      }),
+    );
+    const entry = await createEntry(owner, form);
+    await w.addItem(owner, publicId, {
+      kind: "idea",
+      title: "An idea for everyone",
+    });
+    await w.addItem(owner, restrictedId, {
+      kind: "idea",
+      title: "SECRET restricted idea",
+    });
+    const activity = await activityFor(reader);
+    expect(activity.some((x) => x.href === `/entries/${entry}`)).toBe(true);
+    expect(activity.some((x) => x.href === `/workspaces/${publicId}`)).toBe(
+      true,
+    );
+    expect(JSON.stringify(activity)).not.toContain("SECRET");
   });
 });

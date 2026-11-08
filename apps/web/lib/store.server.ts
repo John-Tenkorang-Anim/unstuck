@@ -6,6 +6,7 @@ import { StoreError } from "./errors.server";
 import { HashMatch, scan, type Kind } from "./scan.server";
 import { matchHash } from "./hashlist.server";
 import { storage } from "./storage.server";
+import sharp from "sharp";
 import type {
   Block,
   Pin,
@@ -18,6 +19,7 @@ import type { Entry, Moment } from "./types";
 export { StoreError };
 export interface Account {
   id: string;
+  publicId?: string;
   name: string;
   role: string;
   moderator: boolean;
@@ -44,6 +46,10 @@ export interface SharedSession extends Session {
     alt: string;
     moments?: Moment[];
     duration?: number;
+    transcript?: string;
+    captions?: string;
+    captionLanguage?: string;
+    silent?: boolean;
   };
 }
 export interface StoredNote extends SessionNote {
@@ -53,7 +59,16 @@ export interface StoredNote extends SessionNote {
   hidden?: boolean;
 }
 export type TargetType =
-  "session" | "note" | "entry" | "comment" | "explanation" | "community";
+  | "session"
+  | "note"
+  | "entry"
+  | "comment"
+  | "explanation"
+  | "community"
+  | "improvement"
+  | "problem"
+  | "test"
+  | "workspace";
 
 export const newId = () => randomUUID();
 export const hashToken = (token: string) =>
@@ -122,7 +137,12 @@ export const sizeLimits = { image: 15e6, video: 100e6, pdf: 20e6 };
 /** Identify a file by its first bytes, never by its name or declared type. */
 export const sniff = (bytes: Buffer) => signatures.find((s) => s.test(bytes));
 
-export async function saveFile(owner: string, name: string, input: Buffer) {
+export async function saveFile(
+  owner: string,
+  name: string,
+  input: Buffer,
+  options: { staged?: boolean } = {},
+) {
   const type = sniff(input);
   if (!type)
     throw new StoreError(
@@ -141,29 +161,93 @@ export async function saveFile(owner: string, name: string, input: Buffer) {
     // Say nothing that would help someone probe the list.
     throw new StoreError("This file can’t be shared.", 400);
   }
+  // Scan the sanitized original before limiting what readers have to decode.
+  // Retain the perceptual hash so future moderation checks use the same image.
+  if (type.kind === "image") {
+    checked.bytes = await sharp(checked.bytes)
+      .resize({
+        width: 1600,
+        height: 1600,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .toBuffer();
+  }
   const file: StoredFile = {
     id: newId(),
     owner,
     mime: type.mime,
     bytes: checked.bytes.length,
     name: name.slice(0, 120) || "upload",
-    status: checked.status,
+    status: options.staged ? "pending" : checked.status,
   };
-  await storage().put("files", file.id, checked.bytes, file.mime);
-  await query(
-    "INSERT INTO web.files (id, owner, mime, bytes, name, status, scan, pdq) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
-    [
-      file.id,
-      owner,
-      file.mime,
-      file.bytes,
-      file.name,
-      file.status,
-      checked.note,
-      checked.pdq ?? null,
-    ],
+  const dimensions =
+    type.kind === "image" ? await sharp(checked.bytes).metadata() : undefined;
+  try {
+    await storage().put("files", file.id, checked.bytes, file.mime);
+    await query(
+      "INSERT INTO web.files (id, owner, mime, bytes, name, status, scan, pdq) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+      [
+        file.id,
+        owner,
+        file.mime,
+        file.bytes,
+        file.name,
+        file.status,
+        checked.note,
+        checked.pdq ?? null,
+      ],
+    );
+  } catch (error) {
+    await storage()
+      .remove("files", file.id)
+      .catch(() => undefined);
+    throw error;
+  }
+  return {
+    file,
+    kind: type.kind,
+    intendedStatus: checked.status,
+    width: dimensions?.width,
+    height: dimensions?.height,
+  };
+}
+
+export interface StagedFile {
+  id: string;
+  status: "pending" | "approved";
+}
+async function activateFiles(
+  client: import("pg").PoolClient,
+  owner: string,
+  files: StagedFile[],
+) {
+  for (const file of files) {
+    const result = await client.query(
+      "UPDATE web.files SET status = $3 WHERE id = $1 AND owner = $2 AND status = 'pending' AND NOT quarantined RETURNING id",
+      [file.id, owner, file.status],
+    );
+    if (!result.rowCount)
+      throw new StoreError(
+        "An attachment changed during review. Please try again.",
+        409,
+      );
+  }
+}
+/** Failed publications leave no public files; protected moderation evidence is retained. */
+export async function discardStagedFiles(owner: string, ids: string[]) {
+  if (!ids.length) return;
+  const rows = await query<{ id: string }>(
+    "DELETE FROM web.files WHERE owner = $1 AND id = ANY($2) AND status = 'pending' AND NOT quarantined RETURNING id",
+    [owner, ids],
   );
-  return { file, kind: type.kind };
+  await Promise.all(
+    rows.map((row) =>
+      storage()
+        .remove("files", row.id)
+        .catch(() => undefined),
+    ),
+  );
 }
 /**
  * Keep a matched upload as evidence where nothing can serve it, suspend the
@@ -296,6 +380,12 @@ export const limits = {
   helpful: { max: 300, seconds: 3600 },
   community: { max: 5, seconds: 86400 },
   join: { max: 120, seconds: 3600 },
+  improvement: { max: 20, seconds: 3600 },
+  problem: { max: 10, seconds: 3600 },
+  test: { max: 20, seconds: 3600 },
+  workspace: { max: 5, seconds: 3600 },
+  workspaceItem: { max: 120, seconds: 3600 },
+  draft: { max: 300, seconds: 3600 },
 };
 /**
  * Count recent events for a key and refuse once the window is full. The
@@ -329,15 +419,15 @@ export async function rateLimit(kind: keyof typeof limits, who: string) {
 
 /* Accounts --------------------------------------------------------------- */
 const accountColumns =
-  "a.id, a.name, a.role, a.moderator, a.suspended, a.created";
+  'a.id, a.public_id AS "publicId", a.name, a.role, a.moderator, a.suspended, a.created';
 export async function insertAccount(name: string, role: string) {
-  const account = { id: newId(), name, role };
+  const account = { id: newId(), publicId: newId(), name, role };
   const token = newToken();
   const recovery = newRecoveryCode();
   await transaction(async (client) => {
     await client.query(
-      "INSERT INTO web.accounts (id, name, role) VALUES ($1,$2,$3)",
-      [account.id, name, role],
+      "INSERT INTO web.accounts (id, public_id, name, role) VALUES ($1,$2,$3,$4)",
+      [account.id, account.publicId, name, role],
     );
     await client.query(
       "INSERT INTO web.tokens (token_hash, account_id) VALUES ($1,$2)",
@@ -352,7 +442,7 @@ export async function insertAccount(name: string, role: string) {
 }
 export async function accountByToken(token: string) {
   const [account] = await query<Account>(
-    `SELECT ${accountColumns} FROM web.tokens t JOIN web.accounts a ON a.id = t.account_id WHERE t.token_hash = $1`,
+    `SELECT ${accountColumns} FROM web.tokens t JOIN web.accounts a ON a.id = t.account_id WHERE t.token_hash = $1 AND t.expires_at > now()`,
     [hashToken(token)],
   );
   return account;
@@ -520,12 +610,18 @@ const toSession = (row: Row): SharedSession =>
     hidden: row.hidden,
     created: row.created.toISOString(),
   }) as SharedSession;
-export async function insertSession(session: SharedSession) {
+export async function insertSession(
+  session: SharedSession,
+  files: StagedFile[] = [],
+) {
   const { id, owner, status, created: _c, hidden: _h, ...data } = session;
-  await query(
-    "INSERT INTO web.sessions (id, owner, data, status) VALUES ($1,$2,$3,$4)",
-    [id, owner, data, status],
-  );
+  await transaction(async (client) => {
+    await client.query(
+      "INSERT INTO web.sessions (id, owner, data, status) VALUES ($1,$2,$3,$4)",
+      [id, owner, data, status],
+    );
+    await activateFiles(client, owner, files);
+  });
 }
 const isUuid = (id: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id);
@@ -644,12 +740,18 @@ type EntryRow = {
   hidden: boolean;
   created: Date;
 };
-export async function insertEntry(entry: Entry, owner: string) {
-  await query("INSERT INTO web.entries (id, owner, data) VALUES ($1,$2,$3)", [
-    entry.id,
-    owner,
-    entry,
-  ]);
+export async function insertEntry(
+  entry: Entry,
+  owner: string,
+  files: StagedFile[] = [],
+) {
+  await transaction(async (client) => {
+    await client.query(
+      "INSERT INTO web.entries (id, owner, data) VALUES ($1,$2,$3)",
+      [entry.id, owner, entry],
+    );
+    await activateFiles(client, owner, files);
+  });
 }
 export async function storedEntries(includeHidden = false) {
   return (
@@ -678,6 +780,10 @@ const tables: Record<TargetType, string> = {
   comment: "web.comments",
   explanation: "web.explanations",
   community: "web.communities",
+  improvement: "web.improvements",
+  problem: "web.problems",
+  test: "web.tests",
+  workspace: "web.workspaces",
 };
 /**
  * File a report. Each person can report a thing once. When enough different
@@ -812,7 +918,9 @@ export async function preview(type: TargetType, id: string) {
         ? "t.title, t.detail AS body, t.entry_id"
         : type === "community"
           ? "t.data->>'name' AS title, t.data->>'about' AS body, NULL AS entry_id"
-          : "coalesce(t.data->>'title', left(t.data->>'body', 200)) AS title, coalesce(t.data->>'wentWrong', t.data->>'excerpt', '') AS body, NULL AS entry_id";
+          : type === "improvement"
+            ? "coalesce(t.details->>'title', left(t.change, 200)) AS title, t.reasoning AS body, t.entry_id"
+            : "coalesce(t.data->>'title', left(t.data->>'body', 200)) AS title, coalesce(t.data->>'wentWrong', t.data->>'excerpt', '') AS body, NULL AS entry_id";
   const [row] = await query<{
     title: string;
     body: string;

@@ -28,7 +28,7 @@ export const sampleCommunities: Community[] = [
     name: "Smallholder growers",
     about:
       "Small farms and kitchen gardens: storage, soil, water, pests and what the weather did this year.",
-    topic: "Food & farming",
+    topic: "Agriculture",
     rules: [
       "Say where you farm and what the weather was doing.",
       "Share what you measured, even roughly.",
@@ -41,7 +41,7 @@ export const sampleCommunities: Community[] = [
     name: "Fix it at home",
     about:
       "Furniture, plumbing, heat and the repairs you would rather do yourself before calling someone.",
-    topic: "Making & fixing",
+    topic: "Everyday life",
     rules: [
       "Photos of the problem help more than descriptions.",
       "Say when a repair needs a professional, such as gas or mains wiring.",
@@ -54,7 +54,7 @@ export const sampleCommunities: Community[] = [
     name: "Web developers",
     about:
       "Bugs that only appear in production, builds that fail in CI, and the fixes that held.",
-    topic: "Software",
+    topic: "Technology",
     rules: [
       "Include versions and the exact error.",
       "Remove secrets and customer data from logs before posting.",
@@ -67,7 +67,7 @@ export const sampleCommunities: Community[] = [
     name: "Maths and physics help",
     about:
       "Homework and lab work, shown step by step. Hints first, so you still learn it yourself.",
-    topic: "Research",
+    topic: "Education",
     rules: [
       "Show your working, not just the answer you got.",
       "Give hints first. Full solutions only if the asker says it isn’t graded.",
@@ -80,7 +80,7 @@ export const sampleCommunities: Community[] = [
     name: "Engineering failures",
     about:
       "Documented failures in structures and machines, and what designers changed afterwards.",
-    topic: "Making & fixing",
+    topic: "Engineering",
     rules: [
       "Cite sources for historical cases.",
       "Separate what is known from what is your interpretation.",
@@ -93,12 +93,57 @@ export const sampleCommunities: Community[] = [
     name: "Classroom research",
     about:
       "Teachers and students testing ideas in real classrooms, including the results that showed nothing.",
-    topic: "Research",
+    topic: "Education",
     rules: [
       "Never post students’ names, faces or identifiable work.",
       "Describe your method and sample size.",
       "Null results are welcome here.",
     ],
+    sample: true,
+  },
+  {
+    slug: "energy-and-materials",
+    name: "Energy & materials",
+    about:
+      "Solar, batteries, coatings and materials that behaved differently outside the lab.",
+    topic: "Energy & materials",
+    rules: ["Say how long it was tested and in what conditions."],
+    sample: true,
+  },
+  {
+    slug: "small-business",
+    name: "Small business",
+    about:
+      "Selling, delivering, pricing and running a small business, including what cost money.",
+    topic: "Small business",
+    rules: ["Share numbers where you can, even rough ones."],
+    sample: true,
+  },
+  {
+    slug: "recycling-and-waste",
+    name: "Recycling & waste",
+    about:
+      "Sorting, collecting and reusing waste in streets, schools and towns.",
+    topic: "Recycling & waste",
+    rules: [],
+    sample: true,
+  },
+  {
+    slug: "teaching-maths",
+    name: "Teaching maths",
+    about:
+      "What helped students learn mathematics, and what took time without helping.",
+    topic: "Teaching maths",
+    rules: ["Never post students’ names or identifiable work."],
+    sample: true,
+  },
+  {
+    slug: "lab-experiments",
+    name: "Lab experiments",
+    about:
+      "Experiments that didn’t replicate, scale or behave, with methods and data.",
+    topic: "Lab experiments",
+    rules: ["Describe your method and sample size."],
     sample: true,
   },
 ];
@@ -115,17 +160,6 @@ export function slugify(name: string) {
 }
 /** Entry kinds that ask for help. Everything else can go in a library. */
 export const isQuestion = (kind: string) => kind === "problem";
-
-/**
- * Each community's icon takes the colour of a stellar spectral class, O to M,
- * picked from its address so it never changes.
- */
-export const spectralClasses = ["O", "B", "A", "F", "G", "K", "M"] as const;
-export function spectralClass(slug: string) {
-  let hash = 0;
-  for (const char of slug) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return spectralClasses[hash % spectralClasses.length];
-}
 
 /** Members' shared promises, on top of each community's own rules. */
 export const platformRules = [

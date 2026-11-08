@@ -1,4 +1,4 @@
-import { samplePictures } from "./data";
+import { sessionPictures } from "./data";
 import type { Clip, Picture, Topic } from "./types";
 
 /**
@@ -122,7 +122,7 @@ export const sampleSessions: Session[] = [
     id: "integration-by-parts-sign",
     kind: "critique",
     title: "Integration by parts: my answer is off by a sign",
-    field: "Research",
+    field: "Education",
     specialty: "Teaching & coursework",
     level: "First-year calculus",
     course: "Calculus II · Problem set 4, question 3",
@@ -183,7 +183,7 @@ export const sampleSessions: Session[] = [
     id: "moving-average-off-by-one",
     kind: "critique",
     title: "My moving average drops the last value",
-    field: "Software",
+    field: "Education",
     specialty: "Coursework",
     level: "Intro to programming",
     course: "CS 1110 · Lab 6",
@@ -233,7 +233,7 @@ export const sampleSessions: Session[] = [
     id: "pendulum-g-too-high",
     kind: "critique",
     title: "Pendulum lab: my value of g comes out at 10.2",
-    field: "Research",
+    field: "Education",
     specialty: "Lab & bench",
     level: "Physics 1 lab",
     course: "PHYS 1112 · Lab 2, simple pendulum",
@@ -287,7 +287,7 @@ export const sampleSessions: Session[] = [
     id: "first-print-spaghetti",
     kind: "critique",
     title: "My first 3D print turned into spaghetti halfway up",
-    field: "Making & fixing",
+    field: "Engineering",
     specialty: "Fabrication",
     level: "First-year design student",
     status: "in-review",
@@ -295,7 +295,7 @@ export const sampleSessions: Session[] = [
     wentWrong:
       "The base printed cleanly for about a centimetre, then the layers stopped stacking and the nozzle dragged loose strands around.",
     ask: "Is this a settings problem or a problem with my model? I have to reprint it for a project review on Friday.",
-    work: samplePictures.print,
+    work: sessionPictures.print,
     pins: [
       { id: "p1", x: 0.5, y: 0.78, label: "Base looks solid here" },
       { id: "p2", x: 0.52, y: 0.5, label: "Where the layers start to fail" },
@@ -345,7 +345,7 @@ export const sampleSessions: Session[] = [
     id: "dull-solder-joints",
     kind: "critique",
     title: "Circuit works only when I press on the board",
-    field: "Making & fixing",
+    field: "Engineering",
     specialty: "Electronics",
     level: "Electronics course, lab 4",
     status: "open",
@@ -353,7 +353,7 @@ export const sampleSessions: Session[] = [
     wentWrong:
       "My amplifier kit cuts in and out. If I press on one corner of the board it starts working again.",
     ask: "Can someone look at my joints and tell me which ones to redo?",
-    work: samplePictures.solder,
+    work: sessionPictures.solder,
     pins: [{ id: "p1", x: 0.47, y: 0.5, label: "This joint looks grey" }],
     rounds: [
       {
@@ -376,7 +376,7 @@ export const sampleSessions: Session[] = [
     id: "why-did-tacoma-twist",
     kind: "inquiry",
     title: "Why did the deck start twisting instead of just bouncing?",
-    field: "Making & fixing",
+    field: "Engineering",
     specialty: "Structures",
     level: "Structural dynamics reading group",
     status: "in-review",

@@ -1,4 +1,5 @@
 import "server-only";
+import { showExamples } from "./db.server";
 import { getNotebook } from "./api";
 import { examples } from "./data";
 import { entryDoc, sessionDoc, type Doc } from "./search";
@@ -18,28 +19,18 @@ export async function getCorpus(): Promise<{ docs: Doc[]; mode: string }> {
     ...(await publishedEntries()).map(entryDoc),
     ...(await listSharedSessions()).map(sessionDoc),
   ];
-  if (notebook.mode === "examples")
-    return {
-      docs: [
-        ...examples.map(entryDoc),
-        ...sampleSessions.map(sessionDoc),
-        ...shared,
-      ],
-      mode: "examples",
-    };
   return {
     docs: [
       ...notebook.entries
         .filter((entry) => !shared.some((doc) => doc.id === entry.id))
-        .map((entry) =>
-          entryDoc({
+        .map((entry) => entryDoc((entry.example && examples.find((e) => e.id === entry.id)) || ({
             ...entry,
             sections: [],
             context: {},
             evidence: [],
-          } as Entry),
-        ),
+          } as Entry))),
       ...shared,
+      ...(showExamples() ? sampleSessions.map(sessionDoc) : []),
     ],
     mode: notebook.mode,
   };

@@ -57,7 +57,8 @@ export default function Landing() {
             Unstuck
           </h1>
           <p className="lp-tagline">
-            Learn from <span className="lp-fail">what failed.</span>
+            Learn from what didn’t work.{" "}
+            <span className="lp-fail">Build what works next.</span>
           </p>
           <p className="lp-lede">
             Unstuck is where people post the attempts that didn’t work, mark the
@@ -115,74 +116,65 @@ export default function Landing() {
             <li className="lp-step lp-reveal">
               <div className="lp-visual lp-visual-photo">
                 <img
-                  src={samplePictures.print.small}
+                  src={samplePictures.solar.small}
                   alt=""
                   width={640}
-                  height={853}
+                  height={427}
                   loading="lazy"
                 />
-                <span className="lp-pin" style={{ left: "52%", top: "50%" }}>
+                <span className="lp-pin" style={{ left: "52%", top: "40%" }}>
                   1
                 </span>
-                <span className="lp-pin" style={{ left: "45%", top: "22%" }}>
-                  2
-                </span>
-                <span className="lp-tag" style={{ left: "8%", top: "60%" }}>
-                  Layers stop stacking here
+                <span className="lp-tag" style={{ left: "8%", top: "64%" }}>
+                  Coating turned cloudy here
                 </span>
               </div>
               <span className="lp-num">01</span>
-              <h3>Show what happened</h3>
+              <h3>Share what happened</h3>
               <p>
-                A photo, a short video, a PDF, your working. Paste it in and pin
-                the spot that went wrong.
+                What you tried, what you expected and what went wrong. Pin the
+                spot on a photo, PDF or video.
               </p>
             </li>
             <li className="lp-step lp-reveal">
-              <div className="lp-visual lp-visual-film">
+              <div className="lp-visual lp-visual-photo">
                 <img
-                  src={samplePictures.tacoma.small}
+                  src={samplePictures.lab.small}
                   alt=""
                   width={640}
-                  height={480}
+                  height={427}
                   loading="lazy"
                 />
-                <div className="lp-timeline">
-                  <span className="lp-progress" />
-                  <i style={{ left: "41%" }} />
-                  <i style={{ left: "78%" }} className="is-break" />
-                </div>
-                <span className="lp-moment">
-                  <b>1:56</b> The centre span tears loose
+                <span className="lp-tag" style={{ left: "8%", top: "70%" }}>
+                  Verified · oxygen fell below 5% by day 6
                 </span>
               </div>
               <span className="lp-num">02</span>
-              <h3>Mark the moment it broke</h3>
+              <h3>Show the evidence</h3>
               <p>
-                Flag the second in the footage where it went wrong, so people
-                can jump straight to it.
+                Photos, data, test results or a plain personal account. Each is
+                labelled for what it is.
               </p>
             </li>
             <li className="lp-step lp-reveal">
               <div className="lp-visual lp-visual-notes">
                 <p data-kind="issue">
-                  <b>Issue</b> The part came loose from the bed, so every layer
-                  after this printed into the air.
+                  <b>Why it happened</b> At 10 L, oxygen ran short in the middle
+                  of the vessel.
                 </p>
                 <p data-kind="suggestion">
-                  <b>Suggestion</b> Add a 5 mm brim and clean the bed before
-                  printing.
+                  <b>Improvement</b> Finer spargers, faster stirring, half the
+                  substrate.
                 </p>
                 <p data-kind="strength">
-                  <b>Working well</b> Your first layers are even. Bed levelling
-                  isn’t the problem.
+                  <b>Validated</b> Degradation rose from about 20% to 85%.
                 </p>
               </div>
               <span className="lp-num">03</span>
-              <h3>Find out why</h3>
+              <h3>Build what works next</h3>
               <p>
-                People who’ve been there point at the exact spot, step or line,
-                and say what to try next.
+                People explain why, propose improvements, test them, and the
+                results stay connected to the original attempt.
               </p>
             </li>
           </ol>

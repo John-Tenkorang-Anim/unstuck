@@ -56,11 +56,19 @@ export default async function Moderation() {
       ? `/entries/${entryId}?discuss=1#why`
       : type === "community"
         ? `/communities/${id}`
-        : type === "session"
-          ? `/sessions/${id}`
-          : type === "entry"
-            ? `/entries/${id}`
-            : `/sessions/${sessionId}#note-${id}`;
+        : type === "improvement"
+          ? `/improvements/${id}`
+          : type === "problem"
+            ? `/problems/${id}`
+            : type === "test"
+              ? `/tests/${id}`
+              : type === "workspace"
+                ? `/workspaces/${id}`
+                : type === "session"
+                  ? `/sessions/${id}`
+                  : type === "entry"
+                    ? `/entries/${id}`
+                    : `/sessions/${sessionId}#note-${id}`;
   return (
     <div className="frame moderation">
       <header className="page-bar">
@@ -141,10 +149,14 @@ export default async function Moderation() {
                         account: "Suspension",
                         session: "Hidden session",
                         note: "Hidden note",
-                        entry: "Hidden field note",
+                        entry: "Hidden attempt",
                         comment: "Hidden comment",
                         explanation: "Hidden explanation",
-                        community: "Hidden community",
+                        community: "Hidden category",
+                        improvement: "Hidden proposal",
+                        problem: "Hidden problem",
+                        test: "Hidden test",
+                        workspace: "Hidden workspace",
                       }[appeal.target_type]
                     }
                   </span>
@@ -203,12 +215,16 @@ export default async function Moderation() {
                   <span className="mod-type">
                     {
                       {
-                        entry: "Field note",
+                        entry: "Attempt",
                         session: "Session",
                         note: "Note",
                         comment: "Comment",
                         explanation: "Explanation",
-                        community: "Community",
+                        community: "Category",
+                        improvement: "Proposal",
+                        problem: "Problem",
+                        test: "Test",
+                        workspace: "Workspace",
                       }[item.target_type]
                     }
                   </span>

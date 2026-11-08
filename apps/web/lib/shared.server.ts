@@ -1,5 +1,5 @@
 import "server-only";
-import { hasDatabase, query } from "./db.server";
+import { hasDatabase, query, showExamples } from "./db.server";
 import {
   sampleSessions,
   sessionById,
@@ -42,7 +42,13 @@ function present(
   fileStatus: string | undefined,
   canSeePending: boolean,
 ): Session {
-  const session: Session = { ...stored, author: authorName };
+  const {
+    media: _media,
+    owner: _owner,
+    hidden: _hidden,
+    ...publicFields
+  } = stored;
+  const session: Session = { ...publicFields, author: authorName };
   const media = stored.media;
   const visible =
     fileStatus === "approved" || (fileStatus === "pending" && canSeePending);
@@ -73,6 +79,10 @@ function present(
       duration: media.duration ?? 60,
       title: media.alt,
       moments: media.moments ?? [],
+      transcript: media.transcript,
+      captions: media.captions,
+      captionLanguage: media.captionLanguage,
+      silent: media.silent,
     };
   if (media.kind === "pdf") session.pdf = { src, name: media.alt, bytes: 0 };
   return session;
@@ -90,32 +100,27 @@ const showNote = (note: StoredNote, names: People): SessionNote => {
 /** Shared sessions for lists and search, with their notes folded in. */
 export async function listSharedSessions(): Promise<Session[]> {
   if (!hasDatabase()) return [];
-  try {
-    const sessions = await storedSessions();
-    const notes = await notesFor(sessions.map((s) => s.id));
-    const names = await people([
-      ...sessions.map((s) => s.owner),
-      ...notes.map((n) => n.owner),
-    ]);
-    const files = await fileStatuses(
-      sessions.flatMap((s) => (s.media ? [s.media.file] : [])),
+  const sessions = await storedSessions();
+  const notes = await notesFor(sessions.map((s) => s.id));
+  const names = await people([
+    ...sessions.map((s) => s.owner),
+    ...notes.map((n) => n.owner),
+  ]);
+  const files = await fileStatuses(
+    sessions.flatMap((s) => (s.media ? [s.media.file] : [])),
+  );
+  return sessions.map((s) => {
+    const session = present(
+      s,
+      names.get(s.owner)?.name ?? "Someone",
+      s.media && files.get(s.media.file),
+      false,
     );
-    return sessions.map((s) => {
-      const session = present(
-        s,
-        names.get(s.owner)?.name ?? "Someone",
-        s.media && files.get(s.media.file),
-        false,
-      );
-      const own = notes
-        .filter((n) => n.sessionId === s.id)
-        .map((n) => showNote(n, names));
-      return { ...session, rounds: [{ ...session.rounds[0], notes: own }] };
-    });
-  } catch (error) {
-    console.error("Shared sessions are unavailable", error);
-    return [];
-  }
+    const own = notes
+      .filter((n) => n.sessionId === s.id)
+      .map((n) => showNote(n, names));
+    return { ...session, rounds: [{ ...session.rounds[0], notes: own }] };
+  });
 }
 /** A sample or shared session, its shared notes, and who owns it. */
 export async function loadSession(
@@ -123,7 +128,7 @@ export async function loadSession(
   viewer?: { id: string; moderator: boolean },
 ) {
   const stored = hasDatabase() ? await storedSession(id) : undefined;
-  const sample = stored ? undefined : sessionById(id);
+  const sample = stored || !showExamples() ? undefined : sessionById(id);
   if (!stored && !sample) return undefined;
   const isOwner = !!viewer && viewer.id === stored?.owner;
   if (stored?.hidden && !isOwner && !viewer?.moderator) return undefined;

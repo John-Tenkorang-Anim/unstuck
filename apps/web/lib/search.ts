@@ -170,7 +170,7 @@ export function entryDoc(entry: Entry): Doc {
     types.add("failures");
   if (entry.kind === "solution" || entry.outcome === "worked")
     types.add("fixes");
-  if (entry.kind === "research" || entry.topic === "Research")
+  if (entry.kind === "research" || entry.topic === "Science")
     types.add("research");
   if (entry.kind === "problem") types.add("questions");
   const sections = entry.sections ?? [];

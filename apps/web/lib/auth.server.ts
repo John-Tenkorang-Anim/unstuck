@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
-import { hasDatabase } from "./db.server";
+import { DatabaseUnavailable, hasDatabase } from "./db.server";
 import {
   accountByToken,
   clean,
@@ -13,7 +13,7 @@ import {
 } from "./store.server";
 
 const COOKIE = "unstuck-account";
-const year = 60 * 60 * 24 * 365;
+const sessionLifetime = 60 * 60 * 24 * 30;
 async function setCookie(token: string) {
   const secure = (await headers()).get("x-forwarded-proto") === "https";
   (await cookies()).set(COOKIE, token, {
@@ -21,7 +21,7 @@ async function setCookie(token: string) {
     sameSite: "lax",
     secure,
     path: "/",
-    maxAge: year,
+    maxAge: sessionLifetime,
   });
 }
 /** Who is asking, for rate limits on actions that don't need an account. */
@@ -45,7 +45,7 @@ export async function currentAccount(): Promise<Account | undefined> {
     return undefined;
   }
   if (!token) return undefined;
-  return accountByToken(token).catch(() => undefined);
+  return accountByToken(token);
 }
 export async function requireAccount() {
   requireDatabase();
@@ -94,7 +94,7 @@ export async function recoverAccount(code: unknown) {
 export async function signOut() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
-  if (token && hasDatabase()) await dropToken(token).catch(() => undefined);
+  if (token && hasDatabase()) await dropToken(token);
   jar.delete(COOKIE);
 }
 /** Writes must come from this site. Browsers always send Origin on POST. */
@@ -109,12 +109,18 @@ export const publicAccount = (account?: Account) =>
   account
     ? {
         id: account.id,
+        publicId: account.publicId,
         name: account.name,
         role: account.role,
         moderator: account.moderator,
       }
     : null;
 export function failure(error: unknown) {
+  if (error instanceof DatabaseUnavailable)
+    return Response.json(
+      { error: error.message },
+      { status: 503, headers: { "Retry-After": "2" } },
+    );
   if (error instanceof StoreError)
     return Response.json({ error: error.message }, { status: error.status });
   console.error(error);

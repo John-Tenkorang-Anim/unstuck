@@ -140,7 +140,7 @@ export default function About() {
       <section className="contribute-banner">
         <div className="frame contribute-inner">
           <h2>
-            What have you <span className="tint-star">learned lately?</span>
+            What have you <span className="tint-soft">learned lately?</span>
           </h2>
           <div>
             <p>It could be the beginning of someone else’s breakthrough.</p>

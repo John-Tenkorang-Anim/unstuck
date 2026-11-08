@@ -11,12 +11,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import {
-  platformRules,
-  spectralClass,
-  type Community,
-} from "@/lib/communities";
-import { topics } from "@/lib/data";
+import { platformRules, type Community } from "@/lib/communities";
 import { postJson, useAccount } from "./use-account";
 import { useNotebook } from "./notebook-provider";
 
@@ -98,11 +93,7 @@ export function JoinButton({
           <Dialog.Overlay className="palette-overlay" />
           <Dialog.Content className="palette join-dialog">
             <div className="join-dialog-head">
-              <span
-                className="community-mark"
-                data-class={spectralClass(slug)}
-                aria-hidden="true"
-              >
+              <span className="community-mark" aria-hidden="true">
                 {name.slice(0, 1)}
               </span>
               <div>
@@ -156,13 +147,18 @@ export function JoinButton({
                 <section aria-labelledby="join-rules">
                   <h3 id="join-rules">Rules</h3>
                   <ol className="join-rules">
-                    {community.rules.map((rule) => (
+                    {(community.rules.length
+                      ? community.rules
+                      : platformRules
+                    ).map((rule) => (
                       <li key={rule}>{rule}</li>
                     ))}
                   </ol>
-                  <p className="join-platform">
-                    And across Unstuck: {platformRules.join(" ")}
-                  </p>
+                  {community.rules.length > 0 && (
+                    <p className="join-platform">
+                      And across Unstuck: {platformRules.join(" ")}
+                    </p>
+                  )}
                 </section>
                 {!viewer && (
                   <div className="join-who-fields">
@@ -302,7 +298,6 @@ export function CreateCommunity({ enabled }: { enabled: boolean }) {
   const [form, setForm] = useState({
     name: "",
     about: "",
-    topic: "",
     rules: "",
     who: "",
   });
@@ -324,7 +319,6 @@ export function CreateCommunity({ enabled }: { enabled: boolean }) {
       const { slug } = await postJson<{ slug: string }>("/api/communities", {
         name: form.name,
         about: form.about,
-        topic: form.topic,
         rules: form.rules,
       });
       router.push(`/communities/${slug}`);
@@ -345,7 +339,7 @@ export function CreateCommunity({ enabled }: { enabled: boolean }) {
           maxLength={60}
           value={form.name}
           onChange={set("name")}
-          placeholder="Beekeepers in the Volta Region"
+          placeholder="Beekeeping in humid climates"
         />
       </label>
       <label>
@@ -361,20 +355,10 @@ export function CreateCommunity({ enabled }: { enabled: boolean }) {
         />
       </label>
       <label>
-        <span>Field</span>
-        <select required value={form.topic} onChange={set("topic")}>
-          <option value="" disabled>
-            Choose a field
-          </option>
-          {topics.map((t) => (
-            <option key={t}>{t}</option>
-          ))}
-        </select>
-      </label>
-      <label>
-        <span>Rules members agree to when they join</span>
+        <span>
+          Rules members agree to when they join <small>optional</small>
+        </span>
         <textarea
-          required
           rows={3}
           maxLength={1000}
           value={form.rules}
@@ -403,9 +387,9 @@ export function CreateCommunity({ enabled }: { enabled: boolean }) {
         </p>
       )}
       <div className="create-community-foot">
-        <p>Anyone can read, join and post. You can’t make it private.</p>
+        <p>Anyone can read, join and post. Categories are always open.</p>
         <button className="button button-dark" disabled={busy}>
-          {busy ? "Creating…" : "Create community"}
+          {busy ? "Creating…" : "Create category"}
         </button>
       </div>
     </form>

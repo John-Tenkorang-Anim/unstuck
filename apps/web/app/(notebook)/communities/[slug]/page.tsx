@@ -12,7 +12,7 @@ import { JoinButton } from "@/components/community-actions";
 import { AskBar, Library, QuestionList } from "@/components/question-list";
 import { ReportButton } from "@/components/report-button";
 import { currentAccount } from "@/lib/auth.server";
-import { isQuestion, platformRules, spectralClass } from "@/lib/communities";
+import { isQuestion, platformRules } from "@/lib/communities";
 import {
   communityBySlug,
   communityStats,
@@ -92,15 +92,12 @@ export default async function CommunityPage({
     <div className="frame community">
       <nav className="crumbs" aria-label="Breadcrumb">
         <Link href="/communities" className="back-link">
-          <ArrowLeft size={14} /> Communities
+          <ArrowLeft size={14} /> Categories
         </Link>
-        <span aria-hidden="true">/</span>
-        <span>{community.topic}</span>
       </nav>
       <header className="community-head">
         <span
           className="community-mark community-mark-large"
-          data-class={spectralClass(community.slug)}
           aria-hidden="true"
         >
           {community.name.slice(0, 1)}
@@ -144,8 +141,8 @@ export default async function CommunityPage({
       </header>
       {community.sample && (
         <p className="example-notice">
-          <span className="example-tag">Sample community</span> Its questions
-          and notes are fictional examples. Joining and posting are real.
+          <span className="example-tag">Sample category</span> Its questions and
+          notes are fictional examples. Joining and posting are real.
         </p>
       )}
 
@@ -234,9 +231,11 @@ export default async function CommunityPage({
           <aside className="members-rules" aria-labelledby="rules-title">
             <h2 id="rules-title">What members agree to</h2>
             <ol>
-              {community.rules.map((rule) => (
-                <li key={rule}>{rule}</li>
-              ))}
+              {(community.rules.length ? community.rules : platformRules).map(
+                (rule) => (
+                  <li key={rule}>{rule}</li>
+                ),
+              )}
             </ol>
             <p>Across Unstuck: {platformRules.join(" ")}</p>
           </aside>

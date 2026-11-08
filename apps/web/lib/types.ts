@@ -2,13 +2,11 @@ import type { PublicMediaManifest } from "./contracts/media-v1";
 export type EntryKind =
   "experience" | "problem" | "solution" | "idea" | "discovery" | "research";
 export type Outcome = "worked" | "failed" | "mixed" | "ongoing";
-export type Topic =
-  | "Food & farming"
-  | "Making & fixing"
-  | "Software"
-  | "Everyday life"
-  | "Research"
-  | "Community";
+/**
+ * A category name. Categories are open: anyone can create one or join others'
+ * (they are the communities), so this is any short label, not a fixed list.
+ */
+export type Topic = string;
 /** Where a sample image or video came from, shown wherever it appears. */
 export interface Credit {
   author: string;
@@ -39,6 +37,10 @@ export interface Clip {
   duration: number;
   title: string;
   moments: Moment[];
+  transcript?: string;
+  captions?: string;
+  captionLanguage?: string;
+  silent?: boolean;
   credit?: Credit;
 }
 export interface Entry {
@@ -83,16 +85,41 @@ export interface Entry {
   /** False when the author shared it only with their communities. */
   public?: boolean;
   media?: Attachment[];
+  /** The problem this attempt belongs to, by id. */
+  problem?: string;
+  /** Reusable takeaways, each labelled for what kind of claim it is. */
+  lessons?: Lesson[];
+  /** Questions the contributor still can't answer. */
+  questions?: string[];
+  links?: { label: string; url: string }[];
+  /** Evidence is the contributor's own account rather than documents. */
+  personalAccount?: boolean;
+  /** Whether the contributor invited suggestions and collaboration. */
+  openToHelp?: boolean;
+  affiliation?: string;
+  collaborators?: string[];
 }
+/**
+ * A lesson is a distinct, attributable statement. Saying whether it is an
+ * observation, an interpretation or a recommendation keeps what was seen
+ * apart from what someone thinks it means.
+ */
+export type LessonKind = "observation" | "interpretation" | "recommendation";
+export interface Lesson {
+  kind: LessonKind;
+  text: string;
+}
+export const lessonLabel: Record<LessonKind, string> = {
+  observation: "Observation",
+  interpretation: "Possible explanation",
+  recommendation: "Recommendation",
+};
 export interface Notebook {
   entries: EntrySummary[];
-  mode: "examples" | "live" | "unavailable";
+  mode: "examples" | "mixed" | "live" | "unavailable";
 }
 
-export type EntrySummary = Omit<
-  Entry,
-  "sections" | "context" | "evidence" | "media"
->;
+export type EntrySummary = Omit<Entry, "sections" | "context" | "media">;
 export type Attachment = {
   id: string;
   kind: "image" | "video";
@@ -103,7 +130,6 @@ export function summarizeEntry(entry: Entry): EntrySummary {
   const {
     sections: _sections,
     context: _context,
-    evidence: _evidence,
     media: _media,
     ...summary
   } = entry;

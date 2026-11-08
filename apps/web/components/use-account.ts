@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export type Viewer = {
   id: string;
+  publicId?: string;
   name: string;
   role: string;
   moderator?: boolean;
@@ -65,11 +66,16 @@ export function useAccount(initial?: Viewer) {
     return account;
   }, []);
   const refresh = useCallback(async () => {
-    const data = await fetch("/api/account").then((r) => r.json());
+    const response = await fetch("/api/account");
+    if (!response.ok)
+      throw new Error("Your account could not be checked. Please try again.");
+    const data = await response.json();
     publish(data.account ?? null);
   }, []);
   const signOut = useCallback(async () => {
-    await fetch("/api/account", { method: "DELETE" });
+    const response = await fetch("/api/account", { method: "DELETE" });
+    if (!response.ok)
+      throw new Error("Sign out did not complete. Please try again.");
     publish(null);
   }, []);
   return {

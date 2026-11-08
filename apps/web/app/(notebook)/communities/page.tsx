@@ -3,18 +3,16 @@ import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import { CreateCommunity, JoinButton } from "@/components/community-actions";
 import { currentAccount } from "@/lib/auth.server";
-import { spectralClass } from "@/lib/communities";
 import {
   communityStats,
   myCommunities,
   searchCommunities,
   type CommunitySort,
 } from "@/lib/communities.server";
-import { topics } from "@/lib/data";
 import { hasDatabase } from "@/lib/db.server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Communities" };
+export const metadata: Metadata = { title: "Categories" };
 const number = (n: number) => n.toLocaleString("en");
 const sorts: [CommunitySort, string][] = [
   ["members", "Most members"],
@@ -34,12 +32,11 @@ export default async function Communities({
 }) {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
-  const field = topics.find((t) => t === params.field) ?? "";
   const sort = sorts.find(([key]) => key === params.sort)?.[0] ?? "members";
   const page = Math.max(1, Number(params.page) || 1);
   const account = hasDatabase() ? await currentAccount() : undefined;
   const [found, yours] = await Promise.all([
-    searchCommunities({ q, field, sort, page }),
+    searchCommunities({ q, sort, page }),
     myCommunities(account),
   ]);
   const stats = await communityStats(
@@ -49,7 +46,6 @@ export default async function Communities({
   const link = (change: Record<string, string>) => {
     const next = new URLSearchParams({
       ...(q ? { q } : {}),
-      ...(field ? { field } : {}),
       ...(sort !== "members" ? { sort } : {}),
       ...change,
     });
@@ -60,26 +56,25 @@ export default async function Communities({
     <div className="frame communities">
       <header className="dir-head">
         <div>
-          <h1>Communities</h1>
-          <p>Open groups around one kind of problem. Anyone can join.</p>
+          <h1>Categories</h1>
+          <p>
+            Anyone can start a category or join others. Join one to see its
+            problems first and post into it.
+          </p>
         </div>
         <a className="button button-outline" href="#start">
-          <Plus size={15} aria-hidden="true" /> Start one
+          <Plus size={15} aria-hidden="true" /> Start a category
         </a>
       </header>
 
-      {yours.length > 0 && !q && !field && page === 1 && (
+      {yours.length > 0 && !q && page === 1 && (
         <section className="dir-yours" aria-labelledby="yours-title">
           <h2 id="yours-title">Yours</h2>
           <ul>
             {yours.map((c) => (
               <li key={c.slug}>
                 <Link href={`/communities/${c.slug}`}>
-                  <span
-                    className="community-mark"
-                    data-class={spectralClass(c.slug)}
-                    aria-hidden="true"
-                  >
+                  <span className="community-mark" aria-hidden="true">
                     {c.name.slice(0, 1)}
                   </span>
                   <span>
@@ -104,28 +99,13 @@ export default async function Communities({
             type="search"
             name="q"
             defaultValue={q}
-            aria-label="Search communities"
-            placeholder="Search communities"
+            aria-label="Search categories"
+            placeholder="Search categories"
           />
-          {field && <input type="hidden" name="field" value={field} />}
           {sort !== "members" && (
             <input type="hidden" name="sort" value={sort} />
           )}
         </form>
-        <details className="pick">
-          <summary>{field || "All fields"}</summary>
-          <div className="pick-menu">
-            {["", ...topics].map((t) => (
-              <Link
-                key={t}
-                href={link({ field: t, page: "" })}
-                aria-current={t === field ? "true" : undefined}
-              >
-                {t || "All fields"}
-              </Link>
-            ))}
-          </div>
-        </details>
         <nav className="dir-sort" aria-label="Sort">
           {sorts.map(([key, label]) => (
             <Link
@@ -141,8 +121,8 @@ export default async function Communities({
 
       <p className="dir-count" role="status">
         {found.total
-          ? `${number(found.total)} ${found.total === 1 ? "community" : "communities"}${q ? ` matching “${q}”` : ""}`
-          : `No community matches${q ? ` “${q}”` : ""} yet.`}
+          ? `${number(found.total)} ${found.total === 1 ? "category" : "categories"}${q ? ` matching “${q}”` : ""}`
+          : `No category matches${q ? ` “${q}”` : ""} yet. Start it below.`}
       </p>
 
       {found.items.length > 0 && (
@@ -151,11 +131,7 @@ export default async function Communities({
             const s = stats[c.slug];
             return (
               <li key={c.slug} className="dir-row">
-                <span
-                  className="community-mark"
-                  data-class={spectralClass(c.slug)}
-                  aria-hidden="true"
-                >
+                <span className="community-mark" aria-hidden="true">
                   {c.name.slice(0, 1)}
                 </span>
                 <div className="dir-main">
@@ -166,7 +142,6 @@ export default async function Communities({
                   </h3>
                   <p>{c.about}</p>
                   <p className="dir-meta">
-                    <span>{c.topic}</span>
                     <span>
                       {number(c.members)}{" "}
                       {c.members === 1 ? "member" : "members"}
@@ -215,10 +190,10 @@ export default async function Communities({
         aria-labelledby="start-title"
       >
         <div>
-          <h2 id="start-title">Start a community</h2>
+          <h2 id="start-title">Start a category</h2>
           <p>
-            Give a recurring kind of problem a home. Members see its questions
-            first, and what they learn builds its library.
+            Give a kind of problem a home. Members see its problems first, and
+            what they learn builds its library.
           </p>
         </div>
         <CreateCommunity enabled={hasDatabase()} />

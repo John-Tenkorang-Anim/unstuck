@@ -1,6 +1,7 @@
 import "server-only";
 import { currentAccount } from "./auth.server";
 import { hasDatabase, query } from "./db.server";
+import { cleanVideoText } from "./media/captions";
 import {
   clean,
   cleanMoments,
@@ -11,8 +12,11 @@ import {
   storedEntries,
   storedEntry,
   StoreError,
+  discardStagedFiles,
+  type StagedFile,
 } from "./store.server";
 import { communityBySlug } from "./communities.server";
+import { categoryName, categorySlug } from "./taxonomy";
 import type {
   Entry,
   EntryKind,
@@ -32,16 +36,20 @@ type StoredMedia = {
   duration?: number;
   moments?: Moment[];
   pins?: { x: number; y: number; label: string }[];
+  transcript?: string;
+  captions?: string;
+  captionLanguage?: string;
+  silent?: boolean;
 };
 type StoredEntry = Entry & { files?: StoredMedia[]; hidden?: boolean };
 
 const topicFor: Record<string, Topic> = {
   everyday: "Everyday life",
-  making: "Making & fixing",
-  farming_food: "Food & farming",
-  software: "Software",
-  research: "Research",
-  work_business: "Everyday life",
+  making: "Engineering",
+  farming_food: "Agriculture",
+  software: "Technology",
+  research: "Science",
+  work_business: "Business",
   community: "Community",
 };
 const outcomes: Record<EntryKind, Outcome[]> = {
@@ -53,15 +61,158 @@ const outcomes: Record<EntryKind, Outcome[]> = {
   research: ["worked", "failed", "mixed"],
 };
 
-/** Build a field note from the composer's form and its uploaded files. */
-export async function createEntry(
-  owner: { id: string; name: string },
-  form: FormData,
-) {
-  const input = JSON.parse(String(form.get("entry") ?? "{}")) as Record<
-    string,
-    string
-  >;
+/** How a contributor described the outcome, mapped to kind and outcome. */
+const classifications: Record<string, [EntryKind, Outcome]> = {
+  failed: ["experience", "failed"],
+  partial: ["experience", "mixed"],
+  worked: ["experience", "worked"],
+  unexpected: ["discovery", "mixed"],
+  ongoing: ["discovery", "ongoing"],
+};
+const licences = [
+  "CC BY 4.0",
+  "CC BY-SA 4.0",
+  "CC BY-NC 4.0",
+  "All rights reserved",
+];
+type Built = Pick<
+  StoredEntry,
+  | "kind"
+  | "title"
+  | "outcome"
+  | "sections"
+  | "excerpt"
+  | "topic"
+  | "place"
+  | "context"
+> &
+  Partial<StoredEntry>;
+
+/**
+ * An attempt from the Contribute flow: describe, evidence, lessons, rights.
+ * Only the description is required; everything else makes it more useful.
+ */
+async function fromContribution(
+  input: Record<string, unknown>,
+): Promise<Built> {
+  const text = (key: string, max = 10000) =>
+    typeof input[key] === "string"
+      ? (input[key] as string).trim().slice(0, max)
+      : "";
+  const lines = (key: string, max = 12) =>
+    text(key)
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, max);
+  const [kind, outcome] =
+    classifications[text("classification", 20)] ??
+    (() => {
+      throw new StoreError("Say how it turned out.");
+    })();
+  const title = clean.text(input.title, 6, 160, "The title");
+  const trying = clean.text(
+    input.trying,
+    3,
+    10000,
+    "What you were trying to do",
+  );
+  const happened = clean.text(input.happened, 3, 10000, "What happened");
+  const detailed = input.detailed === true;
+  const sections = [
+    ["What were we trying to achieve?", trying],
+    ["What did we try?", text("approach")],
+    ["What happened?", happened],
+    ["What did we expect?", text("expected")],
+    ["What may explain the difference?", text("why")],
+    ["Conditions and constraints", text("conditions")],
+    ...(detailed
+      ? ([
+          ["Method", text("methods")],
+          ["Measurements", text("measurements")],
+          ["Before and after", text("beforeAfter")],
+          ["Resources used", text("resources")],
+          ["Relevant circumstances", text("circumstances")],
+          ["Limitations", text("limitations")],
+        ] as const)
+      : []),
+    ["What would we do differently?", text("change")],
+  ]
+    .filter(([, body]) => body)
+    .map(([title, body]) => ({ title, body }));
+  const context: Record<string, string> = {};
+  if (Array.isArray(input.context))
+    for (const row of input.context.slice(0, 12) as {
+      key?: unknown;
+      value?: unknown;
+    }[]) {
+      const k = String(row?.key ?? "")
+        .trim()
+        .slice(0, 40);
+      const v = String(row?.value ?? "")
+        .trim()
+        .slice(0, 120);
+      if (k && v) context[k] = v;
+    }
+  const lessons = (Array.isArray(input.lessons) ? input.lessons : [])
+    .slice(0, 8)
+    .map((l: { kind?: unknown; text?: unknown }) => ({
+      kind:
+        (["observation", "interpretation", "recommendation"] as const).find(
+          (k) => k === l?.kind,
+        ) ?? "observation",
+      text: String(l?.text ?? "")
+        .trim()
+        .slice(0, 500),
+    }))
+    .filter((l) => l.text.length >= 3);
+  const links = (Array.isArray(input.links) ? input.links : [])
+    .slice(0, 10)
+    .map((l: { label?: unknown; url?: unknown }) => ({
+      label: String(l?.label ?? "")
+        .trim()
+        .slice(0, 120),
+      url: String(l?.url ?? "")
+        .trim()
+        .slice(0, 500),
+    }))
+    .filter((l) => /^https?:\/\/[^\s]+$/.test(l.url));
+  let problem = text("problem", 200) || undefined;
+  if (problem) {
+    const { getProblem } = await import("./problems.server");
+    if (!(await getProblem(problem))) problem = undefined;
+  }
+  const license = licences.includes(text("license", 40))
+    ? text("license", 40)
+    : "CC BY 4.0";
+  return {
+    kind:
+      detailed &&
+      (text("methods") || text("measurements")) &&
+      kind === "experience"
+        ? "research"
+        : kind,
+    title,
+    outcome,
+    sections,
+    excerpt: happened.length > 220 ? `${happened.slice(0, 217)}…` : happened,
+    topic: categoryName(input.category) || "General",
+    place: text("place", 120) || "Not specified",
+    context,
+    lessons,
+    links,
+    questions: lines("questions", 8),
+    personalAccount: input.personalAccount === true,
+    openToHelp: input.openToHelp === true,
+    affiliation: text("affiliation", 120) || undefined,
+    collaborators: lines("collaborators", 10).map((c) => c.slice(0, 60)),
+    license,
+    problem,
+  };
+}
+
+/** The original composer's shape, still accepted. */
+function fromLegacy(input: Record<string, string>): Built {
   const kind = input.kind as EntryKind;
   if (!(kind in outcomes))
     throw new StoreError("Choose what kind of note this is.");
@@ -75,50 +226,6 @@ export async function createEntry(
     ? (input.outcome as Outcome)
     : null;
   const country = /^[A-Z]{2}$/.test(input.country ?? "") ? input.country : "";
-  const raw = input as Record<string, unknown>;
-  const communities = await knownCommunities(raw.communities);
-  const everyone = raw.public !== false;
-  if (!everyone && !communities.length)
-    throw new StoreError(
-      "Choose where this should appear: everyone, a community, or both.",
-    );
-  const media = JSON.parse(String(form.get("media") ?? "[]")) as Record<
-    string,
-    unknown
-  >[];
-  if (!Array.isArray(media) || media.length > 9)
-    throw new StoreError("Too many attachments.");
-  const files: StoredMedia[] = [];
-  for (const [index, meta] of media.entries()) {
-    const upload = form.get(`file-${index}`);
-    if (!(upload instanceof File) || !upload.size) continue;
-    const alt = clean.text(meta.alt, 3, 300, "Each attachment’s description");
-    const { file, kind: fileKind } = await saveFile(
-      owner.id,
-      upload.name,
-      Buffer.from(await upload.arrayBuffer()),
-    );
-    if (fileKind === "video" && files.some((f) => f.kind === "video"))
-      throw new StoreError("One video per note.");
-    files.push({
-      file: file.id,
-      kind: fileKind,
-      alt,
-      ...(fileKind === "image" && Number(meta.width) > 0
-        ? {
-            width: Math.round(Number(meta.width)),
-            height: Math.round(Number(meta.height)),
-            pins: cleanPins(meta.pins),
-          }
-        : {}),
-      ...(fileKind === "video"
-        ? {
-            duration: Number(meta.duration) || undefined,
-            moments: cleanMoments(meta.moments),
-          }
-        : {}),
-    });
-  }
   const sections = [
     {
       title:
@@ -140,37 +247,130 @@ export async function createEntry(
     },
     { title: "What I would tell the next person", body: optional("advice") },
   ].filter((s) => s.body);
-  const words = sections
-    .map((s) => s.body)
-    .join(" ")
-    .split(/\s+/).length;
-  const entry: StoredEntry = {
-    id: newId(),
+  return {
     kind,
     title,
-    excerpt: goal.length > 220 ? `${goal.slice(0, 217)}…` : goal,
-    topic: topicFor[template],
     outcome,
-    place: country || "Not specified",
-    alias: owner.name,
-    date: new Date().toISOString().slice(0, 10),
-    illustration: "garden",
-    readingMinutes: Math.max(1, Math.ceil(words / 200)),
-    tried: 0,
-    helped: 0,
-    comments: 0,
-    context: country ? { Country: country } : {},
     sections,
-    evidence: [],
-    example: false,
-    license: "CC BY 4.0",
-    owner: owner.id,
-    files,
-    communities,
-    public: everyone,
+    excerpt: goal.length > 220 ? `${goal.slice(0, 217)}…` : goal,
+    topic: categoryName(input.field) || topicFor[template],
+    place: country || "Not specified",
+    context: country ? { Country: country } : {},
   };
-  await insertEntry(entry, owner.id);
-  return entry.id;
+}
+
+/** Build an attempt from the Contribute form and its uploaded files. */
+export async function createEntry(
+  owner: { id: string; name: string },
+  form: FormData,
+) {
+  const input = JSON.parse(String(form.get("entry") ?? "{}")) as Record<
+    string,
+    unknown
+  >;
+  const built =
+    input.trying !== undefined
+      ? await fromContribution(input)
+      : fromLegacy(input as Record<string, string>);
+  const raw = input;
+  // The chosen category joins the places it appears, when it is a category.
+  const chosen = Array.isArray(raw.communities)
+    ? raw.communities.map(String)
+    : [];
+  const own = categorySlug(built.topic);
+  if (
+    own &&
+    !chosen.includes(own) &&
+    (await communityBySlug(own)) &&
+    chosen.length < 5
+  )
+    chosen.push(own);
+  const communities = await knownCommunities(chosen);
+  const everyone = raw.public !== false;
+  if (!everyone && !communities.length)
+    throw new StoreError(
+      "Choose where this should appear: everyone, a category, or both.",
+    );
+  const media = JSON.parse(String(form.get("media") ?? "[]")) as Record<
+    string,
+    unknown
+  >[];
+  if (!Array.isArray(media) || media.length > 9)
+    throw new StoreError("Too many attachments.");
+  const files: StoredMedia[] = [];
+  const staged: StagedFile[] = [];
+  try {
+    for (const [index, meta] of media.entries()) {
+      const upload = form.get(`file-${index}`);
+      if (!(upload instanceof File) || !upload.size) continue;
+      const alt = clean.text(meta.alt, 3, 300, "Each attachment’s description");
+      const saved = await saveFile(
+        owner.id,
+        upload.name,
+        Buffer.from(await upload.arrayBuffer()),
+        { staged: true },
+      );
+      const { file, kind: fileKind } = saved;
+      staged.push({ id: file.id, status: saved.intendedStatus });
+      if (fileKind === "video" && files.some((f) => f.kind === "video"))
+        throw new StoreError("One video per note.");
+      files.push({
+        file: file.id,
+        kind: fileKind,
+        alt,
+        ...(fileKind === "image"
+          ? {
+              width: saved.width,
+              height: saved.height,
+              pins: cleanPins(meta.pins),
+            }
+          : {}),
+        ...(fileKind === "video"
+          ? {
+              ...(() => {
+                try {
+                  return cleanVideoText(meta);
+                } catch (error) {
+                  throw new StoreError((error as Error).message);
+                }
+              })(),
+              duration: Number(meta.duration) || undefined,
+              moments: cleanMoments(meta.moments),
+            }
+          : {}),
+      });
+    }
+    const words = built.sections
+      .map((s) => s.body)
+      .join(" ")
+      .split(/\s+/).length;
+    const entry: StoredEntry = {
+      license: "CC BY 4.0",
+      ...built,
+      id: newId(),
+      alias: owner.name,
+      date: new Date().toISOString().slice(0, 10),
+      illustration: "garden",
+      readingMinutes: Math.max(1, Math.ceil(words / 200)),
+      tried: 0,
+      helped: 0,
+      comments: 0,
+      evidence: [],
+      example: false,
+      owner: owner.id,
+      files,
+      communities,
+      public: everyone,
+    };
+    await insertEntry(entry, owner.id, staged);
+    return entry.id;
+  } catch (error) {
+    await discardStagedFiles(
+      owner.id,
+      staged.map((f) => f.id),
+    ).catch(() => undefined);
+    throw error;
+  }
 }
 
 /** Resolve stored files to pictures and video, hiding media still under review. */
@@ -223,6 +423,10 @@ async function present(
           duration: video.duration ?? 60,
           title: video.alt,
           moments: video.moments ?? [],
+          transcript: video.transcript,
+          captions: video.captions,
+          captionLanguage: video.captionLanguage,
+          silent: video.silent,
           poster: pictures[0],
         }
       : undefined,
@@ -230,17 +434,19 @@ async function present(
   };
 }
 /** Published field notes for the public feed and search. Community-only posts stay out. */
-export async function publishedEntries(): Promise<Entry[]> {
+export async function publishedEntries(filter?: {
+  problemIds?: string[];
+}): Promise<Entry[]> {
   if (!hasDatabase()) return [];
-  try {
-    const entries = ((await storedEntries()) as StoredEntry[]).filter(
-      (e) => e.public !== false,
-    );
-    return Promise.all(entries.map((e) => present(e)));
-  } catch (error) {
-    console.error("Published field notes are unavailable", error);
-    return [];
-  }
+  const rows = await query<{ id: string; owner: string; data: StoredEntry }>(
+    `SELECT id, owner, data FROM web.entries WHERE NOT hidden AND (data->>'public') IS DISTINCT FROM 'false'
+     ${filter?.problemIds ? "AND data->>'problem' = ANY($1)" : ""}
+     ORDER BY created DESC LIMIT ${filter?.problemIds ? "500" : "200"}`,
+    filter?.problemIds ? [filter.problemIds] : [],
+  );
+  return Promise.all(
+    rows.map((r) => present({ ...r.data, id: r.id, owner: r.owner })),
+  );
 }
 /** Everything posted to one community, public or not, newest first. */
 export async function communityEntries(slug: string): Promise<Entry[]> {

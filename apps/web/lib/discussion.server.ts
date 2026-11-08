@@ -1,5 +1,6 @@
 import "server-only";
 import { getEntry } from "./api";
+import { getProblem } from "./problems.server";
 import { hasDatabase, query, transaction } from "./db.server";
 import { clean, newId, StoreError, type Account } from "./store.server";
 import type { Entry } from "./types";
@@ -340,7 +341,18 @@ export async function listReplies(parentId: string, viewer?: string) {
 
 const isUuid = (id: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id);
+/** Discussions also live on problems, keyed "problem~<id>". */
+export const problemKey = (id: string) => `problem~${id}`;
 async function entryOrFail(entryId: string) {
+  if (entryId.startsWith("problem~")) {
+    const problem = await getProblem(entryId.slice(8));
+    if (!problem) throw new StoreError("That problem doesn’t exist.", 404);
+    return {
+      id: entryId,
+      evidence: [],
+      owner: problem.owner,
+    } as unknown as Entry;
+  }
   const entry = await getEntry(entryId).catch(() => undefined);
   if (!entry || entry.hidden)
     throw new StoreError("That field note doesn’t exist.", 404);
@@ -600,7 +612,11 @@ export async function responseCounts(ids: string[]) {
  * Replies to what someone wrote, newest first, so they can carry on the
  * conversation. Marks them seen, and says which are new since the last look.
  */
-export async function repliesToMe(account: Account, limit = 20) {
+export async function repliesToMe(
+  account: Account,
+  limit = 20,
+  markSeen = true,
+) {
   if (!hasDatabase()) return [];
   const rows = await query<{
     id: string;
@@ -620,14 +636,17 @@ export async function repliesToMe(account: Account, limit = 20) {
      ORDER BY r.created DESC LIMIT $2`,
     [account.id, limit],
   );
-  await query(
-    `INSERT INTO web.last_seen (account_id, target, seen) VALUES ($1,'replies',clock_timestamp())
+  if (markSeen)
+    await query(
+      `INSERT INTO web.last_seen (account_id, target, seen) VALUES ($1,'replies',clock_timestamp())
      ON CONFLICT (account_id, target) DO UPDATE SET seen = clock_timestamp()`,
-    [account.id],
-  );
+      [account.id],
+    );
   const titles = new Map<string, string>();
   for (const id of new Set(rows.map((r) => r.entry_id))) {
-    const entry = await getEntry(id).catch(() => undefined);
+    const entry = id.startsWith("problem~")
+      ? await getProblem(id.slice(8))
+      : await getEntry(id).catch(() => undefined);
     if (entry) titles.set(id, entry.title);
   }
   return rows.map((r) => ({
@@ -640,4 +659,24 @@ export async function repliesToMe(account: Account, limit = 20) {
     created: r.created.toISOString(),
     fresh: r.fresh,
   }));
+}
+
+/** Responses and distinct people per entry, in one query, for feeds. */
+export async function activityCounts(ids: string[]) {
+  const counts = new Map<string, { responses: number; people: number }>();
+  if (!hasDatabase() || !ids.length) return counts;
+  const rows = await query<{
+    entry_id: string;
+    responses: number;
+    people: number;
+  }>(
+    `SELECT entry_id, count(*) FILTER (WHERE parent_id IS NULL)::int AS responses,
+            count(DISTINCT owner)::int AS people
+     FROM web.comments WHERE entry_id = ANY($1) AND NOT hidden GROUP BY entry_id`,
+    [ids],
+  );
+  rows.forEach((r) =>
+    counts.set(r.entry_id, { responses: r.responses, people: r.people }),
+  );
+  return counts;
 }

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Globe2 } from "lucide-react";
 import { getFile, removeFile } from "@/lib/local-media";
-import { fields } from "@/lib/taxonomy";
 import type { Block } from "@/lib/sessions";
 import { MediaAttach, type Attached } from "./media-attach";
 import { hasWorking, WorkingEditor } from "./working-editor";
@@ -40,8 +39,8 @@ type Draft = {
 };
 const blank: Draft = {
   title: "",
-  field: fields[0].name,
-  specialty: fields[0].specialties[0].name,
+  field: "",
+  specialty: "",
   level: "",
   wentWrong: "",
   ask: "",
@@ -53,7 +52,11 @@ const blank: Draft = {
 const storageKey = "unstuck:session-draft:v1";
 
 /** Start a critique: the work, what went wrong, and what feedback you want. */
-export function SessionComposer() {
+export function SessionComposer({
+  categories = [],
+}: {
+  categories?: string[];
+}) {
   const { notice } = useNotebook();
   const [draft, setDraft] = useState<Draft>(blank);
   const [loaded, setLoaded] = useState(false);
@@ -83,7 +86,6 @@ export function SessionComposer() {
   }, [draft, loaded]);
   const set = (change: Partial<Draft>) =>
     setDraft((d) => ({ ...d, ...change }));
-  const field = fields.find((f) => f.name === draft.field) ?? fields[0];
   const router = useRouter();
   const { viewer, signIn } = useAccount();
   const [who, setWho] = useState({ name: "", role: "" });
@@ -155,6 +157,10 @@ export function SessionComposer() {
             label: m.label || "Marked moment",
           })),
           duration: media?.duration,
+          transcript: media?.transcript,
+          captions: media?.captions,
+          captionLanguage: media?.captionLanguage,
+          silent: media?.silent,
           ...size,
         }),
       );
@@ -233,35 +239,20 @@ export function SessionComposer() {
           </div>
           <div className="form-row">
             <div className="form-field">
-              <label htmlFor="session-field">Field</label>
-              <select
+              <label htmlFor="session-field">Category</label>
+              <input
                 id="session-field"
+                list="session-categories"
                 value={draft.field}
-                onChange={(e) => {
-                  const next =
-                    fields.find((f) => f.name === e.target.value) ?? fields[0];
-                  set({
-                    field: next.name,
-                    specialty: next.specialties[0].name,
-                  });
-                }}
-              >
-                {fields.map((f) => (
-                  <option key={f.slug}>{f.name}</option>
+                maxLength={40}
+                placeholder="Physics coursework, 3D printing…"
+                onChange={(e) => set({ field: e.target.value })}
+              />
+              <datalist id="session-categories">
+                {categories.map((name) => (
+                  <option key={name} value={name} />
                 ))}
-              </select>
-            </div>
-            <div className="form-field">
-              <label htmlFor="session-specialty">Specialty</label>
-              <select
-                id="session-specialty"
-                value={draft.specialty}
-                onChange={(e) => set({ specialty: e.target.value })}
-              >
-                {field.specialties.map((s) => (
-                  <option key={s.name}>{s.name}</option>
-                ))}
-              </select>
+              </datalist>
             </div>
           </div>
           <div className="form-field">

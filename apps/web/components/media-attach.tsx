@@ -24,6 +24,10 @@ export interface Attached {
   duration?: number;
   pins: Pin[];
   moments: Moment[];
+  transcript?: string;
+  captions?: string;
+  captionLanguage?: string;
+  silent?: boolean;
 }
 const limits = {
   images: 8,
@@ -241,6 +245,7 @@ function AttachedItem({
   onRemove: () => void;
 }) {
   const [placing, setPlacing] = useState(false);
+  const [captionError, setCaptionError] = useState("");
   const video = useRef<HTMLVideoElement>(null);
   function place(event: MouseEvent<HTMLDivElement>) {
     if (!placing) return;
@@ -327,6 +332,88 @@ function AttachedItem({
           aria-invalid={!item.alt.trim()}
         />
       </label>
+      {item.kind === "video" && (
+        <div className="video-text-fields">
+          <label className="attached-field">
+            <span>Transcript</span>
+            <textarea
+              value={item.transcript ?? ""}
+              maxLength={12000}
+              rows={3}
+              placeholder="Describe the speech, sounds and important visual details."
+              onChange={(event) => onChange({ transcript: event.target.value })}
+            />
+          </label>
+          <label className="check-field">
+            <input
+              type="checkbox"
+              checked={item.silent ?? false}
+              onChange={(event) => onChange({ silent: event.target.checked })}
+            />
+            No speech or meaningful audio
+          </label>
+          {!item.silent && (
+            <label className="attached-field">
+              <span>
+                {item.captions
+                  ? "Captions added · Replace file"
+                  : "Captions (.vtt)"}
+              </span>
+              <input
+                type="file"
+                accept=".vtt,text/vtt"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    if (file.size > 64000)
+                      throw new Error("The caption file must be under 64 KB.");
+                    const { cleanCaptions } =
+                      await import("@/lib/media/captions");
+                    onChange({ captions: cleanCaptions(await file.text()) });
+                    setCaptionError("");
+                  } catch (error) {
+                    setCaptionError(
+                      error instanceof Error
+                        ? error.message
+                        : "The caption file could not be read.",
+                    );
+                  }
+                }}
+              />
+            </label>
+          )}
+          {item.captions && (
+            <label className="attached-field">
+              <span>Caption language</span>
+              <select
+                value={item.captionLanguage ?? "en"}
+                onChange={(event) =>
+                  onChange({ captionLanguage: event.target.value })
+                }
+              >
+                {[
+                  ["en", "English"],
+                  ["fr", "French"],
+                  ["pt", "Portuguese"],
+                  ["es", "Spanish"],
+                  ["sw", "Swahili"],
+                  ["ar", "Arabic"],
+                ].map(([code, name]) => (
+                  <option key={code} value={code}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {captionError && (
+            <p className="field-error" role="alert">
+              {captionError}
+            </p>
+          )}
+        </div>
+      )}
       {item.kind === "pdf" ? null : item.kind === "image" ? (
         <div className="attached-marks">
           <button

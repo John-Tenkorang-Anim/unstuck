@@ -40,7 +40,30 @@ function stubNotes() {
 }
 afterEach(() => vi.unstubAllGlobals());
 
-const docs = [...examples.map(entryDoc), ...sampleSessions.map(sessionDoc)];
+// The samples ship without video, so one entry gets a clip here to test moments.
+const withClip = examples.map((e) =>
+  e.id === "tacoma-narrows-1940"
+    ? {
+        ...e,
+        clip: {
+          src: "/samples/clip.webm",
+          type: "video/webm",
+          bytes: 1,
+          duration: 180,
+          title: "The deck twists",
+          moments: [
+            {
+              at: 40,
+              label: "Waves turn into twisting",
+              kind: "note" as const,
+            },
+            { at: 116, label: "The centre span falls", kind: "broke" as const },
+          ],
+        },
+      }
+    : e,
+);
+const docs = [...withClip.map(entryDoc), ...sampleSessions.map(sessionDoc)];
 
 describe("search and retrieval", () => {
   it("normalises words so plural and tense variants match", () => {
@@ -85,7 +108,9 @@ describe("search and retrieval", () => {
     const summary = summarize(search(docs, "").results);
     expect(summary.total).toBe(examples.length);
     expect(summary.breaks[0].moment.kind).toBe("broke");
-    expect(summary.outcomes.find((o) => o.key === "failed")?.count).toBe(3);
+    expect(summary.outcomes.find((o) => o.key === "failed")?.count).toBe(
+      examples.filter((e) => e.outcome === "failed").length,
+    );
   });
 });
 

@@ -1,13 +1,31 @@
 "use client";
-import { RotateCcw } from "lucide-react";
-export default function ErrorPage({ reset }: { reset: () => void }) {
+import Link from "next/link";
+
+export default function NotebookError({
+  retry,
+}: {
+  error: unknown;
+  retry: () => void;
+}) {
   return (
-    <div className="empty-state full-empty frame">
-      <h1>A small pause in the story.</h1>
-      <p>Something went wrong opening the notebook. Give it another try.</p>
-      <button className="button button-dark" onClick={reset}>
-        <RotateCcw size={15} /> Try again
-      </button>
-    </div>
+    <section
+      className="frame unavailable-page"
+      aria-labelledby="unavailable-title"
+    >
+      <p className="record-kicker">Unable to load this view</p>
+      <h1 id="unavailable-title">Please try again in a moment.</h1>
+      <p>
+        We couldn’t retrieve the shared notebook. You can retry this view or
+        return to your space.
+      </p>
+      <div className="record-actions-row">
+        <button className="button button-dark" onClick={() => retry()}>
+          Try again
+        </button>
+        <Link className="text-link" href="/notebook">
+          Go to My Space
+        </Link>
+      </div>
+    </section>
   );
 }

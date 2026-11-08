@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/space-grotesk";
-import "@fontsource-variable/ibm-plex-sans";
 import "./globals.css";
+import "./styles/discovery.css";
 
 export const metadata: Metadata = {
   title: {
@@ -21,8 +20,7 @@ export const viewport: Viewport = {
   ],
 };
 /**
- * Runs before first paint so a saved theme never flashes, and so light reading
- * never downloads the web fonts.
+ * Runs before first paint so a saved theme never flashes, with native system typography.
  *
  * It also guards view transitions. When a tab is hidden (a background tab, or
  * a reload during development) the browser skips the animation and rejects the

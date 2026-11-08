@@ -1,0 +1,145 @@
+/* Native typography, neutral surfaces, and one action colour. */
+:root {
+  color-scheme: light;
+  --bg: #fff;
+  --canvas: var(--bg);
+  --surface: #f5f5f7;
+  --fill: rgb(29 29 31 / 0.045);
+  --fill-strong: rgb(29 29 31 / 0.085);
+  --chrome: rgb(255 255 255 / 0.9);
+  --popover: rgb(255 255 255 / 0.97);
+  --ink: #1d1d1f;
+  --ink-2: #424245;
+  --ink-3: #6e6e73;
+  --quiet: #86868b;
+  --quiet-text: var(--ink-3);
+  --rule: rgb(29 29 31 / 0.14);
+  --line: rgb(29 29 31 / 0.12);
+  --invert-bg: #1d1d1f;
+  --invert-ink: #f5f5f7;
+  --invert-ink-2: #b7b7bc;
+  --focus: #0071e3;
+  --brand: #0071e3;
+  --brand-solid: #0071e3;
+  --brand-press: #0077ed;
+  --brand-wash: #f0f6fc;
+  --brand-bright: #0071e3;
+  --brand-text: #0066cc;
+  --brand-soft: #a8c8eb;
+  --link: #0066cc;
+  --thumb: #fff;
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-card: none;
+  --shadow-float: 0 0 0 1px rgb(0 0 0 / 0.06), 0 20px 64px rgb(0 0 0 / 0.16);
+  --worked: #24845c;
+  --failed: #b64436;
+  --mixed: #a67c16;
+  --ongoing: #0071e3;
+  --open: #6e6e73;
+  --worked-text: #20724f;
+  --failed-text: #a1352b;
+  --mixed-text: #886214;
+  --ongoing-text: #0066cc;
+  --open-text: #6e6e73;
+  --worked-solid: #20724f;
+  --failed-solid: #a1352b;
+  --mixed-solid: #886214;
+  --ongoing-solid: #0066cc;
+  --open-solid: #515154;
+  --invert-accent: #8ed7b3;
+  --accent: #515154;
+  --accent-solid: #515154;
+  --accent-wash: #f0f0f2;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --display: var(--sans);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --bar: 60px;
+  --gutter: clamp(20px, 4vw, 48px);
+  --tabbar: 64px;
+  --r-s: 8px;
+  --r-m: 12px;
+  --r-l: 16px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #161617;
+    --surface: #232325;
+    --fill: rgb(255 255 255 / 0.06);
+    --fill-strong: rgb(255 255 255 / 0.1);
+    --chrome: rgb(22 22 23 / 0.92);
+    --popover: rgb(35 35 37 / 0.98);
+    --ink: #f5f5f7;
+    --ink-2: #c8c8cd;
+    --ink-3: #a1a1a6;
+    --quiet: #a1a1a6;
+    --rule: rgb(255 255 255 / 0.18);
+    --line: rgb(255 255 255 / 0.14);
+    --invert-bg: #232325;
+    --invert-ink: #f5f5f7;
+    --invert-ink-2: #a1a1a6;
+    --focus: #7eb6ff;
+    --brand: #7eb6ff;
+    --brand-wash: rgb(0 113 227 / 0.14);
+    --brand-bright: #7eb6ff;
+    --brand-text: #7eb6ff;
+    --link: #7eb6ff;
+    --thumb: #555558;
+    --worked: #70c79d;
+    --worked-text: #70c79d;
+    --failed: #f29086;
+    --failed-text: #f29086;
+    --mixed: #d4b46d;
+    --mixed-text: #d4b46d;
+    --ongoing: #7eb6ff;
+    --ongoing-text: #7eb6ff;
+    --open: #a1a1a6;
+    --open-text: #a1a1a6;
+    --accent: #c8c8cd;
+    --accent-wash: rgb(255 255 255 / 0.06);
+    --shadow-float:
+      0 0 0 1px rgb(255 255 255 / 0.1), 0 20px 64px rgb(0 0 0 / 0.4);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161617;
+  --surface: #232325;
+  --fill: rgb(255 255 255 / 0.06);
+  --fill-strong: rgb(255 255 255 / 0.1);
+  --chrome: rgb(22 22 23 / 0.92);
+  --popover: rgb(35 35 37 / 0.98);
+  --ink: #f5f5f7;
+  --ink-2: #c8c8cd;
+  --ink-3: #a1a1a6;
+  --quiet: #a1a1a6;
+  --rule: rgb(255 255 255 / 0.18);
+  --line: rgb(255 255 255 / 0.14);
+  --invert-bg: #232325;
+  --invert-ink: #f5f5f7;
+  --invert-ink-2: #a1a1a6;
+  --focus: #7eb6ff;
+  --brand: #7eb6ff;
+  --brand-wash: rgb(0 113 227 / 0.14);
+  --brand-bright: #7eb6ff;
+  --brand-text: #7eb6ff;
+  --link: #7eb6ff;
+  --thumb: #555558;
+  --worked: #70c79d;
+  --worked-text: #70c79d;
+  --failed: #f29086;
+  --failed-text: #f29086;
+  --mixed: #d4b46d;
+  --mixed-text: #d4b46d;
+  --ongoing: #7eb6ff;
+  --ongoing-text: #7eb6ff;
+  --open: #a1a1a6;
+  --open-text: #a1a1a6;
+  --accent: #c8c8cd;
+  --accent-wash: rgb(255 255 255 / 0.06);
+  --shadow-float:
+    0 0 0 1px rgb(255 255 255 / 0.1), 0 20px 64px rgb(0 0 0 / 0.4);
+}

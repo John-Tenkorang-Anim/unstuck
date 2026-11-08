@@ -2,7 +2,18 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Leaf, Menu, Moon, Plus, Search, Sun, X } from "lucide-react";
+import {
+  Bell,
+  Compass,
+  Menu,
+  Moon,
+  Plus,
+  Search,
+  Sun,
+  Target,
+  UserRound,
+  X,
+} from "lucide-react";
 import {
   useEffect,
   useRef,
@@ -10,8 +21,8 @@ import {
   ViewTransition,
   type ReactNode,
 } from "react";
-import { fields } from "@/lib/taxonomy";
 import { AccountChip } from "./account-chip";
+import { Notifications } from "./notifications";
 import { RecoveryDialog } from "./recovery-dialog";
 import { LogoMark } from "./glyph";
 import { useNotebook } from "./notebook-provider";
@@ -67,7 +78,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const paletteReturn = useRef<HTMLElement | null>(null);
   const drawer = useRef<HTMLElement>(null);
   const menu = useRef<HTMLButtonElement>(null);
-  const { saved, lite, toggleLite } = useNotebook();
+  const { lite, toggleLite } = useNotebook();
   function showPalette() {
     paletteReturn.current = document.activeElement as HTMLElement | null;
     setPaletteUsed(true);
@@ -123,33 +134,32 @@ export function Shell({ children }: { children: ReactNode }) {
       if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, [open]);
-  // Notes, sessions and the composer belong to wherever someone came from:
-  // a community link carries ?from= (or ?community= for the composer).
-  const [fromCommunity, setFromCommunity] = useState(false);
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    setFromCommunity(!!(params.get("from") || params.get("community")));
-  }, [path]);
-  const inside =
-    path.startsWith("/entries") ||
-    path.startsWith("/sessions") ||
-    path === "/new";
-  // Three places: find (search lives inside Discover), people, and your own.
+  const under = (...roots: string[]) =>
+    roots.some((r) => path === r || path.startsWith(`${r}/`));
+  // Five destinations. Records open under the section they belong to.
   const navigation = [
     {
       label: "Discover",
       href: "/discover",
-      active:
-        path === "/discover" ||
-        path === "/search" ||
-        (inside && !fromCommunity && path !== "/new"),
+      active: under("/discover", "/search", "/entries", "/communities"),
     },
     {
-      label: "Communities",
-      href: "/communities",
-      active: path.startsWith("/communities") || (inside && fromCommunity),
+      label: "Problems",
+      href: "/problems",
+      active: under(
+        "/problems",
+        "/improvements",
+        "/tests",
+        "/analyze",
+        "/questions",
+      ),
     },
-    { label: "Notebook", href: "/notebook", active: path === "/notebook" },
+    {
+      label: "Workspaces",
+      href: "/workspaces",
+      active: under("/workspaces", "/sessions"),
+    },
+    { label: "Lessons", href: "/lessons", active: under("/lessons") },
   ];
   const links = navigation.map((item) => (
     <Link
@@ -160,13 +170,6 @@ export function Shell({ children }: { children: ReactNode }) {
       onClick={() => setOpen(false)}
     >
       {item.label}
-      {item.href === "/notebook" && saved.length > 0 && (
-        <span className="nav-count">
-          <span className="sr-only">, </span>
-          {saved.length}
-          <span className="sr-only"> saved</span>
-        </span>
-      )}
     </Link>
   ));
   return (
@@ -181,41 +184,25 @@ export function Shell({ children }: { children: ReactNode }) {
             {links}
           </nav>
         )}
-        <button
-          className="palette-trigger"
-          onClick={showPalette}
-          hidden={path === "/discover"}
-        >
-          <Search size={15} aria-hidden="true" />
-          <span className="palette-trigger-label">Search everything</span>
-          <span className="sr-only">, command palette</span>
-          <kbd aria-hidden="true">⌘K</kbd>
-        </button>
         <div className="topbar-actions">
-          <button
-            className={`icon-button ${lite ? "is-active" : ""}`}
-            title={
-              lite
-                ? "Turn off light reading mode"
-                : "Turn on light reading mode"
-            }
-            aria-label="Light reading mode"
-            aria-pressed={lite}
-            onClick={toggleLite}
-          >
-            <Leaf size={16} />
-          </button>
-          <ThemeButton />
-          <AccountChip />
           <Link
             href="/new"
-            className="button button-dark topbar-share"
-            aria-label="Ask a question or share what you tried"
-            title="Ask a question or share what you tried"
+            className="button button-dark contribute-button"
+            aria-current={path === "/new" ? "page" : undefined}
           >
-            <Plus size={15} />
-            <span className="share-label">Ask</span>
+            <Plus size={15} aria-hidden="true" /> Contribute
           </Link>
+          <button
+            className="icon-button"
+            onClick={showPalette}
+            aria-label="Search (⌘K)"
+            title="Search (⌘K)"
+          >
+            <Search size={17} />
+          </button>
+          <Notifications />
+          <ThemeButton />
+          <AccountChip />
           <button
             ref={menu}
             className="icon-button menu-button"
@@ -257,18 +244,20 @@ export function Shell({ children }: { children: ReactNode }) {
             </div>
             <nav aria-label="Main navigation" className="sidebar-nav">
               {links}
-            </nav>
-            <span className="label">Fields</span>
-            <nav aria-label="Fields of knowledge" className="sidebar-fields">
-              {fields.map((field) => (
-                <Link
-                  key={field.slug}
-                  href={`/search?field=${field.slug}`}
-                  onClick={() => setOpen(false)}
-                >
-                  {field.name}
-                </Link>
-              ))}
+              <Link
+                href="/notebook"
+                className="nav-item"
+                onClick={() => setOpen(false)}
+              >
+                My Space
+              </Link>
+              <Link
+                href="/activity"
+                className="nav-item"
+                onClick={() => setOpen(false)}
+              >
+                Activity
+              </Link>
             </nav>
           </aside>
         </>
@@ -276,18 +265,61 @@ export function Shell({ children }: { children: ReactNode }) {
       <main id="main" tabIndex={-1} inert={open || undefined}>
         <ViewTransition>{children}</ViewTransition>
       </main>
+      <nav
+        className="tabbar"
+        aria-label="Quick navigation"
+        inert={open || undefined}
+      >
+        {(
+          [
+            [
+              "/discover",
+              "Discover",
+              Compass,
+              under("/discover", "/search", "/entries", "/communities"),
+            ],
+            [
+              "/problems",
+              "Problems",
+              Target,
+              under("/problems", "/improvements", "/tests", "/analyze"),
+            ],
+            ["/new", "Contribute", Plus, path === "/new"],
+            ["/activity", "Activity", Bell, under("/activity")],
+            [
+              "/notebook",
+              "My Space",
+              UserRound,
+              under("/notebook", "/account", "/people"),
+            ],
+          ] as const
+        ).map(([href, label, Icon, active]) => (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            data-primary={href === "/new" || undefined}
+          >
+            <Icon size={20} aria-hidden="true" />
+            <span>{label}</span>
+          </Link>
+        ))}
+      </nav>
       <footer className="site-footer" inert={open || undefined}>
         <div className="frame site-footer-inner">
           <span className="brand brand-quiet">
             <LogoMark size={18} /> Unstuck
           </span>
-          <p>
-            Everything the world has tried: what worked, what didn’t, and why.
-          </p>
+          <p>Learn from what didn’t work. Build what works next.</p>
           <nav aria-label="Footer">
+            <button className="footer-toggle" onClick={toggleLite}>
+              Light reading: {lite ? "on" : "off"}
+            </button>
             <Link href="/about">About</Link>
             <Link href="/about#principles">Principles</Link>
-            <Link href="/new">Ask or share</Link>
+            <Link href="/lessons">Lessons</Link>
+            <Link href="/workspaces">Workspaces</Link>
+            <Link href="/new">Contribute</Link>
           </nav>
         </div>
       </footer>

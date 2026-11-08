@@ -10,26 +10,32 @@ import {
   saveFile,
   StoreError,
   type SharedSession,
+  discardStagedFiles,
+  type StagedFile,
 } from "@/lib/store.server";
-import { fields } from "@/lib/taxonomy";
+import { categoryName } from "@/lib/taxonomy";
+import { cleanVideoText } from "@/lib/media/captions";
 
 export const dynamic = "force-dynamic";
 
 /** Publish a critique session: the brief, optional working, and one work file. */
 export async function POST(request: Request) {
+  let staged: { owner: string; files: StagedFile[] } | undefined;
   try {
     assertSameOrigin(request);
     const account = await requireAccount();
+    staged = { owner: account.id, files: [] };
     await rateLimit("session", account.id);
     const form = await request.formData();
     const input = JSON.parse(String(form.get("session") ?? "{}")) as Record<
       string,
       unknown
     >;
-    const field = fields.find((f) => f.name === input.field);
-    if (!field) throw new StoreError("Choose a field.");
-    const specialty = field.specialties.find((s) => s.name === input.specialty);
-    if (!specialty) throw new StoreError("Choose a specialty in that field.");
+    // Categories are open: any short label, or one people already use.
+    const field = { name: categoryName(input.field) || "General" };
+    const specialty = {
+      name: categoryName(input.specialty) || "",
+    };
     const blocks = cleanBlocks(input.blocks);
     const title = clean.text(input.title, 6, 140, "The title");
     const wentWrong = clean.text(input.wentWrong, 3, 2000, "What went wrong");
@@ -38,11 +44,14 @@ export async function POST(request: Request) {
     let media: SharedSession["media"];
     if (upload instanceof File && upload.size) {
       const alt = clean.text(input.alt, 3, 300, "The description of your work");
-      const { file, kind } = await saveFile(
+      const saved = await saveFile(
         account.id,
         upload.name,
         Buffer.from(await upload.arrayBuffer()),
+        { staged: true },
       );
+      const { file, kind } = saved;
+      staged.files.push({ id: file.id, status: saved.intendedStatus });
       const width = Number(input.width),
         height = Number(input.height),
         duration = Number(input.duration);
@@ -50,11 +59,18 @@ export async function POST(request: Request) {
         kind,
         file: file.id,
         alt,
-        ...(kind === "image" && width > 0 && height > 0
-          ? { width: Math.round(width), height: Math.round(height) }
+        ...(kind === "image"
+          ? { width: saved.width, height: saved.height }
           : {}),
         ...(kind === "video"
           ? {
+              ...(() => {
+                try {
+                  return cleanVideoText(input);
+                } catch (error) {
+                  throw new StoreError((error as Error).message);
+                }
+              })(),
               moments: cleanMoments(input.moments),
               duration: duration > 0 && duration < 3600 ? duration : undefined,
             }
@@ -89,9 +105,14 @@ export async function POST(request: Request) {
       media,
       rounds: [{ n: 1, note: "First submission.", notes: [] }],
     };
-    await insertSession(session);
+    await insertSession(session, staged.files);
     return Response.json({ id: session.id }, { status: 201 });
   } catch (error) {
+    if (staged)
+      await discardStagedFiles(
+        staged.owner,
+        staged.files.map((f) => f.id),
+      ).catch(() => undefined);
     return failure(
       error instanceof SyntaxError
         ? new StoreError("That session couldn’t be read.")

@@ -130,8 +130,11 @@ describe("versioned media contracts", () => {
     });
     expect(summary).not.toHaveProperty("sections");
     expect(summary).not.toHaveProperty("media");
-    expect(summary).not.toHaveProperty("evidence");
     expect(summary).not.toHaveProperty("context");
+    // Evidence labels stay, so feeds can say what was checked without the article.
+    expect(summary.evidence?.every((e) => Object.keys(e).length === 3)).toBe(
+      true,
+    );
   });
 });
 

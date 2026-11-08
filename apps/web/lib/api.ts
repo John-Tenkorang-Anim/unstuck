@@ -7,12 +7,13 @@ import { summarizeEntry } from "./types";
 import { parseEntry, parseFeed } from "./platform/contracts.server";
 import { readJson, PlatformUnavailable } from "./platform/http";
 import { publishedEntries, publishedEntry } from "./entries.server";
+import { hasDatabase, showExamples } from "./db.server";
 function adapt(entry: ApiEntry): Entry {
   const templateTopic: Record<string, Topic> = {
-    farming_food: "Food & farming",
-    making: "Making & fixing",
-    software: "Software",
-    research: "Research",
+    farming_food: "Agriculture",
+    making: "Engineering",
+    software: "Technology",
+    research: "Science",
     community: "Community",
   };
   return {
@@ -38,7 +39,8 @@ function adapt(entry: ApiEntry): Entry {
       entry.stats.same_count +
       entry.stats.not_same_count +
       entry.stats.worked_count +
-      entry.stats.didnt_work_count,
+      entry.stats.didnt_work_count +
+      entry.stats.solved_for_count,
     helped: entry.stats.helped_count + entry.stats.saved_count,
     comments: entry.stats.comment_count,
     context: entry.context,
@@ -50,6 +52,11 @@ function adapt(entry: ApiEntry): Entry {
       { title: "What I would do differently", body: entry.advice ?? "" },
     ].filter((s) => s.body),
     evidence: [],
+    links: entry.links.map((link) => ({
+      label: link.note ?? link.rel.replaceAll("_", " "),
+      url: `/entries/${link.to_id}`,
+    })),
+    problem: entry.links.find((link) => link.rel === "solves")?.to_id,
     example: false,
     highStakes: entry.high_stakes,
     license: entry.license,
@@ -59,13 +66,24 @@ function adapt(entry: ApiEntry): Entry {
 export async function getNotebook(): Promise<Notebook> {
   const published = (await publishedEntries()).map(summarizeEntry);
   const notebook = await getFeed();
-  return notebook.mode === "unavailable" && published.length
-    ? { entries: published, mode: "live" }
-    : { ...notebook, entries: [...published, ...notebook.entries] };
+  const seen = new Set(published.map((e) => e.id));
+  const entries = [
+    ...published,
+    ...notebook.entries.filter((e) => !seen.has(e.id)),
+  ];
+  if (showExamples()) for (const example of examples) if (!entries.some((e) => e.id === example.id)) entries.push(summarizeEntry(example));
+  return {
+    entries,
+    mode:
+      notebook.mode === 'unavailable' ? 'unavailable' : entries.some((e) => e.example) && entries.some((e) => !e.example) ? 'mixed' : notebook.mode,
+  };
 }
 async function getFeed(): Promise<Notebook> {
   const base = process.env.UNSTUCK_API_URL;
-  if (!base) return { entries: examples.map(summarizeEntry), mode: "examples" };
+  if (!base)
+    return showExamples()
+      ? { entries: examples.map(summarizeEntry), mode: "examples" }
+      : { entries: [], mode: hasDatabase() ? "live" : "examples" };
   try {
     const response = await fetch(`${base.replace(/\/$/, "")}/feed`, {
       cache: "no-store",
@@ -82,10 +100,12 @@ async function getFeed(): Promise<Notebook> {
   }
 }
 export async function getEntry(id: string): Promise<Entry | undefined> {
-  const published = await publishedEntry(id).catch(() => undefined);
+  const published = await publishedEntry(id);
   if (published) return published;
+  const sample = showExamples() ? examples.find((entry) => entry.id === id) : undefined;
+  if (sample) return sample;
   const base = process.env.UNSTUCK_API_URL;
-  if (!base) return examples.find((entry) => entry.id === id);
+  if (!base) return undefined;
   try {
     const response = await fetch(
       `${base.replace(/\/$/, "")}/entries/${encodeURIComponent(id)}`,

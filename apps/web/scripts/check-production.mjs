@@ -59,6 +59,7 @@ try {
     {
       UNSTUCK_API_URL: media ? "http://127.0.0.1:3201/api/v1" : "",
       UNSTUCK_MEDIA_ORIGIN: "",
+      UNSTUCK_SHOW_EXAMPLES: media ? "false" : "true",
       UNSTUCK_DATA_DIR: dataDir,
       DATABASE_URL: database?.url ?? "",
       UNSTUCK_MODERATOR_CODE: "test-moderator-code-2026",

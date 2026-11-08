@@ -1,5 +1,5 @@
 import "server-only";
-import { examples, topics } from "./data";
+import { examples } from "./data";
 import { hasDatabase, query, transaction } from "./db.server";
 import {
   isQuestion,
@@ -152,23 +152,27 @@ export async function createCommunity(
   input: { name?: unknown; about?: unknown; topic?: unknown; rules?: unknown },
 ) {
   const name = clean.text(input.name, 3, 60, "The name");
-  const about = clean.text(input.about, 10, 300, "The description");
+  const about = clean.text(input.about, 10, 300, "What it’s for");
   const rawRules = Array.isArray(input.rules)
     ? input.rules
     : typeof input.rules === "string"
       ? input.rules.split("\n")
       : [];
   const rules = rawRules.map((rule) => String(rule).trim()).filter(Boolean);
-  if (!rules.length || rules.length > 5)
-    throw new StoreError("Write between one and five rules for members.");
+  if (rules.length > 5) throw new StoreError("Write up to five rules.");
   rules.forEach((rule) => clean.text(rule, 3, 200, "Each rule"));
-  const topic = topics.find((t) => t === input.topic);
-  if (!topic) throw new StoreError("Choose the field it belongs to.");
+  // Categories stand on their own; a parent label is optional.
+  const topic =
+    typeof input.topic === "string" && input.topic.trim()
+      ? input.topic.trim().slice(0, 40)
+      : "General";
   const slug = slugify(name);
   if (slug.length < 3)
     throw new StoreError("Use a name with at least three letters or numbers.");
   if (sampleCommunities.some((c) => c.slug === slug))
-    throw new StoreError("A community with that name already exists.");
+    throw new StoreError(
+      "A category with that name already exists. Join it instead.",
+    );
   const id = newId();
   await transaction(async (client) => {
     const inserted = await client.query(
@@ -176,7 +180,9 @@ export async function createCommunity(
       [id, slug, account.id, { name, about, topic, rules }],
     );
     if (!inserted.rowCount)
-      throw new StoreError("A community with that name already exists.");
+      throw new StoreError(
+        "A category with that name already exists. Join it instead.",
+      );
     await client.query(
       "INSERT INTO web.community_members (community, account_id, agreed) VALUES ($1,$2,now())",
       [slug, account.id],
@@ -196,7 +202,7 @@ export async function setMembership(
   input: { agree?: unknown; intro?: unknown } = {},
 ) {
   if (!(await communityBySlug(slug)))
-    throw new StoreError("That community doesn’t exist.", 404);
+    throw new StoreError("That category doesn’t exist.", 404);
   if (join) {
     if (input.agree !== true)
       throw new StoreError("Agree to the community’s rules to join.");

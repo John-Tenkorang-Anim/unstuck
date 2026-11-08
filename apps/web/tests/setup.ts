@@ -7,6 +7,7 @@ beforeEach(() => {
   // Database tests run in plain Node, without a document.
   if (typeof window === "undefined") return;
   localStorage.clear();
+  sessionStorage.clear();
   document.documentElement.removeAttribute("data-lite");
   window.scrollTo = vi.fn();
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);

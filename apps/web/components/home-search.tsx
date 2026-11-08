@@ -18,7 +18,11 @@ type Suggestion = {
  * combobox pattern, so arrow keys and screen readers work as expected. As a
  * plain form it still searches or asks without JavaScript.
  */
-export function HomeSearch() {
+export function HomeSearch({
+  placeholder = "What are you trying to figure out?",
+}: {
+  placeholder?: string;
+}) {
   const router = useRouter();
   const id = useId();
   const [q, setQ] = useState("");
@@ -98,7 +102,7 @@ export function HomeSearch() {
           aria-activedescendant={
             showList && active >= 0 ? `${id}-${active}` : undefined
           }
-          placeholder="What are you trying to figure out?"
+          placeholder={placeholder}
           autoComplete="off"
           value={q}
           onChange={(event) => {

@@ -80,21 +80,48 @@ export function OutcomeGlyph({
 }
 
 /** The product's mark: a tangled line that comes loose. */
+/**
+ * The Unstuck mark: three layers stepping up and to the right, each turning a
+ * little further and becoming more solid. Uncertainty unfolding into
+ * understanding; a failed attempt becoming the next, better one.
+ */
 export function LogoMark({ size = 22 }: { size?: number }) {
   return (
     <svg
+      className="logo-mark"
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
       aria-hidden="true"
     >
-      <path
-        d="M2 19.5c6 0 12.5-2 12.5-8.5 0-4.2-6.2-4.2-6.2 0 0 5.6 7 4.2 13.7-8"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <rect
+        x="2"
+        y="11"
+        width="10"
+        height="10"
+        rx="2.6"
+        fill="currentColor"
+        opacity="0.28"
+        transform="rotate(-10 7 16)"
+      />
+      <rect
+        x="6.5"
+        y="7"
+        width="10"
+        height="10"
+        rx="2.6"
+        fill="currentColor"
+        opacity="0.55"
+        transform="rotate(4 11.5 12)"
+      />
+      <rect
+        x="11.5"
+        y="2.5"
+        width="10"
+        height="10"
+        rx="2.6"
+        fill="currentColor"
+        transform="rotate(16 16.5 7.5)"
       />
     </svg>
   );

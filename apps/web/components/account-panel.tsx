@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { safeReturnTo } from "@/lib/navigation";
 import { useState } from "react";
 import { KeyRound, LogOut, ShieldCheck } from "lucide-react";
 import { useNotebook } from "./notebook-provider";
@@ -9,10 +11,13 @@ import { postJson, showRecovery, useAccount, type Viewer } from "./use-account";
 export function AccountPanel({
   initial,
   moderationEnabled,
+  returnTo,
 }: {
   initial: Viewer;
   moderationEnabled: boolean;
+  returnTo?: string;
 }) {
+  const router = useRouter();
   const { viewer, signIn, signOut, recover, refresh } = useAccount(initial);
   const { notice } = useNotebook();
   const [who, setWho] = useState({ name: "", role: "" });
@@ -47,7 +52,11 @@ export function AccountPanel({
           className="account-card"
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => signIn(who.name, who.role));
+            run(async () => {
+              await signIn(who.name, who.role);
+              const next = safeReturnTo(returnTo);
+              if (next) router.push(next);
+            });
           }}
         >
           <h2>Choose a name</h2>
@@ -86,6 +95,8 @@ export function AccountPanel({
             run(async () => {
               await recover(code);
               notice("Signed in on this browser.");
+              const next = safeReturnTo(returnTo);
+              if (next) router.push(next);
             });
           }}
         >
