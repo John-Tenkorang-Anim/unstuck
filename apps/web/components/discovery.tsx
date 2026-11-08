@@ -47,7 +47,6 @@ export function Discovery({
   questions = false,
   savedOnly = false,
   embedded = false,
-  featured,
 }: {
   notebook: Notebook;
   initialTopic?: string;
@@ -57,8 +56,6 @@ export function Discovery({
   savedOnly?: boolean;
   /** Inside another page, such as the notebook: no page heading or banner. */
   embedded?: boolean;
-  /** Server-rendered sections shown under the search on the home page. */
-  featured?: React.ReactNode;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [topic, setTopic] = useState(initialTopic);
@@ -132,55 +129,7 @@ export function Discovery({
 
   return (
     <>
-      {home ? (
-        <>
-          <section className="home-search frame" aria-labelledby="hero-title">
-            <h1 id="hero-title">
-              Learn from <span className="tint-brand">what failed.</span>
-            </h1>
-            <p className="home-lede">
-              Search attempts, photos and film, down to the second something
-              went wrong.
-            </p>
-            <form className="home-bar" action="/search" role="search">
-              <Search size={20} aria-hidden="true" />
-              <input
-                ref={search}
-                type="search"
-                name="q"
-                aria-label="Search the notebook"
-                placeholder="What are you trying to figure out?"
-                autoComplete="off"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <kbd aria-hidden="true">/</kbd>
-              <button
-                className="button button-outline home-ask"
-                formAction="/new"
-                name="kind"
-                value="problem"
-              >
-                Ask
-              </button>
-              <button className="button button-dark">Search</button>
-            </form>
-            <nav className="home-quick" aria-label="Or jump straight in">
-              {[
-                ["/new?kind=problem", "Ask a question"],
-                ["/search?type=questions", "Help someone"],
-                ["/sessions/new", "Get feedback on work"],
-                ["/communities", "Find a community"],
-              ].map(([href, label]) => (
-                <Link key={href} href={href}>
-                  {label}
-                </Link>
-              ))}
-            </nav>
-          </section>
-          {featured}
-        </>
-      ) : embedded ? null : (
+      {home || embedded ? null : (
         <section className="page-head frame">
           <p className="label">
             {savedOnly ? "Private to this device" : "No result yet"}
@@ -230,7 +179,7 @@ export function Discovery({
           )}
         </div>
         <div className="ledger-controls">
-          {!home && (
+          {
             <form
               className="search-field"
               onSubmit={(e) => e.preventDefault()}
@@ -247,7 +196,7 @@ export function Discovery({
               />
               <kbd aria-hidden="true">/</kbd>
             </form>
-          )}
+          }
           <Popover.Root open={filters} onOpenChange={setFilters}>
             <Popover.Trigger
               className={`button button-outline ${topic ? "is-active" : ""}`}

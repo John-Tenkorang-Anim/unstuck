@@ -26,8 +26,8 @@ function discover(props = {}) {
 describe("finding a way forward", () => {
   it("renders useful initial content before any interaction", () => {
     discover();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Learn from what failed.",
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Latest attempts",
     );
     expect(screen.getAllByRole("article")).toHaveLength(10);
     expect(
@@ -64,7 +64,7 @@ describe("finding a way forward", () => {
     expect(
       within(screen.getAllByRole("article")[0]).getByRole("heading"),
     ).toHaveTextContent("Clay pot cooler");
-    await user.click(screen.getByRole("heading", { level: 1 }));
+    await user.click(screen.getByRole("heading", { level: 2 }));
     await user.keyboard("/");
     expect(screen.getByRole("searchbox")).toHaveFocus();
   });

@@ -443,7 +443,7 @@ test("field notes can be published with a photo and appear in the feed and searc
   assert.ok(document.querySelector(".story-photo img, #photo img"));
   const { document: home } = await documentAt("/discover");
   assert.match(
-    home.querySelector(".tiles").textContent,
+    home.querySelector(".feed-list").textContent,
     /Shade cloth saved my seedlings/,
   );
   const { document: found } = await documentAt(
