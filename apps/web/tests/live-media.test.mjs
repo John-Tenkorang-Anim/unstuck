@@ -69,7 +69,7 @@ test("unapproved and malformed attachments never expose their source paths", asy
 test("the home page sends no entry bodies or media", async () => {
   const { response, html, document } = await read("/discover");
   assert.equal(response.status, 200);
-  assert.equal(document.querySelectorAll("main article").length, 0);
+  assert.equal(document.querySelectorAll(".discovery-row").length, 1);
   assert.ok(
     !html.includes(
       "The transcript preserves the details even without playback.",

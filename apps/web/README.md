@@ -1,175 +1,102 @@
 # Unstuck web
 
-A Next.js App Router frontend with a custom design system inspired by Apple's
-interface language. Use Node.js 24 and npm. No external font or image service is
-needed to render the interface.
-
-## Design system
-
-- **Type:** Space Grotesk for headlines and figures, IBM Plex Sans for reading
-  and interface text. Both are bundled locally. Light reading uses system fonts
-  and never downloads them.
-- **Colour:** Cherenkov Blue `#2F5BFF` is the signature, for primary buttons,
-  links and the logo. H-alpha Magenta `#C2399B` is a second accent for
-  people, communities and new activity. Community icons take the colours of
-  stellar spectral classes. Outcome colours appear only where they encode
-  results, always with a glyph and a label. They were checked for every common
-  kind of colour blindness, including blue-yellow: worked `#00A37A`, didn't
-  work `#B8321A`, mixed `#E0A800`, and still being tested in the brand blue.
-- **Motion:** entrance and scroll reveals are CSS only, so content never depends
-  on scripts to appear. Page and filter changes use React's `ViewTransition`.
-  Reduced-motion and light reading turn all of it off.
-- **Primitives:** Radix provides the search dialog and the field filter popover.
-  Styles live in `app/globals.css` as tokens, and there is no component kit.
+The working application for recording attempts, learning from outcomes, proposing
+improvements, and testing them with others. Requires Node.js 24 and PostgreSQL.
 
 ## Run
 
 ```sh
 npm ci
+npm run db:start
+export DATABASE_URL=postgresql://unstuck@127.0.0.1:5433/unstuck
 npm run dev -- --port 3100
 ```
 
-Open http://127.0.0.1:3100. For a production build:
+Open http://127.0.0.1:3100. The database command manages a development cluster;
+use a separately provisioned database and credentials for deployment. Uploaded
+files live in `.data/`, or `UNSTUCK_DATA_DIR`. Configure `UNSTUCK_S3_*` to use
+S3-compatible storage. See `.env.example` for the available configuration.
+
+Without a database or API, the app shows labelled examples and disables writes.
+`UNSTUCK_SHOW_EXAMPLES=true` explicitly includes sample records alongside live
+content; `false` disables them. A configured database/API defaults to live data.
 
 ```sh
 npm run build
 npm run start -- --port 3100
 ```
 
-## What works
+## Product and interface
 
-- A landing page at `/` that introduces Unstuck: a morning photograph of
-  dew-covered rice seedlings (Aqsis Bey, CC BY-SA 4.0) and Sankofa, the Akan
-  Adinkra symbol for going back to learn from what came before. "Get started"
-  leads to `/discover` and "Sign in" to `/account`.
-- Discover is drawn as a star chart. Its bright stars are real questions,
-  pink while they wait for an answer, and each opens its question.
-- The community directory is one line per community, searched, filtered and
-  sorted in the database, thirty to a page. Links from a community carry
-  `?from=` so notes and the composer keep that community as the way back.
+- Discover, Problems, Workspaces, and Lessons are the main destinations.
+  Contribute guides an attempt, problem, proposal, or test through its required
+  fields. My Space holds drafts, saved records, contributions, and followed work.
+- Native system typography, neutral surfaces, blue actions, and outcome labels
+  provide a restrained visual language. Spacing groups content; dividers are
+  reserved for controls and necessary structure. Discovery uses small landscape
+  journey previews, a compact featured photograph, and readable text indexes.
+- Attempts separate the original outcome from later supported improvements.
+  Evidence, conditions, discussion, related work, and collaboration activity
+  remain independently inspectable. Activity is not a version archive.
+- Comparisons describe recorded conditions and reported outcomes. They do not
+  invent measurements, call an unfinished attempt successful, or establish
+  causation from an association. The curated pattern/guide library currently
+  contains illustrative examples, not a live authoring workflow.
+- Accounts use a display name, an expiring browser session, and a recovery code.
+  Public profile handles are distinct from private account IDs. A name is not
+  unique: invitations accept an exact public profile link when names collide.
+- Private workspaces stay out of the public directory. Restricted workspaces
+  disclose their title but require membership to read their contents. Viewer,
+  contributor, editor, and owner roles govern mutations on the server.
+- Shared critiques support photos, video, PDFs, worked maths, code, and tables,
+  with feedback attached to a place or moment. Discussion supports replies,
+  helpful marks, proposed explanations, and evidence links.
+- Reports, written moderation decisions, review queues, known-image hash
+  matching, incident records, and appeals have working web data flows. Operators
+  must supply appropriate scanners/hash lists and reporting procedures.
 
-- Three places in the menu: Discover, Communities and Notebook, plus one Ask
-  button. Discover is a single box. Suggestions appear as you type, using the
-  same forgiving search, and Enter shows full results at `/search`, which
-  counts as part of Discover. An empty `/search` goes back to Discover. A `⌘K`
-  palette opens search from any other page.
-- Light and dark themes that follow the system, with a remembered override.
-- A search page that ranks across text, video moments, photo descriptions,
-  explanations and session feedback, links to the exact second or spot, and
-  summarises matching outcomes as counts. It renders without JavaScript.
-- Critique and inquiry sessions with pinned or time-coded feedback, rounds and
-  status. Notes people add are kept on their device.
-- Shown working for coursework: maths steps, code with its output, and data
-  tables, each step, line and row addressable by feedback. Graded work can be
-  marked hints only.
-- Shared critique sessions. People choose a display name, publish a photo,
-  video, PDF or their working, and others add notes pinned to a spot, page,
-  step, line, row or second. Owners move the status and resolve notes. Data
-  blocks also draw a scatter chart with an optional best-fit line.
-- A "Why it happened" discussion on every field note, built for very long
-  threads. Explanations are ranked by how many different people bring
-  supporting or disputing evidence. Responses split into all, questions and
-  tried-it, and can be searched, sorted by most helpful, newest or oldest,
-  and paged. Long responses are clamped, and replies load on request.
-- A field note reads on its own. Its discussion opens as a pane beside it
-  only when someone asks for it, and `?discuss=1` keeps that open in a link.
-  On phones the discussion is a full-screen sheet.
-- Open communities at `/communities`. Anyone can start, join, read and post
-  in one. Each community has its own questions, a library of notes shelved by
-  outcome, and a members list. Joining opens a dialog with what members get
-  and the community's rules. People agree to the rules and can introduce
-  themselves. Founders write the rules when they create a community.
-- When posting, people choose where it appears: everyone, one or more
-  communities, or both. Community-only posts stay out of the public feed and
-  search.
-- From the results people open a note to respond, or ask. The ask card keeps
-  the words typed and suggests the community where similar problems were
-  posted. Open questions, videos and critiques are tabs of the results, and
-  `/questions` redirects there. Search forgives misspellings and says
-  "Showing results for …". It knows common synonyms, and supports
-  `"exact phrases"` and `-excluded` words.
-- Ask and the old "New note" are one composer at `/new`. People choose to ask
-  for help or share what happened, or to get feedback on a piece of work. What
-  they post appears in their notebook.
-- The notebook at `/notebook` holds what is yours: your posts with new and
-  unanswered counts, replies to you, your critiques, saved notes and your
-  communities. The critiques tab lists the feedback you gave on other
-  people's work and the work you shared for critique. `/you` redirects there.
-- Maths anywhere people write: responses, field notes, critique notes and
-  worked steps. A Σ palette inserts fractions, powers, roots, integrals, Greek
-  letters and operators. ⌘/Ctrl+M starts an equation, and a live preview
-  typesets it. Inline maths goes between `$…$` and display maths between
-  `$$…$$`. Prices such as "$20 and $30" stay plain text.
-- Replies work like YouTube or X. Reply on any reply and the new one is
-  labelled "Replying to …", so nobody has to type a name to tag someone.
+## Media and rendering
 
-## Shared data
+Written content is server rendered. In light reading, photo and video elements,
+posters, caption tracks, and source URLs are omitted until requested. Transcripts
+and image descriptions remain readable. Playback uses native controls, no
+autoplay, and `preload="none"`, with retry and text alternatives on failure.
 
-Sharing needs PostgreSQL 16. Start a private local cluster and set the URL:
+Web uploads are sniffed and size limited. Images are decoded, re-encoded without
+metadata, scanned against the configured hash list, and bounded to 1600 pixels
+per edge. Actual dimensions determine layout. Video publishing requires a
+descriptive transcript plus timed plain-text WebVTT captions, unless the author
+confirms that the recording has no meaningful audio. This is author-supplied
+text, not independent accessibility review. Staged files cannot be delivered or
+approved before the publication transaction commits; failed publications clean
+up ordinary staged files. Quarantined moderation evidence is retained.
 
-```sh
-npm run db:start        # creates .pgdata/ and listens on 127.0.0.1:5433
-export DATABASE_URL=postgresql://unstuck@127.0.0.1:5433/unstuck
-```
+`UNSTUCK_UPLOAD_REVIEW` defaults to `all` in production. Video and PDF are not
+transcoded or deeply validated in this web upload path. Production needs the
+sandboxed intake/encoding pipeline, real scanner integration, native device
+playback checks, object-store policies, and manual accessibility review.
 
-The app creates its tables in a `web` schema on first use. Without
-`DATABASE_URL` it still shows the samples, and publishing explains that a
-database is needed. Uploaded file bytes are kept in `.data/` (or
-`UNSTUCK_DATA_DIR`); the database holds their details and review status.
+## Two data systems currently exist
 
-- **Accounts:** a name and optional role. The first post shows a recovery code
-  once; `/account` uses it to sign in on another device or makes a new one.
-- **Moderation:** anyone can report a session, note or field note. Three
-  reports from different people hide it. People who enter
-  `UNSTUCK_MODERATOR_CODE` on `/account` get the `/moderation` queue, where every
-  decision needs a written reason and is logged.
-- **Uploads:** identified by content, size-limited, images re-encoded with
-  metadata removed, PDFs with scripts or embedded files refused, and an optional
-  external scanner (`UNSTUCK_SCAN_URL`). `UNSTUCK_UPLOAD_REVIEW` holds uploads for
-  a moderator; it defaults to `all` in production.
-- **Rate limits:** per account and per address, enforced in the database.
+The Node server modules in `lib/*.server.ts` own a PostgreSQL `web` schema for
+accounts, publishing, communities, collaboration, moderation, and critiques.
+`lib/schema.server.ts` applies additive schema setup on startup under a lock.
+This is separate from the Python API's normalized tables and migration runner.
+Recovery-code accounts and web uploads are **not** automatically Python API
+accounts or versioned `/m/` assets.
 
-To try a large discussion locally, seed one with
-`node scripts/seed-discussion.mjs <entry-id> [responses] [people]`.
+`UNSTUCK_API_URL` can additionally read the Python API's public feed and entry
+contracts. Those contracts have a separate validated media renderer with
+responsive renditions and reviewed accessibility metadata. A failed API request
+does not become sample content or a false missing-entry result. Live API search
+still indexes the loaded summaries, not the full upstream corpus. Web search
+indexes the bounded loaded web records; neither is a scalable search service.
 
-Tests create and drop their own database. Locally they use the cluster from
-`npm run db:start`; in CI, `UNSTUCK_TEST_DATABASE_URL`.
-
-- **Known-abuse imagery:** every photo gets a PDQ hash, the format industry
-  hash-sharing programmes distribute. Point `UNSTUCK_HASH_LIST` at a programme's
-  list and matching uploads are quarantined where nothing serves them, the
-  uploader is suspended, and moderators see an incident with reporting steps.
-  Moderators can re-check every stored photo when the list changes. Joining a
-  programme and filing reports are steps the operator takes.
-- **Appeals:** people can appeal a hidden item or a suspension once, from
-  `/account`. A moderator who didn't make the original decision rules on it.
-- **File storage:** the local disk by default, or any S3-compatible bucket
-  (`UNSTUCK_S3_*`) so several machines can serve the same files.
-
-Videos and PDFs can't be hash-matched yet; in production they wait for a
-moderator by default.
-
-## Data modes
-
-Without `UNSTUCK_API_URL`, the frontend shows **explicitly labeled fictional
-examples**. Their stories, counts, aliases, and evidence are demonstration data.
-Bookmarks and the single active draft are stored only in this browser's local
-storage. Nothing is published or submitted as a community report.
-
-To read published entries from FastAPI, copy `.env.example` to `.env.local` and
-set the server-only `UNSTUCK_API_URL` to the API's `/api/v1` base URL. An optional
-bare HTTPS `UNSTUCK_MEDIA_ORIGIN` prefixes approved `/m/` paths on a real CDN.
-The edge must serve those paths only from public derivative storage. Restart the
-web server. The public feed and entry detail adapters use that URL. They never
-silently replace failed live requests with sample stories. Filtering currently
-applies to the entries loaded from the first feed page.
-
-Account/session UI, community publishing, report submission, moderation actions,
-media uploads, translation/RTL, voice input, live events, knowledge-page editing,
-and offline caching still need their respective backend integrations and UI.
-The current frontend deliberately offers private drafts instead of claiming
-unavailable publishing works. Live explanation retrieval is not available in
-the current backend; the Why board shows an empty state in live mode.
+Unifying identity, publication, evidence rules, migration ownership, search, and
+media delivery is required before operating this as one production platform.
+See [the review record](../../docs/REVIEW.md) and the
+[implementation ledger](../../docs/IMPLEMENTATION.md). Installing a different
+frontend framework would not resolve these data boundaries.
 
 ## Verification
 
@@ -178,30 +105,17 @@ npm run contracts:check
 npm run typecheck
 npm test
 npm run build
-npm run test:production
+UNSTUCK_TEST_PORT=3106 npm run test:production
 npm run test:media-production
-# With a local server running:
-npm run test:ssr
+npm run test:browser
 ```
 
-`npm test` runs component interaction and structural accessibility tests in
-JSDOM. `test:ssr` checks actual HTTP responses and parses their HTML without
-executing scripts. Set `UNSTUCK_TEST_URL` to test a different local port.
+Store tests create and drop their own database using the local development
+cluster, or `UNSTUCK_TEST_DATABASE_URL`. Production HTTP checks own their test
+servers and stop if a port is occupied. They do not restart an existing dev
+server. Chromium tests use a synthetic API, record phone/desktop layout
+screenshots, and check media consent, error recovery, keyboard navigation, and
+compact journey images. They require Playwright Chromium to be installed.
 
-`npm run test:production` starts and stops its own production server and runs
-HTTP/SSR checks, including a 50 KiB compressed HTML-document budget. This budget
-excludes script, style, font and media transfers; it is not a whole-page budget.
-It uses port 3100 (3200 for the media checks) and stops if something is already
-running there, such as `npm run dev`. Set `UNSTUCK_TEST_PORT` to use another
-port.
-
-CI runs `npm run test:browser` against an isolated, read-only synthetic API on
-loopback. Its media-response fixtures test delivery policy and recovery, not real
-codec support or CDN behavior. To run that suite in a suitable test environment,
-install Playwright Chromium with `npx playwright install --with-deps chromium`.
-The local computer's browser bridge remains unavailable; manual visual review,
-actual device playback, assistive-technology testing and Lighthouse measurements
-are still required. JSDOM/axe checks do not certify WCAG conformance.
-
-See the [platform architecture decision](../../docs/architecture/0001-platform-foundations.md)
-for release gates, media limits and production work still required.
+JSDOM/axe and synthetic browser checks do not certify WCAG conformance, real
+codec playback, CDN behavior, recovery from a machine failure, or launch scale.

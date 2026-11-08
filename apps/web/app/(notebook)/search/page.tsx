@@ -64,7 +64,7 @@ export default async function SearchPage({
   const account = hasDatabase() ? await currentAccount() : undefined;
   const [{ docs, mode }, communities, mine] = await Promise.all([
     getCorpus(),
-    listCommunities().catch(() => []),
+    listCommunities(),
     joinedSlugs(account),
   ]);
   const ranked = search(docs, exact ? `"${q}"` : q, {
@@ -181,11 +181,10 @@ export default async function SearchPage({
         ))}
         <Link href="/communities">All categories</Link>
       </div>
-      {mode === "examples" && (
+      {(mode === "examples" || mode === "mixed") && (
         <p className="example-notice serp-notice">
-          <span className="example-tag">Sample data</span> Searching fictional
-          examples and one historical case. Photos and film are real and
-          credited.
+          <span className="example-tag">Sample data</span> Illustrative records
+          are included and labelled as samples.
         </p>
       )}
       {q && corrected && !exact && (

@@ -186,7 +186,7 @@ export async function saveFile(
   try {
     await storage().put("files", file.id, checked.bytes, file.mime);
     await query(
-      "INSERT INTO web.files (id, owner, mime, bytes, name, status, scan, pdq) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+      "INSERT INTO web.files (id, owner, mime, bytes, name, status, scan, pdq, staged) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
       [
         file.id,
         owner,
@@ -196,6 +196,7 @@ export async function saveFile(
         file.status,
         checked.note,
         checked.pdq ?? null,
+        options.staged === true,
       ],
     );
   } catch (error) {
@@ -224,7 +225,7 @@ async function activateFiles(
 ) {
   for (const file of files) {
     const result = await client.query(
-      "UPDATE web.files SET status = $3 WHERE id = $1 AND owner = $2 AND status = 'pending' AND NOT quarantined RETURNING id",
+      "UPDATE web.files SET status = $3, staged = false WHERE id = $1 AND owner = $2 AND staged AND status = 'pending' AND NOT quarantined RETURNING id",
       [file.id, owner, file.status],
     );
     if (!result.rowCount)
@@ -238,7 +239,7 @@ async function activateFiles(
 export async function discardStagedFiles(owner: string, ids: string[]) {
   if (!ids.length) return;
   const rows = await query<{ id: string }>(
-    "DELETE FROM web.files WHERE owner = $1 AND id = ANY($2) AND status = 'pending' AND NOT quarantined RETURNING id",
+    "DELETE FROM web.files WHERE owner = $1 AND id = ANY($2) AND staged AND status = 'pending' AND NOT quarantined RETURNING id",
     [owner, ids],
   );
   await Promise.all(
@@ -363,7 +364,7 @@ export async function recordIncidentReport(
 }
 export async function fileById(id: string) {
   const [file] = await query<StoredFile>(
-    "SELECT id, owner, mime, bytes, name, status FROM web.files WHERE id = $1",
+    "SELECT id, owner, mime, bytes, name, status FROM web.files WHERE id = $1 AND NOT staged",
     [id],
   );
   return file;
@@ -855,10 +856,10 @@ export async function moderate(
     } else if (action === "approve-file" || action === "reject-file") {
       changed =
         (
-          await client.query("UPDATE web.files SET status = $2 WHERE id = $1", [
-            id,
-            action === "approve-file" ? "approved" : "rejected",
-          ])
+          await client.query(
+            "UPDATE web.files SET status = $2 WHERE id = $1 AND NOT staged AND NOT quarantined AND status <> 'blocked'",
+            [id, action === "approve-file" ? "approved" : "rejected"],
+          )
         ).rowCount ?? 0;
     } else if (action === "suspend" || action === "unsuspend") {
       changed =
@@ -894,7 +895,7 @@ export async function moderationQueue() {
   );
   const files = await query<StoredFile & { owner_name: string; scan: string }>(
     `SELECT f.id, f.owner, f.mime, f.bytes, f.name, f.status, f.scan, a.name AS owner_name
-     FROM web.files f JOIN web.accounts a ON a.id = f.owner WHERE f.status = 'pending' ORDER BY f.created LIMIT 100`,
+     FROM web.files f JOIN web.accounts a ON a.id = f.owner WHERE f.status = 'pending' AND NOT f.staged AND NOT f.quarantined ORDER BY f.created LIMIT 100`,
   );
   const actions = await query<{
     action: string;

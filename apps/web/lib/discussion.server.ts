@@ -353,7 +353,7 @@ async function entryOrFail(entryId: string) {
       owner: problem.owner,
     } as unknown as Entry;
   }
-  const entry = await getEntry(entryId).catch(() => undefined);
+  const entry = await getEntry(entryId);
   if (!entry || entry.hidden)
     throw new StoreError("That field note doesn’t exist.", 404);
   return entry;
@@ -646,7 +646,7 @@ export async function repliesToMe(
   for (const id of new Set(rows.map((r) => r.entry_id))) {
     const entry = id.startsWith("problem~")
       ? await getProblem(id.slice(8))
-      : await getEntry(id).catch(() => undefined);
+      : await getEntry(id);
     if (entry) titles.set(id, entry.title);
   }
   return rows.map((r) => ({

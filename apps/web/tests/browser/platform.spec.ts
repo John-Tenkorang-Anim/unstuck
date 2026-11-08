@@ -130,43 +130,63 @@ test("the home page loads no media files and omits full entry bodies", async ({
   await expect(
     page.getByRole("combobox", { name: "Search, or describe your problem" }),
   ).toBeVisible();
-  await expect(page.getByRole("article")).toHaveCount(0);
+  await expect(page.locator(".dv-feature")).toHaveCount(1);
   expect(requests).toEqual([]);
   expect(await page.content()).not.toContain(
     "The transcript preserves the details even without playback.",
   );
 });
 
-test("the discussion opens beside the note, resizes with mouse or keyboard, and keeps one toggle", async ({
+test("discussion is a shareable tab and preserves navigation back to the note", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(path);
-  const toggle = page.locator(".note-toggle");
-  await toggle.click();
-  await expect(page).toHaveURL(/discuss=1/);
-  await expect(toggle).toHaveText(/Hide discussion/);
-  const pane = page.locator(".disc-pane");
-  const width = async () => (await pane.boundingBox())!.width;
-  const start = await width();
-  expect(start).toBeGreaterThanOrEqual(420);
-  const handle = page.getByRole("separator", { name: "Resize the discussion" });
-  const box = (await handle.boundingBox())!;
-  await page.mouse.move(box.x + 5, box.y + 200);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 205, box.y + 200, { steps: 6 });
-  await page.mouse.up();
-  await expect.poll(width).toBeGreaterThan(start + 150);
-  await handle.focus();
-  await page.keyboard.press("Home");
-  await expect.poll(width).toBe(360);
-  await page.getByRole("button", { name: "Widen the discussion" }).click();
-  await expect.poll(width).toBeGreaterThan(800);
-  // The note keeps a readable column beside the widest pane.
-  expect(
-    (await page.locator(".note-pane").boundingBox())!.width,
-  ).toBeGreaterThan(460);
-  await toggle.click();
-  await expect(pane).toBeHidden();
-  await expect(toggle).toHaveText(/Discussion/);
+  const tabs = page.getByRole("navigation", { name: "Attempt" });
+  await tabs.getByRole("link", { name: /^Discussion/ }).click();
+  await expect(page).toHaveURL(/tab=discussion/);
+  await expect(page.locator("#why")).toBeVisible();
+  await expect(tabs.getByRole("link", { name: /^Discussion/ })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await tabs.getByRole("link", { name: "Overview" }).click();
+  await expect(page.locator(".story-body")).toBeVisible();
 });
+
+for (const width of [390, 1440]) {
+  test(`journey previews stay compact and readable at ${width}px`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/discover");
+    const journeys = page.locator(".dv-journeys");
+    await journeys.scrollIntoViewIfNeeded();
+    await expect(journeys.locator(":scope > li")).toHaveCount(3);
+    for (const image of await journeys.locator("img").all()) {
+      const box = (await image.boundingBox())!;
+      expect(box.height).toBeLessThanOrEqual(72);
+      expect(box.width).toBeLessThanOrEqual(112);
+      expect(box.width).toBeGreaterThan(box.height);
+    }
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await expect(
+      journeys.getByText("Improve oxygen transfer during microbial scale-up"),
+    ).toBeVisible();
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await page.screenshot({
+      path: testInfo.outputPath(`discovery-${width}.png`),
+      fullPage: true,
+    });
+    if (width === 1440) {
+      await page.getByRole("button", { name: "Switch to dark theme" }).click();
+      await page.screenshot({
+        path: testInfo.outputPath("discovery-dark.png"),
+        fullPage: true,
+      });
+    }
+  });
+}

@@ -69,21 +69,28 @@ The fake blob upload tickets are test objects, not network-accessible upload URL
 
 ## Run the frontend
 
-Requires Node.js 24. The frontend has three places: Discover (one search box
-with suggestions, and results with open questions and critiques), Communities,
-and a Notebook for your posts, critiques and saved notes. One Ask composer
-handles questions and shared experiences.
+Requires Node.js 24. The application has Discover, Problems, Workspaces, and
+Lessons, with guided contributions and a personal space for saved work and drafts.
+Its Node server implements accounts, publishing, communities, collaboration,
+critiques, and moderation in a separate PostgreSQL `web` schema.
 
 ```sh
 cd apps/web
 npm ci
+npm run db:start
+export DATABASE_URL=postgresql://unstuck@127.0.0.1:5433/unstuck
 npm run dev -- --port 3100
 ```
 
-Open http://127.0.0.1:3100. See [the web README](apps/web/README.md) for backend
-connection, production commands, and tests. The default notebook uses labeled
-fictional examples. Bookmarks and drafts stay on the current device; community
-publishing awaits identity integration.
+Open http://127.0.0.1:3100. Without database/API configuration it uses labelled
+examples. A configured database defaults to live records;
+`UNSTUCK_SHOW_EXAMPLES=true` explicitly adds examples. See the
+[web README](apps/web/README.md) for configuration, media behavior, and tests.
+
+**The web and Python data systems are not unified.** They have separate account,
+publication, and media models. `UNSTUCK_API_URL` enables read-only public API
+integration; it does not synchronize identities or writes. See the
+[review record](docs/REVIEW.md) for current capabilities and remaining release work.
 
 ## Platform architecture
 

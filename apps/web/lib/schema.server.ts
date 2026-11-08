@@ -103,6 +103,7 @@ CREATE INDEX IF NOT EXISTS rate_key_at ON web.rate_events (key, at);
 
 -- Later additions. Each is safe to run again.
 ALTER TABLE web.files ADD COLUMN IF NOT EXISTS pdq text;
+ALTER TABLE web.files ADD COLUMN IF NOT EXISTS staged boolean NOT NULL DEFAULT false;
 ALTER TABLE web.files ADD COLUMN IF NOT EXISTS quarantined boolean NOT NULL DEFAULT false;
 ALTER TABLE web.files DROP CONSTRAINT IF EXISTS files_status_check;
 ALTER TABLE web.files ADD CONSTRAINT files_status_check

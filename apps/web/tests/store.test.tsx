@@ -1159,3 +1159,50 @@ describe("reviewed publishing and identity", () => {
     expect(JSON.stringify(activity)).not.toContain("SECRET");
   });
 });
+
+it("keeps unfinished uploads out of delivery and moderator approval", async () => {
+  const s = await store();
+  const owner = await collaborationActor();
+  const moderator = { ...(await collaborationActor()), moderator: true };
+  const bytes = await sharp({
+    create: { width: 8, height: 8, channels: 3, background: "#962" },
+  })
+    .jpeg()
+    .toBuffer();
+  const saved = await s.saveFile(owner.id, "staged.jpg", bytes, {
+    staged: true,
+  });
+  expect(await s.fileById(saved.file.id)).toBeUndefined();
+  expect(
+    (await s.moderationQueue()).files.some((f) => f.id === saved.file.id),
+  ).toBe(false);
+  await expect(
+    s.moderate(
+      moderator,
+      "approve-file",
+      "file",
+      saved.file.id,
+      "Trying to approve an unfinished upload",
+    ),
+  ).rejects.toMatchObject({ status: 404 });
+  await s.discardStagedFiles(owner.id, [saved.file.id]);
+});
+
+it("does not mix illustrative records, sessions or communities into live mode", async () => {
+  process.env.UNSTUCK_SHOW_EXAMPLES = "false";
+  try {
+    const { getNotebook, getEntry } = await import("@/lib/api");
+    const c = await import("@/lib/communities.server");
+    const { loadSession } = await import("@/lib/shared.server");
+    expect((await getNotebook()).entries.some((e) => e.example)).toBe(false);
+    expect(await getEntry("two-pots-one-small-breakthrough")).toBeUndefined();
+    expect(await loadSession("first-print-spaghetti")).toBeUndefined();
+    expect((await c.listCommunities()).some((e) => e.sample)).toBe(false);
+    expect((await c.searchCommunities({})).items.some((e) => e.sample)).toBe(
+      false,
+    );
+    expect(await c.communityBySlug("smallholder-growers")).toBeUndefined();
+  } finally {
+    process.env.UNSTUCK_SHOW_EXAMPLES = "true";
+  }
+});

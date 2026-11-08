@@ -4,7 +4,21 @@ The entire specification is **not yet implemented**. This ledger distinguishes
 working development behavior from infrastructure and release requirements that
 still need implementation. Nothing here constitutes production-readiness.
 
-## Implemented behavior
+## Web application review
+
+The web application now also has its own Node/PostgreSQL implementation of
+accounts, publishing, critique, communities, proposals, tests, workspaces,
+profiles, following, activity, and moderation. This is **separate from** the
+Python service described below. Features in one implementation do not imply
+that the other has equivalent behavior or that identities/writes synchronize.
+
+The [review record](REVIEW.md) details repaired access controls, concurrent
+updates, honest outcomes/comparisons, publishing cleanup, accessible rendering,
+and the current release gaps. See [the web README](../apps/web/README.md) for
+commands and the actual interface. Older frontend descriptions below refer to
+the original API-backed prototype; this section supersedes those descriptions.
+
+## Implemented Python behavior
 
 The entry, discussion, outcome, link, problem, impact and search workflows now
 share a transaction interface with both memory and Postgres implementations.
@@ -63,12 +77,13 @@ failover, actual sanitization/scanning, CDN behavior, or production identity saf
    is conservative heuristic screening only), moderation queues/actions/appeals,
    reputation, notifications/digests, follows and settings, conflict-of-interest
    coverage and high-stakes reviewer approval routes.
-7. **Frontend:** the initial Next.js application now implements discovery,
-   search/filtering, field-note reading, local bookmarks, a private draft composer,
-   explanatory evidence displays, and light reading mode. See `apps/web/README.md`.
-   Remaining: accounts and publication, tried-it submission, knowledge authoring,
-   moderation/media controls, six-language translation/Arabic RTL, voice/live/offline
-   integration, browser visual QA, and measured performance/accessibility budgets.
+7. **Frontend:** the working web app has guided publishing, recovery-code
+   accounts, role-based workspaces, proposals/tests, profiles, activity, critique,
+   moderation, and bandwidth-aware media. Its Node `web` data system still needs
+   consolidation with the Python API. Remaining: durable edit/version history in
+   the web model, live pattern/guide/collection authoring, passkeys, full settings,
+   six-language translation/Arabic RTL, voice/live/offline integrations, and
+   measured device performance/accessibility budgets. See `REVIEW.md`.
 8. **Deployment and operations:** Compose, Caddy, sandbox isolation, backups
    and restore rehearsal, metrics/traces, load testing and performance budgets.
 9. **v1.1/v2 scope:** trials, spaces, challenges, collections, signed entries,

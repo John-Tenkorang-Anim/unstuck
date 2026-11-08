@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { SessionWorkspace } from "@/components/session-workspace";
-import { getNotebook } from "@/lib/api";
 import { currentAccount, publicAccount } from "@/lib/auth.server";
 import { examples } from "@/lib/data";
 import { loadSession } from "@/lib/shared.server";
@@ -29,7 +28,6 @@ export default async function SessionPage({
   const account = await currentAccount();
   const loaded = await loadSession((await params).id, account);
   if (!loaded) notFound();
-  if (loaded.sample && (await getNotebook()).mode !== "examples") notFound();
   const { session, notes, owner, sample } = loaded;
   if (account && account.id === owner)
     await markSessionSeen(account, session.id);

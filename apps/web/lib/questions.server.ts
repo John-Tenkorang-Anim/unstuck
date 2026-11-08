@@ -18,7 +18,7 @@ export interface QuestionItem {
 export async function communityPool(slug: string) {
   const [notebook, own] = await Promise.all([
     getNotebook(),
-    communityEntries(slug).catch(() => []),
+    communityEntries(slug),
   ]);
   const seen = new Set<string>();
   return [...own.map(summarizeEntry), ...notebook.entries]

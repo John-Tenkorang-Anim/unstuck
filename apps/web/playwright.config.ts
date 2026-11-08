@@ -25,6 +25,8 @@ export default defineConfig({
       env: {
         UNSTUCK_API_URL: "http://127.0.0.1:3201/api/v1",
         UNSTUCK_MEDIA_ORIGIN: "",
+        DATABASE_URL: "",
+        UNSTUCK_SHOW_EXAMPLES: "true",
       },
     },
   ],

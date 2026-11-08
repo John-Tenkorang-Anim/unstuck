@@ -119,16 +119,14 @@ export default async function MySpace({
     myDrafts(account),
     following(account),
     repliesToMe(account, 6, false),
-    listCommunities().catch(() => []),
+    listCommunities(),
   ]);
   const fresh = replies.filter((r) => r.fresh);
   const followedRefs = await Promise.all(
-    follows
-      .slice(0, 6)
-      .map(async (follow) => ({
-        follow,
-        ref: await followingRef(follow, account),
-      })),
+    follows.slice(0, 6).map(async (follow) => ({
+      follow,
+      ref: await followingRef(follow, account),
+    })),
   );
   const show = params.show === "attention" ? "attention" : "all";
   const page = Math.max(1, Number(params.page) || 1);

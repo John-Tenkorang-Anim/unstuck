@@ -34,7 +34,7 @@ import { getEntry, getNotebook } from "@/lib/api";
 import { profileById } from "@/lib/profile.server";
 import { currentAccount, publicAccount } from "@/lib/auth.server";
 import { listCommunities } from "@/lib/communities.server";
-import { sampleCommunities, type Community } from "@/lib/communities";
+import { type Community } from "@/lib/communities";
 import { hasDatabase } from "@/lib/db.server";
 import {
   discussionSummary,
@@ -143,8 +143,12 @@ export default async function AttemptPage({
     .filter((c): c is Community => !!c);
   const category = postedTo[0];
   const from = postedTo.find((c) => c.slug === query.from);
-  const authorProfile = entry.owner ? await profileById(entry.owner) : undefined;
-  const authorHref = authorProfile ? `/people/p_${authorProfile.publicId}` : `/people/${encodeURIComponent(entry.alias)}`;
+  const authorProfile = entry.owner
+    ? await profileById(entry.owner)
+    : undefined;
+  const authorHref = authorProfile
+    ? `/people/p_${authorProfile.publicId}`
+    : `/people/${encodeURIComponent(entry.alias)}`;
   const validated = improvements.filter(
     (i) => i.verdict === "supported",
   ).length;
@@ -160,8 +164,11 @@ export default async function AttemptPage({
     entry.lessons?.find((l) => l.kind === "recommendation") ??
     entry.lessons?.[0];
   const href = (k: string) => {
-    const params = new URLSearchParams({ ...(k === 'overview' ? {} : { tab: k }), ...(from ? { from: from.slug } : {}) });
-    return `/entries/${entry.id}${params.size ? `?${params}` : ''}`;
+    const params = new URLSearchParams({
+      ...(k === "overview" ? {} : { tab: k }),
+      ...(from ? { from: from.slug } : {}),
+    });
+    return `/entries/${entry.id}${params.size ? `?${params}` : ""}`;
   };
   const sessions = entry.example
     ? sampleSessions.filter((s) => s.entryId === entry.id)
@@ -194,7 +201,11 @@ export default async function AttemptPage({
   return (
     <div className="frame knowledge-page attempt-page">
       <nav className="crumbs" aria-label="Breadcrumb">
-        {from ? <Link href={`/communities/${from.slug}`} className="back-link"><ArrowLeft size={14} /> {from.name}</Link> : problem ? (
+        {from ? (
+          <Link href={`/communities/${from.slug}`} className="back-link">
+            <ArrowLeft size={14} /> {from.name}
+          </Link>
+        ) : problem ? (
           <Link href={`/problems/${problem.id}`} className="back-link">
             <ArrowLeft size={14} /> {problem.title}
           </Link>
@@ -240,20 +251,22 @@ export default async function AttemptPage({
           {[
             category?.name ?? entry.topic,
             kindName[entry.kind],
-            new Date(entry.date).toLocaleDateString("en", {
-              month: "long",
-              year: "numeric",
-            }),
-          ].join(" · ")}
+            Number.isFinite(Date.parse(entry.date))
+              ? new Date(entry.date).toLocaleDateString("en", {
+                  month: "long",
+                  year: "numeric",
+                })
+              : undefined,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
         <h1>{entry.title}</h1>
         <p className="record-byline">
           <span className="avatar" aria-hidden="true">
             {entry.alias.slice(0, 1).toUpperCase()}
           </span>
-          <Link href={authorHref}>
-            {entry.alias}
-          </Link>
+          <Link href={authorHref}>{entry.alias}</Link>
           {entry.affiliation && <span>{entry.affiliation}</span>}
           <span>{entry.place}</span>
         </p>
@@ -323,7 +336,23 @@ export default async function AttemptPage({
                     : "Some photos or video are waiting for review."}
                 </p>
               )}
-              <MediaGallery attachments={entry.media ?? []} origin={getMediaOrigin()} />
+              <MediaGallery
+                attachments={entry.media ?? []}
+                origin={getMediaOrigin()}
+              />
+              {Object.keys(entry.context).length > 0 && (
+                <details className="disclosure context-panel">
+                  <summary>Conditions and context</summary>
+                  <dl className="facts">
+                    {Object.entries(entry.context).map(([key, value]) => (
+                      <div key={key}>
+                        <dt>{key}</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </details>
+              )}
               <div className="case story-body">
                 {entry.sections.map((section, i) => (
                   <section key={i} id={`section-${i}`}>

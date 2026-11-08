@@ -2,9 +2,7 @@
 .discovery-index {
   display: grid;
 }
-.discovery-index > li {
-  border-bottom: 1px solid var(--line);
-}
+
 .discovery-row {
   display: grid;
   grid-template-columns: 144px minmax(0, 1fr) auto;
@@ -210,4 +208,39 @@
 .unavailable-page p {
   color: var(--ink-2);
   margin-bottom: 20px;
+}
+
+.dv-feature-image {
+  display: block;
+  height: clamp(190px, 24vw, 280px);
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--surface);
+}
+.discover .dv-lead {
+  gap: clamp(28px, 5vw, 72px);
+}
+.discover .dv-section {
+  margin-top: 56px;
+}
+.discover .dv-section-head {
+  margin-bottom: 22px;
+}
+.discover .dv-categories a {
+  box-shadow: none;
+  border-radius: 0;
+  padding-inline: 0;
+  margin-right: 16px;
+  font-weight: 400;
+}
+.discover .dv-categories a[aria-current] {
+  background: none;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 7px;
+}
+.discover .dv-categories a:hover {
+  background: none;
+  color: var(--link);
 }

@@ -195,7 +195,11 @@ export default async function Discover({
         </p>
       )}
 
-      {notebook.mode === 'unavailable' && <p className="review-notice" role="status">Some published records could not be loaded. Please try again shortly.</p>}
+      {notebook.mode === "unavailable" && (
+        <p className="review-notice" role="status">
+          Some published records could not be loaded. Please try again shortly.
+        </p>
+      )}
       {tab === "for-you" && (
         <>
           {interests.length > 0 ? (
@@ -224,8 +228,13 @@ export default async function Discover({
                   href={`/entries/${featured.id}`}
                   className="dv-feature-link"
                 >
-                  <RecordImage picture={featured.cover!} featured />
+                  <span className="dv-feature-image">
+                    <RecordImage picture={featured.cover!} featured />
+                  </span>
                   <span className="dv-feature-text">
+                    <span className="record-kicker">
+                      Featured attempt{featured.example ? " · Sample" : ""}
+                    </span>
                     <span
                       className="pill"
                       data-tone={

@@ -85,8 +85,8 @@ jobs:
         run: npm run test:media-production
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
-      - name: Preserve synthetic browser failure diagnostics
-        if: failure()
+      - name: Preserve browser layout screenshots and failure diagnostics
+        if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: platform-browser-diagnostics

@@ -1,6 +1,6 @@
 import "server-only";
 import { examples } from "./data";
-import { hasDatabase, query, transaction } from "./db.server";
+import { hasDatabase, query, transaction, showExamples } from "./db.server";
 import {
   isQuestion,
   sampleCommunities,
@@ -38,15 +38,16 @@ export async function communityBySlug(
   slug: string,
   viewer?: Viewer,
 ): Promise<Community | undefined> {
-  const sample = sampleCommunities.find((c) => c.slug === slug);
-  if (sample) return sample;
+  const sample = showExamples()
+    ? sampleCommunities.find((c) => c.slug === slug)
+    : undefined;
   if (!hasDatabase() || !/^[a-z0-9-]{3,48}$|^[0-9a-f-]{36}$/.test(slug))
-    return undefined;
+    return sample;
   const [row] = await query<Row>(
     "SELECT id, slug, owner, data, hidden FROM web.communities WHERE slug = $1 OR id::text = $1",
     [slug],
   );
-  if (!row) return undefined;
+  if (!row) return sample;
   if (row.hidden && !(viewer && (viewer.id === row.owner || viewer.moderator)))
     return undefined;
   return fromRow(row);
@@ -54,11 +55,15 @@ export async function communityBySlug(
 
 /** Every visible community: the samples first, then the newest ones people made. */
 export async function listCommunities(): Promise<Community[]> {
-  if (!hasDatabase()) return sampleCommunities;
+  const samples = showExamples() ? sampleCommunities : [];
+  if (!hasDatabase()) return samples;
   const rows = await query<Row>(
     "SELECT id, slug, owner, data, hidden FROM web.communities WHERE NOT hidden ORDER BY created DESC LIMIT 500",
   );
-  return [...sampleCommunities, ...rows.map(fromRow)];
+  return [
+    ...rows.map(fromRow),
+    ...samples.filter((s) => !rows.some((r) => r.slug === s.slug)),
+  ];
 }
 
 /** Addresses of the communities someone belongs to, most recently joined first. */
@@ -92,7 +97,9 @@ export async function communityStats(
       { members: 0, questions: 0, unanswered: 0, library: 0, joined: false },
     ]),
   ) as Record<string, CommunityStats>;
-  const sampleQuestions = examples.filter((e) => isQuestion(e.kind));
+  const sampleQuestions = (showExamples() ? examples : []).filter((e) =>
+    isQuestion(e.kind),
+  );
   const answered = new Set<string>();
   if (hasDatabase()) {
     const [members, entries, replied, mine] = await Promise.all([
@@ -134,7 +141,7 @@ export async function communityStats(
     replied.forEach((r) => answered.add(r.entry_id));
     mine.forEach((slug) => stats[slug] && (stats[slug].joined = true));
   }
-  for (const entry of examples)
+  for (const entry of showExamples() ? examples : [])
     for (const slug of entry.communities ?? []) {
       const s = stats[slug];
       if (!s) continue;
@@ -169,7 +176,7 @@ export async function createCommunity(
   const slug = slugify(name);
   if (slug.length < 3)
     throw new StoreError("Use a name with at least three letters or numbers.");
-  if (sampleCommunities.some((c) => c.slug === slug))
+  if (showExamples() && sampleCommunities.some((c) => c.slug === slug))
     throw new StoreError(
       "A category with that name already exists. Join it instead.",
     );
@@ -268,7 +275,7 @@ export async function searchCommunities({
   const text = q.trim().slice(0, 100);
   if (!hasDatabase()) {
     const terms = text.toLowerCase().split(/\s+/).filter(Boolean);
-    const items = sampleCommunities
+    const items = (showExamples() ? sampleCommunities : [])
       .filter(
         (c) =>
           (!field || c.topic === field) &&
@@ -304,6 +311,7 @@ export async function searchCommunities({
        SELECT s.slug, s.name, s.about, s.topic, s.rules, true AS sample, NULL::uuid AS id,
               'epoch'::timestamptz AS created
        FROM jsonb_to_recordset($1::jsonb) AS s(slug text, name text, about text, topic text, rules jsonb)
+       WHERE NOT EXISTS (SELECT 1 FROM web.communities c WHERE c.slug = s.slug)
        UNION ALL
        SELECT c.slug, c.data->>'name', c.data->>'about', c.data->>'topic', c.data->'rules', false, c.id, c.created
        FROM web.communities c WHERE NOT c.hidden
@@ -316,7 +324,13 @@ export async function searchCommunities({
      )
      SELECT slug, name, about, topic, rules, sample, id, members, count(*) OVER ()::int AS total
      FROM matched ORDER BY ${order} LIMIT $4 OFFSET $5`,
-    [JSON.stringify(sampleCommunities), field, text, size, (page - 1) * size],
+    [
+      JSON.stringify(showExamples() ? sampleCommunities : []),
+      field,
+      text,
+      size,
+      (page - 1) * size,
+    ],
   );
   const total = rows[0]?.total ?? 0;
   return {

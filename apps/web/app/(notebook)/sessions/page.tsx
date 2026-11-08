@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { SessionCard } from "@/components/session-card";
-import { getNotebook } from "@/lib/api";
+import { showExamples } from "@/lib/db.server";
 import { noteLabels, sampleSessions } from "@/lib/sessions";
 import { listSharedSessions } from "@/lib/shared.server";
 
@@ -10,9 +10,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Critique" };
 
 export default async function Sessions() {
-  const { mode } = await getNotebook();
   const shared = await listSharedSessions();
-  const sessions = [...shared, ...(mode === "examples" ? sampleSessions : [])];
+  const sessions = [...shared, ...(showExamples() ? sampleSessions : [])];
   return (
     <div className="frame sessions-page">
       <header className="page-bar">
@@ -27,7 +26,7 @@ export default async function Sessions() {
           <Plus size={15} /> Ask for critique
         </Link>
       </header>
-      {mode === "examples" && (
+      {showExamples() && (
         <p className="example-notice">
           <span className="example-tag">Sample data</span> Sessions marked as
           samples are fictional. Their photos are real and credited.

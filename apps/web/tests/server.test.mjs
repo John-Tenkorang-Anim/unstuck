@@ -10,12 +10,12 @@ async function documentAt(path) {
   return { response, document };
 }
 
-test("the home page is one box: search, or ask, with nothing else in the way", async () => {
+test("discovery has a clear search entry point and readable records", async () => {
   const { response, document } = await documentAt("/discover");
   assert.equal(response.status, 200);
   assert.match(
     document.querySelector("main h1").textContent,
-    /Learn from what failed/,
+    /Discover what we’ve learned/,
   );
   const form = document.querySelector(
     'main form[role="search"][action="/search"]',
@@ -29,7 +29,7 @@ test("the home page is one box: search, or ask, with nothing else in the way", a
       'button[formaction="/new"][name="kind"][value="problem"]',
     ),
   );
-  assert.equal(document.querySelectorAll("main article").length, 0);
+  assert.equal(document.querySelectorAll("main article.dv-feature").length, 1);
   assert.ok(document.querySelector('a.skip-link[href="#main"]'));
   const suggest = await (
     await fetch(new URL("/api/suggest?q=pendulam", base))
@@ -53,24 +53,30 @@ test("the complete field note and its context are readable without JavaScript", 
   assert.equal(document.querySelectorAll(".story-body > section").length, 4);
   assert.match(document.querySelector(".context-panel").textContent, /Ghana/);
   assert.match(
-    document.querySelector(".sample-banner").textContent,
+    document.querySelector(".example-notice").textContent,
     /fictional/,
   );
-  assert.equal(document.querySelectorAll(".evidence-row").length, 2);
+  const evidence = await documentAt(
+    "/entries/two-pots-one-small-breakthrough?tab=evidence",
+  );
+  assert.equal(evidence.document.querySelectorAll(".claims > li").length, 2);
 });
 
-test("search results, video moments and their evidence render without JavaScript", async () => {
+test("search results link to the matching passages and render without JavaScript", async () => {
   const { response, document } = await documentAt("/search?q=bridge+twisting");
   assert.equal(response.status, 200);
-  const first = document.querySelector(".result h2 a");
-  assert.match(first.textContent, /Tacoma Narrows/);
   assert.match(
-    document.querySelector(".serp-moments a").getAttribute("href"),
-    /\/entries\/tacoma-narrows-1940\?t=\d+#clip/,
+    document.querySelector(".result h2 a").textContent,
+    /Tacoma Narrows/,
   );
-  assert.match(
-    document.querySelector(".evidence").textContent,
-    /Where it broke/,
+  const passages = [
+    ...document.querySelectorAll('.result-anchors a[data-anchor="section"]'),
+  ];
+  assert.ok(passages.length > 0);
+  assert.ok(
+    passages.some((a) =>
+      /tacoma-narrows-1940#section-/.test(a.getAttribute("href")),
+    ),
   );
   assert.ok(document.querySelector(".result mark"));
 });
@@ -616,7 +622,7 @@ test("people respond to a field note, mark answers helpful, and the poster sees 
     await fetch(new URL(`/api/comments/${id}/replies`, base))
   ).json();
   assert.equal(replies.items[0].body, "West, mostly.");
-  const { document } = await documentAt(`/entries/${entry}`);
+  const { document } = await documentAt(`/entries/${entry}?tab=discussion`);
   assert.match(document.querySelector("#why").textContent, /responses? from/);
   assert.equal(
     (
@@ -727,21 +733,23 @@ test("people start and join communities, and ask a question there only", async (
   );
 });
 
-test("the discussion opens beside the note from a shareable address", async () => {
+test("discussion is a shareable tab and old discussion addresses still work", async () => {
   const closed = await documentAt("/entries/two-pots-one-small-breakthrough");
-  assert.ok(closed.document.querySelector(".disc-pane").hasAttribute("hidden"));
+  assert.ok(closed.document.querySelector(".story-body"));
+  assert.equal(closed.document.querySelector("#why"), null);
+  const open = await documentAt(
+    "/entries/two-pots-one-small-breakthrough?tab=discussion",
+  );
+  assert.ok(open.document.querySelector("#why"));
   assert.ok(
-    closed.document.querySelector(
-      'a.note-toggle[href="?discuss=1"][aria-expanded="false"]',
+    open.document.querySelector(
+      '.tabs a[aria-current="page"][href*="tab=discussion"]',
     ),
   );
-  const open = await documentAt(
+  const legacy = await documentAt(
     "/entries/two-pots-one-small-breakthrough?discuss=1",
   );
-  assert.ok(!open.document.querySelector(".disc-pane").hasAttribute("hidden"));
-  assert.ok(open.document.querySelector(".is-discussing #why"));
-  // The same toggle stays in place to close it again.
-  assert.ok(open.document.querySelector('a.note-toggle[aria-expanded="true"]'));
+  assert.ok(legacy.document.querySelector("#why"));
 });
 
 test("search and questions are one place: search first, then ask a community", async () => {
@@ -797,7 +805,7 @@ test("search and questions are one place: search first, then ask a community", a
   const nav = [...document.querySelectorAll(".topnav a")].map((a) =>
     a.getAttribute("href"),
   );
-  assert.deepEqual(nav, ["/discover", "/communities", "/notebook"]);
+  assert.deepEqual(nav, ["/discover", "/problems", "/workspaces", "/lessons"]);
   for (const href of nav) {
     const r = await fetch(new URL(href, base));
     assert.equal(r.status, 200, href);
