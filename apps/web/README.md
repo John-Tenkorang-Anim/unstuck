@@ -38,9 +38,15 @@ npm run start -- --port 3100
 
 ## What works
 
-- A landing page at `/` that introduces Unstuck, with "Get started" leading to
-  the platform at `/discover` and "Sign in" leading to `/account`. The sign-in
-  form will move onto the landing page later.
+- A landing page at `/` that introduces Unstuck: a morning photograph of
+  dew-covered rice seedlings (Aqsis Bey, CC BY-SA 4.0) and Sankofa, the Akan
+  Adinkra symbol for going back to learn from what came before. "Get started"
+  leads to `/discover` and "Sign in" to `/account`.
+- Discover is drawn as a star chart. Its bright stars are real questions,
+  pink while they wait for an answer, and each opens its question.
+- The community directory is one line per community, searched, filtered and
+  sorted in the database, thirty to a page. Links from a community carry
+  `?from=` so notes and the composer keep that community as the way back.
 
 - Three places in the menu: Discover, Communities and Notebook, plus one Ask
   button. Discover is a single box. Suggestions appear as you type, using the

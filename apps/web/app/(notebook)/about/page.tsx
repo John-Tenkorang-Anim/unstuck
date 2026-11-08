@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
 import { Credit } from "@/components/picture";
-import { examples, samplePictures } from "@/lib/data";
+import { examples, landingPicture, samplePictures } from "@/lib/data";
 export const metadata: Metadata = { title: "A little more about Unstuck" };
 const loop = [
   [
@@ -117,6 +117,10 @@ export default function About() {
       >
         <h2 id="credits-title">Photo and film credits</h2>
         <ul className="credits">
+          <li>
+            <span>{landingPicture.alt}</span>
+            <Credit credit={landingPicture.credit} />
+          </li>
           {Object.values(samplePictures).map((picture) => (
             <li key={picture.src}>
               <span>{picture.alt}</span>

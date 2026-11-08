@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { LogoMark, OutcomeGlyph } from "@/components/glyph";
-import { samplePictures } from "@/lib/data";
+import { landingPicture, samplePictures } from "@/lib/data";
+import { Sankofa } from "@/components/sankofa";
 
 export const metadata: Metadata = {
   title: { absolute: "Unstuck — Learn from what failed" },
@@ -49,56 +50,15 @@ export default function Landing() {
 
       <main>
         <section className="lp-hero" aria-labelledby="lp-title">
-          <div className="lp-space" aria-hidden="true">
-            <div className="lp-stars" />
-            <div className="lp-stars lp-stars-far" />
-            <div className="lp-cherenkov" />
-          </div>
           <p className="lp-kicker">
-            <span className="lp-dot" aria-hidden="true" /> The open record of
-            what didn’t work
+            <Sankofa size={20} /> Sankofa: go back and get it
           </p>
-          <div className="lp-mark-wrap">
-            <svg
-              className="lp-orbit"
-              viewBox="0 0 1000 300"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <ellipse
-                className="lp-orbit-ring"
-                cx="500"
-                cy="150"
-                rx="490"
-                ry="118"
-              />
-              <ellipse
-                className="lp-orbit-comet"
-                cx="500"
-                cy="150"
-                rx="490"
-                ry="118"
-                pathLength={1}
-              />
-            </svg>
-            <h1 id="lp-title" className="lp-wordmark">
-              Unstuck
-            </h1>
-          </div>
+          <h1 id="lp-title" className="lp-wordmark">
+            Unstuck
+          </h1>
           <p className="lp-tagline">
             Learn from <span className="lp-fail">what failed.</span>
           </p>
-          <svg
-            className="lp-line"
-            viewBox="0 0 1200 140"
-            preserveAspectRatio="xMidYMid meet"
-            aria-hidden="true"
-          >
-            <path
-              pathLength={1}
-              d="M0 96 C60 96 92 74 120 52 C150 28 196 30 200 62 C204 96 152 112 140 82 C126 46 196 18 238 40 C282 62 262 112 226 104 C190 96 214 44 262 44 C318 44 330 92 300 98 C272 104 280 60 330 56 C390 52 420 70 470 70 L1200 70"
-            />
-          </svg>
           <p className="lp-lede">
             Unstuck is where people post the attempts that didn’t work, mark the
             exact moment they broke, and work out why together. So the next
@@ -112,16 +72,38 @@ export default function Landing() {
               Sign in
             </Link>
           </div>
+          <img
+            className="lp-photo"
+            src={landingPicture.src}
+            srcSet={`${landingPicture.small} 960w, ${landingPicture.src} 1920w`}
+            sizes="100vw"
+            width={landingPicture.width}
+            height={landingPicture.height}
+            alt={landingPicture.alt}
+            fetchPriority="high"
+          />
+          <p className="lp-photo-credit">
+            Photo:{" "}
+            <a href={landingPicture.credit.source}>
+              {landingPicture.credit.author}
+            </a>
+            , {landingPicture.credit.license}
+          </p>
         </section>
 
-        <section className="lp-statement" aria-label="Why Unstuck exists">
+        <section className="lp-sankofa" aria-labelledby="lp-sankofa-title">
+          <Sankofa size={96} />
+          <h2 id="lp-sankofa-title" className="lp-reveal">
+            Go back for what you missed.
+          </h2>
+          <p className="lp-proverb lp-reveal" lang="ak">
+            “Se wo were fi na wosankofa a yenkyi.”
+          </p>
           <p className="lp-reveal">
-            Most of what we share is what <em className="lp-worked">worked</em>.
-            <br />
-            <span className="lp-muted">
-              Behind every result is a pile of attempts nobody wrote down.
-              That’s where the useful part is.
-            </span>
+            It is not wrong to go back for what you forgot. Sankofa is an Akan
+            symbol from Ghana about learning from what came before. Most of what
+            we share is what worked. Unstuck keeps the attempts that didn’t, so
+            the next person can go back and get them.
           </p>
         </section>
 
@@ -207,11 +189,6 @@ export default function Landing() {
         </section>
 
         <section className="lp-crowd" aria-labelledby="lp-who">
-          <div className="lp-space" aria-hidden="true">
-            <div className="lp-stars" />
-            <div className="lp-stars lp-stars-far" />
-            <div className="lp-cherenkov" />
-          </div>
           <h2 id="lp-who" className="lp-reveal">
             For anyone who makes, fixes,
             <br />
@@ -268,11 +245,6 @@ export default function Landing() {
         </section>
 
         <section className="lp-final" aria-labelledby="lp-final-title">
-          <div className="lp-space" aria-hidden="true">
-            <div className="lp-stars" />
-            <div className="lp-stars lp-stars-far" />
-            <div className="lp-cherenkov" />
-          </div>
           <h2 id="lp-final-title" className="lp-reveal">
             Get unstuck.
           </h2>

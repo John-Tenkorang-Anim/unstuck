@@ -1,17 +1,32 @@
-import { spectralClass } from "@/lib/communities";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { CreateCommunity, JoinButton } from "@/components/community-actions";
 import { currentAccount } from "@/lib/auth.server";
-import { communityStats, listCommunities } from "@/lib/communities.server";
+import { spectralClass } from "@/lib/communities";
+import {
+  communityStats,
+  myCommunities,
+  searchCommunities,
+  type CommunitySort,
+} from "@/lib/communities.server";
 import { topics } from "@/lib/data";
 import { hasDatabase } from "@/lib/db.server";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Communities" };
 const number = (n: number) => n.toLocaleString("en");
+const sorts: [CommunitySort, string][] = [
+  ["members", "Most members"],
+  ["newest", "Newest"],
+  ["name", "A–Z"],
+];
 
+/**
+ * A directory that stays usable with thousands of communities: one line each,
+ * searched, filtered and sorted in the database, thirty to a page. The ones
+ * you joined sit above it.
+ */
 export default async function Communities({
   searchParams,
 }: {
@@ -20,68 +35,60 @@ export default async function Communities({
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
   const field = topics.find((t) => t === params.field) ?? "";
+  const sort = sorts.find(([key]) => key === params.sort)?.[0] ?? "members";
+  const page = Math.max(1, Number(params.page) || 1);
   const account = hasDatabase() ? await currentAccount() : undefined;
-  const all = await listCommunities();
+  const [found, yours] = await Promise.all([
+    searchCommunities({ q, field, sort, page }),
+    myCommunities(account),
+  ]);
   const stats = await communityStats(
-    all.map((c) => c.slug),
+    [...new Set([...found.items, ...yours].map((c) => c.slug))],
     account,
   );
-  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
-  const shown = all.filter(
-    (c) =>
-      (!field || c.topic === field) &&
-      terms.every((t) => `${c.name} ${c.about}`.toLowerCase().includes(t)),
-  );
-  const yours = all.filter((c) => stats[c.slug]?.joined);
   const link = (change: Record<string, string>) => {
     const next = new URLSearchParams({
       ...(q ? { q } : {}),
       ...(field ? { field } : {}),
+      ...(sort !== "members" ? { sort } : {}),
       ...change,
     });
-    [...next.entries()].forEach(([k, v]) => !v && next.delete(k));
+    for (const [key, value] of [...next]) if (!value) next.delete(key);
     return `/communities${next.size ? `?${next}` : ""}`;
   };
   return (
     <div className="frame communities">
-      <header className="section-hero">
-        <p className="label">Communities</p>
-        <h1>
-          Find the people who’ve{" "}
-          <span className="tint-accent">been there.</span>
-        </h1>
-        <p className="page-lede">
-          Open groups around one kind of problem. Anyone can read, join and
-          post, and each one keeps a library of what its members tried.
-        </p>
-        <form className="home-bar section-search" action="/communities">
-          <Search size={18} aria-hidden="true" />
-          <input
-            type="search"
-            name="q"
-            defaultValue={q}
-            aria-label="Search communities"
-            placeholder="Search communities"
-          />
-          {field && <input type="hidden" name="field" value={field} />}
-          <button className="button button-dark">Search</button>
-        </form>
+      <header className="dir-head">
+        <div>
+          <h1>Communities</h1>
+          <p>Open groups around one kind of problem. Anyone can join.</p>
+        </div>
+        <a className="button button-outline" href="#start">
+          <Plus size={15} aria-hidden="true" /> Start one
+        </a>
       </header>
 
-      {yours.length > 0 && !q && !field && (
-        <section className="yours" aria-labelledby="yours-title">
-          <h2 id="yours-title" className="section-title">
-            Yours
-          </h2>
-          <ul className="yours-row">
+      {yours.length > 0 && !q && !field && page === 1 && (
+        <section className="dir-yours" aria-labelledby="yours-title">
+          <h2 id="yours-title">Yours</h2>
+          <ul>
             {yours.map((c) => (
               <li key={c.slug}>
                 <Link href={`/communities/${c.slug}`}>
-                  <strong>{c.name}</strong>
+                  <span
+                    className="community-mark"
+                    data-class={spectralClass(c.slug)}
+                    aria-hidden="true"
+                  >
+                    {c.name.slice(0, 1)}
+                  </span>
                   <span>
-                    {stats[c.slug].unanswered
-                      ? `${number(stats[c.slug].unanswered)} waiting for an answer`
-                      : "No unanswered questions"}
+                    <strong>{c.name}</strong>
+                    <small>
+                      {stats[c.slug]?.unanswered
+                        ? `${number(stats[c.slug].unanswered)} waiting`
+                        : "All answered"}
+                    </small>
                   </span>
                 </Link>
               </li>
@@ -90,86 +97,127 @@ export default async function Communities({
         </section>
       )}
 
-      <nav className="serp-fields" aria-label="Fields">
-        <Link
-          href={link({ field: "" })}
-          aria-current={!field ? "true" : undefined}
-        >
-          Every field
-        </Link>
-        {topics.map((t) => (
-          <Link
-            key={t}
-            href={link({ field: t })}
-            aria-current={field === t ? "true" : undefined}
-          >
-            {t}
-          </Link>
-        ))}
-      </nav>
+      <div className="dir-tools">
+        <form className="dir-search" action="/communities" role="search">
+          <Search size={16} aria-hidden="true" />
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            aria-label="Search communities"
+            placeholder="Search communities"
+          />
+          {field && <input type="hidden" name="field" value={field} />}
+          {sort !== "members" && (
+            <input type="hidden" name="sort" value={sort} />
+          )}
+        </form>
+        <details className="pick">
+          <summary>{field || "All fields"}</summary>
+          <div className="pick-menu">
+            {["", ...topics].map((t) => (
+              <Link
+                key={t}
+                href={link({ field: t, page: "" })}
+                aria-current={t === field ? "true" : undefined}
+              >
+                {t || "All fields"}
+              </Link>
+            ))}
+          </div>
+        </details>
+        <nav className="dir-sort" aria-label="Sort">
+          {sorts.map(([key, label]) => (
+            <Link
+              key={key}
+              href={link({ sort: key === "members" ? "" : key, page: "" })}
+              aria-current={sort === key ? "true" : undefined}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </div>
 
-      {shown.length ? (
-        <ul className="community-grid">
-          {shown.map((c) => {
+      <p className="dir-count" role="status">
+        {found.total
+          ? `${number(found.total)} ${found.total === 1 ? "community" : "communities"}${q ? ` matching “${q}”` : ""}`
+          : `No community matches${q ? ` “${q}”` : ""} yet.`}
+      </p>
+
+      {found.items.length > 0 && (
+        <ol className="dir-list">
+          {found.items.map((c) => {
             const s = stats[c.slug];
             return (
-              <li key={c.slug} className="community-card">
-                <div className="community-card-top">
-                  <span
-                    className="community-mark"
-                    data-class={spectralClass(c.slug)}
-                    aria-hidden="true"
-                  >
-                    {c.name.slice(0, 1)}
-                  </span>
-                  <JoinButton
-                    community={c}
-                    joined={s.joined}
-                    members={s.members}
-                    enabled={hasDatabase()}
-                    compact
-                  />
-                </div>
-                <h3>
-                  <Link href={`/communities/${c.slug}`} className="tile-link">
-                    {c.name}
-                  </Link>
-                </h3>
-                <p>{c.about}</p>
-                <dl className="community-stats">
-                  <div>
-                    <dt>Members</dt>
-                    <dd>{number(s.members)}</dd>
-                  </div>
-                  <div>
-                    <dt>Waiting</dt>
-                    <dd>{number(s.unanswered)}</dd>
-                  </div>
-                  <div>
-                    <dt>In the library</dt>
-                    <dd>{number(s.library)}</dd>
-                  </div>
-                </dl>
-                <span className="community-field">
-                  {c.topic}
-                  {c.sample ? " · Sample" : ""}
+              <li key={c.slug} className="dir-row">
+                <span
+                  className="community-mark"
+                  data-class={spectralClass(c.slug)}
+                  aria-hidden="true"
+                >
+                  {c.name.slice(0, 1)}
                 </span>
+                <div className="dir-main">
+                  <h3>
+                    <Link className="dir-link" href={`/communities/${c.slug}`}>
+                      {c.name}
+                    </Link>
+                  </h3>
+                  <p>{c.about}</p>
+                  <p className="dir-meta">
+                    <span>{c.topic}</span>
+                    <span>
+                      {number(c.members)}{" "}
+                      {c.members === 1 ? "member" : "members"}
+                    </span>
+                    {s?.unanswered ? (
+                      <span className="dir-waiting">
+                        {number(s.unanswered)} waiting
+                      </span>
+                    ) : null}
+                    {s?.library ? (
+                      <span>{number(s.library)} in the library</span>
+                    ) : null}
+                    {c.sample && <span>Sample</span>}
+                  </p>
+                </div>
+                <JoinButton
+                  community={c}
+                  joined={!!s?.joined}
+                  members={c.members}
+                  enabled={hasDatabase()}
+                  compact
+                />
               </li>
             );
           })}
-        </ul>
-      ) : (
-        <div className="empty-state">
-          <h3>No community matches that yet.</h3>
-          <p>Start one below, and the next person searching will find it.</p>
-        </div>
+        </ol>
       )}
 
-      <section className="start-community" aria-labelledby="start-title">
+      {found.pages > 1 && (
+        <nav className="you-pages" aria-label="Pages">
+          {page > 1 && (
+            <Link href={link({ page: String(page - 1) })}>Previous</Link>
+          )}
+          <span>
+            Page {page} of {number(found.pages)}
+          </span>
+          {page < found.pages && (
+            <Link href={link({ page: String(page + 1) })}>Next</Link>
+          )}
+        </nav>
+      )}
+
+      <section
+        id="start"
+        className="start-community"
+        aria-labelledby="start-title"
+      >
         <div>
           <h2 id="start-title">Start a community</h2>
           <p>
-            Give a recurring kind of problem a home. Members get its questions
+            Give a recurring kind of problem a home. Members see its questions
             first, and what they learn builds its library.
           </p>
         </div>

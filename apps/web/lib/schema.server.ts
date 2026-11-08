@@ -202,6 +202,11 @@ ALTER TABLE web.community_members ADD COLUMN IF NOT EXISTS intro text NOT NULL D
 ALTER TABLE web.community_members ADD COLUMN IF NOT EXISTS agreed timestamptz;
 CREATE INDEX IF NOT EXISTS community_members_recent ON web.community_members (community, joined DESC);
 CREATE INDEX IF NOT EXISTS entries_communities ON web.entries USING gin ((data->'communities'));
+-- The community directory searches names and descriptions and filters by field.
+CREATE INDEX IF NOT EXISTS communities_search ON web.communities
+  USING gin (to_tsvector('simple', (data->>'name') || ' ' || (data->>'about'))) WHERE NOT hidden;
+CREATE INDEX IF NOT EXISTS communities_topic ON web.communities ((data->>'topic')) WHERE NOT hidden;
+CREATE INDEX IF NOT EXISTS community_members_count ON web.community_members (community);
 ALTER TABLE web.reports DROP CONSTRAINT IF EXISTS reports_target_type_check;
 ALTER TABLE web.reports ADD CONSTRAINT reports_target_type_check
   CHECK (target_type IN ('session', 'note', 'entry', 'comment', 'explanation', 'community'));

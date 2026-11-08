@@ -252,7 +252,10 @@ export function Composer({
         /* The published note is safe either way. */
       }
       notice("Published. It’s in your notebook too.");
-      router.push(`/entries/${data.id}`);
+      // Posted from a community: stay in that community's context.
+      router.push(
+        `/entries/${data.id}${audience.communities[0] ? `?from=${audience.communities[0]}` : ""}`,
+      );
     } catch (failure) {
       setPublishError(
         failure instanceof Error

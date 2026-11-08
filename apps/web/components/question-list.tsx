@@ -18,8 +18,10 @@ export function QuestionList({
   hideCommunity,
 }: {
   items: QuestionItem[];
+  /** Inside a community: leave out its own tag, and keep its context. */
   hideCommunity?: string;
 }) {
+  const from = hideCommunity ? `from=${hideCommunity}` : "";
   return (
     <ol className="q-list">
       {items.map(({ entry, responses, latest, communities }) => (
@@ -37,7 +39,9 @@ export function QuestionList({
           </div>
           <div className="q-main">
             <h3>
-              <Link href={`/entries/${entry.id}`}>{entry.title}</Link>
+              <Link href={`/entries/${entry.id}${from ? `?${from}` : ""}`}>
+                {entry.title}
+              </Link>
             </h3>
             <p className="q-excerpt">{entry.excerpt}</p>
             <p className="q-meta">
@@ -63,7 +67,7 @@ export function QuestionList({
           </div>
           <Link
             className="button button-outline q-answer"
-            href={`/entries/${entry.id}?discuss=1`}
+            href={`/entries/${entry.id}?discuss=1${from ? `&${from}` : ""}`}
           >
             <MessageCircleQuestion size={15} aria-hidden="true" />
             {responses ? "Join in" : "Answer"}
@@ -94,7 +98,14 @@ const shelves: {
   },
 ];
 /** A community's library, shelved by outcome so people find the answer type they need. */
-export function Library({ entries }: { entries: EntrySummary[] }) {
+export function Library({
+  entries,
+  community,
+}: {
+  entries: EntrySummary[];
+  /** The community this library belongs to, so notes link back to it. */
+  community?: string;
+}) {
   const filled = shelves
     .map((shelf) => ({ ...shelf, items: entries.filter(shelf.match) }))
     .filter((shelf) => shelf.items.length);
@@ -133,7 +144,10 @@ export function Library({ entries }: { entries: EntrySummary[] }) {
                     />
                   )}
                   <div>
-                    <Link href={`/entries/${e.id}`} className="shelf-title">
+                    <Link
+                      href={`/entries/${e.id}${community ? `?from=${community}` : ""}`}
+                      className="shelf-title"
+                    >
                       {e.title}
                     </Link>
                     <p>{e.excerpt}</p>

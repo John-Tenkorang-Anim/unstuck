@@ -803,3 +803,44 @@ test("search and questions are one place: search first, then ask a community", a
     assert.equal(r.status, 200, href);
   }
 });
+
+test("the community directory searches, sorts and pages, and community links keep their context", async () => {
+  const { document } = await documentAt("/communities?q=web");
+  const names = [...document.querySelectorAll(".dir-row h3")].map((h) =>
+    h.textContent.trim(),
+  );
+  assert.deepEqual(names, ["Web developers"]);
+  const az = await documentAt("/communities?sort=name");
+  const sorted = [...az.document.querySelectorAll(".dir-row h3")].map((h) =>
+    h.textContent.trim(),
+  );
+  assert.deepEqual(
+    sorted,
+    [...sorted].sort((a, b) => a.localeCompare(b)),
+  );
+  const community = await documentAt("/communities/smallholder-growers");
+  const href = community.document
+    .querySelector(".q-row h3 a")
+    .getAttribute("href");
+  assert.match(href, /\?from=smallholder-growers$/);
+  const note = await documentAt(href);
+  assert.match(
+    note.document.querySelector(".back-link").textContent,
+    /Smallholder growers/,
+  );
+});
+
+test("the landing page is a morning field with Sankofa, and credits its photo", async () => {
+  const { document } = await documentAt("/");
+  assert.match(document.querySelector("h1").textContent, /Unstuck/);
+  assert.match(
+    document.querySelector(".lp-photo").getAttribute("alt"),
+    /seedlings/,
+  );
+  assert.match(
+    document.querySelector(".lp-photo-credit").textContent,
+    /CC BY-SA 4\.0/,
+  );
+  assert.match(document.querySelector(".lp-proverb").textContent, /wosankofa/);
+  assert.equal(document.querySelectorAll(".lp-stars, .lp-orbit").length, 0);
+});

@@ -71,6 +71,12 @@ export default async function EntryPage({
   const postedTo = (entry.communities ?? [])
     .map((slug) => all.find((c) => c.slug === slug))
     .filter((c): c is Community => !!c);
+  // Arriving from a community keeps that community as the way back.
+  const from =
+    typeof query.from === "string"
+      ? all.find((c) => c.slug === query.from)
+      : undefined;
+  const home = from ?? postedTo[0];
   return (
     <EntryLayout
       initialOpen={query.discuss === "1"}
@@ -95,12 +101,9 @@ export default async function EntryPage({
     >
       <div className="dossier frame">
         <nav className="crumbs" aria-label="Breadcrumb">
-          {postedTo[0] ? (
-            <Link
-              href={`/communities/${postedTo[0].slug}`}
-              className="back-link"
-            >
-              <ArrowLeft size={14} /> {postedTo[0].name}
+          {home ? (
+            <Link href={`/communities/${home.slug}`} className="back-link">
+              <ArrowLeft size={14} /> {home.name}
             </Link>
           ) : (
             <Link href="/discover" className="back-link">

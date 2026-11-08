@@ -292,7 +292,7 @@ export default async function CommunityPage({
           </div>
         </section>
       ) : library.length ? (
-        <Library entries={library} />
+        <Library entries={library} community={slug} />
       ) : (
         <div className="empty-state">
           <h3>The library is empty so far.</h3>

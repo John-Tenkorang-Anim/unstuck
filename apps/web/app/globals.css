@@ -5067,13 +5067,16 @@ mark {
    outrunning light in water. Deep space for the opening and close, starlight
    (#9BB0FF, a blue giant's colour) for type on the dark, white in between.
    -------------------------------------------------------------------------- */
+/* The landing page is morning, not space: forest ink, leaf green actions and a
+   sunrise gold accent. The variable names are the same so every section moves
+   together. */
 .lp {
-  --cherenkov: #2f5bff;
-  --cherenkov-press: #2346f0;
-  --starlight: #9bb0ff;
-  --space: #040817;
-  --lp-ink: #f4f6ff;
-  --lp-dim: #a9b2d6;
+  --cherenkov: #2f6b3a;
+  --cherenkov-press: #24562f;
+  --starlight: #e3a43a;
+  --space: #11251b;
+  --lp-ink: #f6f4ea;
+  --lp-dim: #b8c4b3;
   background: #ffffff;
   color: #1d1d1f;
   overflow-x: clip;
@@ -5088,7 +5091,7 @@ mark {
   padding: 14px clamp(16px, 4vw, 48px);
   padding-top: calc(14px + env(safe-area-inset-top, 0px));
   color: var(--lp-ink);
-  background: rgb(4 8 23 / 0.55);
+  background: rgb(17 37 27 / 0.55);
   -webkit-backdrop-filter: saturate(180%) blur(18px);
   backdrop-filter: saturate(180%) blur(18px);
 }
@@ -5131,8 +5134,8 @@ mark {
   font-size: 17px;
   font-weight: 700;
   box-shadow:
-    0 0 0 1px rgb(155 176 255 / 0.35) inset,
-    0 10px 40px -8px rgb(47 91 255 / 0.75);
+    0 0 0 1px rgb(227 164 58 / 0.35) inset,
+    0 10px 40px -8px rgb(47 107 58 / 0.75);
   transition:
     transform 0.5s var(--ease),
     box-shadow 0.5s var(--ease),
@@ -5142,8 +5145,8 @@ mark {
   background: var(--cherenkov-press);
   transform: translateY(-2px) scale(1.03);
   box-shadow:
-    0 0 0 1px rgb(155 176 255 / 0.5) inset,
-    0 16px 56px -6px rgb(47 91 255 / 0.95);
+    0 0 0 1px rgb(227 164 58 / 0.5) inset,
+    0 16px 56px -6px rgb(47 107 58 / 0.95);
 }
 .lp-cta svg {
   transition: transform 0.4s var(--ease);
@@ -5154,7 +5157,7 @@ mark {
 .lp-cta-small {
   padding: 9px 18px;
   font-size: 14.5px;
-  box-shadow: 0 6px 24px -8px rgb(47 91 255 / 0.8);
+  box-shadow: 0 6px 24px -8px rgb(47 107 58 / 0.8);
 }
 .lp-hero {
   position: relative;
@@ -5169,110 +5172,23 @@ mark {
   isolation: isolate;
   overflow: hidden;
 }
-.lp-space {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-}
+
 /* A starfield from two tiles of different sizes, so the pattern never lines up. */
-.lp-stars {
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(1.2px 1.2px at 22px 38px, #fff, transparent),
-    radial-gradient(1px 1px at 118px 92px, rgb(255 255 255 / 0.8), transparent),
-    radial-gradient(1.4px 1.4px at 190px 18px, #dfe6ff, transparent),
-    radial-gradient(1px 1px at 64px 170px, rgb(255 255 255 / 0.7), transparent),
-    radial-gradient(1.6px 1.6px at 228px 140px, #c8d3ff, transparent),
-    radial-gradient(1px 1px at 150px 214px, rgb(255 255 255 / 0.6), transparent);
-  background-size: 260px 240px;
-  opacity: 0.75;
-}
-.lp-stars-far {
-  background-image:
-    radial-gradient(1px 1px at 40px 60px, rgb(255 255 255 / 0.55), transparent),
-    radial-gradient(
-      1px 1px at 300px 120px,
-      rgb(255 255 255 / 0.45),
-      transparent
-    ),
-    radial-gradient(
-      1.2px 1.2px at 180px 330px,
-      rgb(207 218 255 / 0.6),
-      transparent
-    ),
-    radial-gradient(1px 1px at 350px 280px, rgb(255 255 255 / 0.4), transparent);
-  background-size: 410px 370px;
-  opacity: 0.6;
-}
-.lp-cherenkov {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(38% 30% at 50% 42%, rgb(47 91 255 / 0.32), transparent 70%),
-    radial-gradient(
-      70% 55% at 50% 108%,
-      rgb(47 91 255 / 0.55),
-      transparent 72%
-    ),
-    radial-gradient(
-      30% 22% at 50% 104%,
-      rgb(155 176 255 / 0.35),
-      transparent 70%
-    );
-}
+
 .lp-kicker {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
   border-radius: 980px;
-  background: rgb(47 91 255 / 0.12);
-  box-shadow: inset 0 0 0 1px rgb(155 176 255 / 0.28);
+  background: rgb(47 107 58 / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(227 164 58 / 0.28);
   font-size: 14px;
   color: var(--lp-dim);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
-.lp-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--starlight);
-  box-shadow:
-    0 0 12px var(--cherenkov),
-    0 0 4px #fff;
-}
-.lp-mark-wrap {
-  position: relative;
-  margin-top: 18px;
-}
-.lp-orbit {
-  position: absolute;
-  left: -8%;
-  top: 6%;
-  width: 116%;
-  height: 92%;
-  overflow: visible;
-  transform: rotate(-7deg);
-  pointer-events: none;
-}
-.lp-orbit ellipse {
-  fill: none;
-  vector-effect: non-scaling-stroke;
-}
-.lp-orbit-ring {
-  stroke: rgb(155 176 255 / 0.22);
-  stroke-width: 1;
-}
-.lp-orbit-comet {
-  stroke: var(--starlight);
-  stroke-width: 2.5;
-  stroke-linecap: round;
-  stroke-dasharray: 0.06 0.94;
-  filter: drop-shadow(0 0 6px var(--cherenkov)) drop-shadow(0 0 2px #fff);
-}
+
 .lp-wordmark {
   position: relative;
   font-size: clamp(96px, 21vw, 320px);
@@ -5293,7 +5209,7 @@ mark {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 28px rgb(47 91 255 / 0.55));
+  filter: drop-shadow(0 0 28px rgb(47 107 58 / 0.55));
 }
 .lp-tagline {
   margin-top: clamp(4px, 1vw, 14px);
@@ -5306,22 +5222,9 @@ mark {
 }
 .lp-fail {
   color: var(--starlight);
-  text-shadow: 0 0 24px rgb(47 91 255 / 0.85);
+  text-shadow: 0 0 24px rgb(47 107 58 / 0.85);
 }
-.lp-line {
-  width: min(1100px, 100%);
-  height: auto;
-  margin-top: 14px;
-  overflow: visible;
-}
-.lp-line path {
-  fill: none;
-  stroke: var(--starlight);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 6px rgb(47 91 255 / 0.9));
-}
+
 .lp-lede {
   max-width: 34em;
   margin-top: 4px;
@@ -5338,36 +5241,7 @@ mark {
   gap: 14px 26px;
   margin-top: 30px;
 }
-.lp-statement {
-  padding: clamp(96px, 14vw, 200px) clamp(16px, 6vw, 96px);
-  text-align: center;
-  background: radial-gradient(50% 70% at 50% 0%, #eef2ff, #ffffff 70%);
-}
-.lp-statement p {
-  max-width: 22ch;
-  margin-inline: auto;
-  font-family: var(--display);
-  font-size: clamp(36px, 5.6vw, 76px);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.04em;
-  text-wrap: balance;
-}
-.lp-worked {
-  font-style: normal;
-  color: var(--cherenkov);
-}
-.lp-muted {
-  display: inline-block;
-  max-width: 30ch;
-  margin-top: 18px;
-  font-family: var(--sans);
-  font-size: clamp(18px, 1.8vw, 22px);
-  font-weight: 400;
-  line-height: 1.45;
-  letter-spacing: 0;
-  color: #5c5f6b;
-}
+
 .lp-steps {
   padding: 0 clamp(16px, 5vw, 64px) clamp(96px, 12vw, 160px);
   max-width: 1320px;
@@ -5404,7 +5278,7 @@ mark {
   margin-top: 24px;
   padding: 3px 10px;
   border-radius: 980px;
-  background: #eef2ff;
+  background: #eef4e6;
   font-family: var(--display);
   font-size: 14px;
   font-weight: 700;
@@ -5416,11 +5290,11 @@ mark {
   overflow: hidden;
   border-radius: 26px;
   background: var(--space);
-  box-shadow: 0 30px 60px -30px rgb(47 91 255 / 0.45);
+  box-shadow: 0 30px 60px -30px rgb(47 107 58 / 0.45);
   transition: box-shadow 0.6s var(--ease);
 }
 .lp-step:hover .lp-visual {
-  box-shadow: 0 40px 80px -26px rgb(47 91 255 / 0.6);
+  box-shadow: 0 40px 80px -26px rgb(47 107 58 / 0.6);
 }
 .lp-visual img {
   width: 100%;
@@ -5446,7 +5320,7 @@ mark {
   font-size: 14px;
   box-shadow:
     0 0 0 3px #fff,
-    0 0 22px rgb(47 91 255 / 0.9);
+    0 0 22px rgb(47 107 58 / 0.9);
 }
 .lp-tag {
   position: absolute;
@@ -5492,7 +5366,7 @@ mark {
   bottom: 16px;
   padding: 6px 10px;
   border-radius: 10px;
-  background: rgb(4 8 23 / 0.78);
+  background: rgb(17 37 27 / 0.78);
   color: #fff;
   font-size: 13.5px;
 }
@@ -5505,7 +5379,7 @@ mark {
   align-content: center;
   gap: 10px;
   padding: 22px;
-  background: linear-gradient(160deg, #eef2ff, #dfe6ff);
+  background: linear-gradient(160deg, #eef4e6, #dfe6ff);
 }
 .lp-visual-notes p {
   padding: 12px 14px;
@@ -5513,7 +5387,7 @@ mark {
   background: #fff;
   font-size: 14.5px;
   line-height: 1.4;
-  box-shadow: 0 6px 20px -12px rgb(47 91 255 / 0.4);
+  box-shadow: 0 6px 20px -12px rgb(47 107 58 / 0.4);
 }
 .lp-visual-notes b {
   margin-right: 6px;
@@ -5553,8 +5427,8 @@ mark {
   gap: 10px;
   padding: 14px 22px;
   border-radius: 980px;
-  background: rgb(47 91 255 / 0.1);
-  box-shadow: inset 0 0 0 1px rgb(155 176 255 / 0.2);
+  background: rgb(47 107 58 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(227 164 58 / 0.2);
   font-family: var(--display);
   font-size: clamp(18px, 2vw, 24px);
   font-weight: 600;
@@ -5587,7 +5461,7 @@ mark {
   margin-bottom: 18px;
   border-radius: 3px;
   background: var(--cherenkov);
-  box-shadow: 0 0 12px rgb(47 91 255 / 0.6);
+  box-shadow: 0 0 12px rgb(47 107 58 / 0.6);
 }
 .lp-trust-grid h3 {
   font-size: 22px;
@@ -5615,7 +5489,7 @@ mark {
   font-weight: 700;
   line-height: 0.92;
   letter-spacing: -0.055em;
-  filter: drop-shadow(0 0 30px rgb(47 91 255 / 0.5));
+  filter: drop-shadow(0 0 30px rgb(47 107 58 / 0.5));
 }
 .lp-final > p {
   max-width: 30em;
@@ -5634,7 +5508,7 @@ mark {
   background: var(--space);
   color: var(--lp-dim);
   font-size: 14px;
-  border-top: 1px solid rgb(155 176 255 / 0.12);
+  border-top: 1px solid rgb(227 164 58 / 0.12);
 }
 .lp-footer .lp-brand {
   font-size: 15px;
@@ -5706,9 +5580,6 @@ mark {
   }
 }
 @media screen and (prefers-reduced-motion: no-preference) {
-  html:not([data-lite="true"]) .lp-hero > :not(.lp-space):not(.lp-line) {
-    animation: lp-rise 1.2s var(--ease) backwards;
-  }
   html:not([data-lite="true"]) .lp-wordmark {
     animation: lp-sweep 7s ease-in-out 1.4s infinite;
   }
@@ -5721,25 +5592,7 @@ mark {
   html:not([data-lite="true"]) .lp-hero .lp-actions {
     animation-delay: 1.6s;
   }
-  html:not([data-lite="true"]) .lp-line path {
-    stroke-dasharray: 1;
-    animation: lp-draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) backwards 0.5s;
-  }
-  html:not([data-lite="true"]) .lp-orbit-comet {
-    animation: lp-comet 14s linear infinite;
-  }
-  html:not([data-lite="true"]) .lp-stars-far {
-    animation: lp-twinkle 5s ease-in-out infinite;
-  }
-  html:not([data-lite="true"]) .lp-stars:not(.lp-stars-far) {
-    animation: lp-twinkle 7s ease-in-out 1.5s infinite;
-  }
-  html:not([data-lite="true"]) .lp-cherenkov {
-    animation: lp-glow 8s ease-in-out infinite;
-  }
-  html:not([data-lite="true"]) .lp-dot {
-    animation: lp-pulse 2.4s ease-in-out infinite;
-  }
+
   html:not([data-lite="true"]) .lp-marquee-track {
     animation: lp-slide 50s linear infinite;
   }
@@ -6839,55 +6692,7 @@ body[data-resizing] {
   border-radius: 20px;
   font-size: 25px;
 }
-.community-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
-  margin-top: 20px;
-}
-.community-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 20px;
-  border-radius: var(--r-l);
-  background: var(--surface);
-  transition: transform 0.35s var(--ease);
-}
-.community-card:hover {
-  transform: translateY(-2px);
-}
-.community-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-.community-card .join {
-  position: relative;
-  z-index: 1;
-}
-.community-card h3 {
-  font-family: var(--display);
-  font-size: 16.5px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.community-card p {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--ink-2);
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-.community-field {
-  margin-top: auto;
-  font-size: 12.5px;
-  color: var(--ink-3);
-}
+
 .community-stats {
   display: flex;
   flex-wrap: wrap;
@@ -8090,13 +7895,13 @@ body[data-resizing] {
   padding: clamp(72px, 16vh, 168px) var(--gutter) 64px;
   text-align: center;
 }
-.home h1 {
+.home-inner h1 {
   font-size: clamp(34px, 5vw, 60px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.04em;
 }
-.home > p {
+.home-inner > p {
   margin-top: 12px;
   font-size: 16px;
   color: var(--ink-2);
@@ -8322,4 +8127,639 @@ body[data-resizing] {
 }
 .palette-trigger[hidden] + .topbar-actions {
   margin-left: auto;
+}
+
+/* A small dropdown made of links, so it works without scripts. */
+.pick {
+  position: relative;
+}
+.pick summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 980px;
+  background: var(--fill);
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pick summary::-webkit-details-marker {
+  display: none;
+}
+.pick summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+.pick-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 10;
+  display: grid;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: var(--r-m);
+  background: var(--popover);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
+  backdrop-filter: saturate(180%) blur(30px);
+  box-shadow: var(--shadow-float);
+}
+.pick-menu a {
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+.pick-menu a:hover,
+.pick-menu a[aria-current] {
+  background: var(--fill);
+}
+
+/* Community directory ------------------------------------------------------- */
+.dir-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: clamp(24px, 4vw, 40px) 18px;
+}
+.dir-head h1 {
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.dir-head p {
+  margin-top: 4px;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+.dir-yours {
+  margin-bottom: 20px;
+}
+.dir-yours h2 {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.dir-yours ul {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.dir-yours a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--r-m);
+  background: var(--surface);
+}
+.dir-yours a:hover {
+  background: var(--brand-wash);
+}
+.dir-yours .community-mark,
+.dir-row .community-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+.dir-yours span:last-child {
+  display: grid;
+}
+.dir-yours strong {
+  font-size: 13.5px;
+}
+.dir-yours small {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.dir-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 0.5px solid var(--rule);
+  border-bottom: 0.5px solid var(--rule);
+}
+.dir-search {
+  display: flex;
+  flex: 1 1 260px;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 980px;
+  background: var(--fill);
+  color: var(--ink-3);
+}
+.dir-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.dir-sort {
+  display: flex;
+  gap: 2px;
+}
+.dir-sort a {
+  padding: 6px 10px;
+  border-radius: 980px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.dir-sort a:hover {
+  color: var(--ink);
+}
+.dir-sort a[aria-current] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.dir-count {
+  margin: 12px 0 4px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.dir-list {
+  border-top: 0.5px solid var(--rule);
+}
+.dir-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 8px;
+  border-bottom: 0.5px solid var(--rule);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 76px;
+}
+.dir-row:hover {
+  background: var(--surface);
+}
+.dir-main {
+  min-width: 0;
+}
+.dir-main h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dir-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.dir-row:hover h3 {
+  color: var(--brand);
+}
+.dir-main > p:not(.dir-meta) {
+  overflow: hidden;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.dir-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.dir-waiting {
+  color: var(--accent);
+  font-weight: 600;
+}
+.dir-row .join {
+  position: relative;
+  z-index: 1;
+}
+@media (max-width: 620px) {
+  .dir-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .dir-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+  .dir-row .join {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+  .dir-sort {
+    overflow-x: auto;
+  }
+}
+
+/* Discover as a star chart ------------------------------------------------------ */
+.home {
+  position: relative;
+  overflow: hidden;
+}
+.home-inner {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+}
+.home-inner > * {
+  position: relative;
+  z-index: 1;
+}
+.sky {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  width: min(1200px, 100%);
+  aspect-ratio: 1200 / 460;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.sky-chart {
+  width: 100%;
+  height: 100%;
+}
+.sky-grid {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 0.75;
+  stroke-dasharray: 2 6;
+}
+.sky-field circle {
+  fill: var(--ink);
+}
+.sky-lines line {
+  stroke: var(--ink-3);
+  stroke-width: 0.8;
+  stroke-dasharray: 3 5;
+  opacity: 0.55;
+}
+.sky-stars {
+  position: absolute;
+  inset: 0;
+}
+.sky-star {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  pointer-events: auto;
+}
+.sky-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-solid);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--brand-solid) 18%, transparent),
+    0 0 14px 2px color-mix(in srgb, var(--brand-solid) 45%, transparent);
+  transition: transform 0.25s var(--ease);
+}
+.sky-star[data-waiting] .sky-dot {
+  background: var(--accent-solid);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent-solid) 18%, transparent),
+    0 0 16px 3px color-mix(in srgb, var(--accent-solid) 50%, transparent);
+  animation: twinkle 3.2s ease-in-out infinite;
+}
+.sky-star:nth-child(2n) .sky-dot {
+  animation-delay: -1.4s;
+}
+@keyframes twinkle {
+  50% {
+    opacity: 0.55;
+    transform: scale(0.8);
+  }
+}
+.sky-label {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 4px);
+  width: max-content;
+  max-width: 240px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--popover);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-float);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--ink);
+  text-align: left;
+  opacity: 0;
+  transform: translate(-4px, -50%);
+  transition:
+    opacity 0.2s,
+    transform 0.25s var(--ease);
+  pointer-events: none;
+}
+.sky-star[data-side="right"] .sky-label {
+  right: calc(100% + 4px);
+  left: auto;
+  text-align: right;
+  transform: translate(4px, -50%);
+}
+.sky-star:hover .sky-label,
+.sky-star:focus-visible .sky-label {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+.sky-star:hover .sky-dot,
+.sky-star:focus-visible .sky-dot {
+  transform: scale(1.5);
+}
+.sky-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.sky-key-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-solid);
+  box-shadow: 0 0 10px 2px
+    color-mix(in srgb, var(--accent-solid) 45%, transparent);
+}
+/* An orbit around the search box, with a comet that takes a minute to go round. */
+.home-orbit {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: min(680px, 100%);
+  margin-top: 28px;
+}
+.home-orbit .home-search-box {
+  width: 100%;
+  margin-top: 0;
+}
+.home-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 4px -36px -26px;
+  z-index: -1;
+  border: 1px dashed var(--rule);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.comet {
+  display: none;
+}
+@supports (offset-path: ellipse(50% 50% at 50% 50%)) {
+  .comet {
+    position: absolute;
+    inset: 4px -36px -26px;
+    display: block;
+    pointer-events: none;
+  }
+  .comet::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 22px;
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, transparent, var(--brand-solid));
+    offset-path: ellipse(50% 50% at 50% 50%);
+    offset-rotate: auto;
+    animation: orbit 60s linear infinite;
+  }
+}
+@keyframes orbit {
+  to {
+    offset-distance: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .comet::after,
+  .sky-star[data-waiting] .sky-dot {
+    animation: none;
+  }
+}
+@media (max-width: 760px) {
+  .sky-stars,
+  .sky-lines,
+  .sky-grid,
+  .home-orbit::before,
+  .comet,
+  .sky-key {
+    display: none;
+  }
+  .sky {
+    opacity: 0.6;
+  }
+}
+.home-inner .sky-key {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+/* Landing: a morning field -------------------------------------------------- */
+.lp-nav {
+  color: #13241b;
+  background: rgb(250 249 243 / 0.7);
+  box-shadow: 0 0.5px 0 rgb(19 36 27 / 0.12);
+}
+.lp-nav .lp-signin {
+  color: #13241b;
+}
+.lp-brand svg {
+  color: var(--cherenkov);
+}
+.lp-hero {
+  align-content: start;
+  min-height: min(100svh, 980px);
+  padding-top: clamp(120px, 16vh, 180px);
+  background: #e9ece4;
+  color: #13241b;
+}
+.lp-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 78%;
+}
+/* Morning haze: keeps the sky soft behind the words, the field sharp below. */
+.lp-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      60% 40% at 82% 6%,
+      rgb(255 236 196 / 0.75),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(246 245 238 / 0.9) 0%,
+      rgb(246 245 238 / 0.72) 34%,
+      rgb(246 245 238 / 0.15) 64%,
+      transparent 80%
+    );
+}
+.lp-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px 7px 10px;
+  border-radius: 980px;
+  background: rgb(255 255 255 / 0.65);
+  box-shadow: inset 0 0 0 1px rgb(19 36 27 / 0.1);
+  font-size: 14px;
+  color: #33453a;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.lp-kicker .sankofa {
+  color: #a8641a;
+}
+.lp-wordmark {
+  margin-top: 18px;
+  background: linear-gradient(
+    100deg,
+    #13241b 0%,
+    #13241b 40%,
+    #a8641a 50%,
+    #13241b 60%,
+    #13241b 100%
+  );
+  background-size: 300% 100%;
+  background-position: 100% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: none;
+}
+.lp-tagline {
+  color: #13241b;
+}
+.lp-fail {
+  color: #2f6b3a;
+  text-shadow: none;
+}
+.lp-lede {
+  max-width: 32em;
+  margin-top: 16px;
+  color: #33453a;
+}
+.lp-hero .lp-ghost {
+  color: #13241b;
+}
+.lp-photo-credit {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  font-size: 11.5px;
+  color: rgb(255 255 255 / 0.85);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+}
+.lp-photo-credit a {
+  text-decoration: underline;
+}
+/* Sankofa: go back and get it. */
+.lp-sankofa {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: clamp(80px, 12vw, 160px) clamp(16px, 6vw, 96px);
+  background: radial-gradient(50% 70% at 50% 0%, #f3efe0, #ffffff 70%);
+  text-align: center;
+}
+.lp-sankofa .sankofa {
+  color: #a8641a;
+}
+.lp-sankofa h2 {
+  font-size: clamp(34px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+.lp-proverb {
+  font-family: var(--display);
+  font-size: clamp(17px, 1.8vw, 21px);
+  font-style: italic;
+  color: #33453a;
+}
+.lp-sankofa p:not(.lp-proverb) {
+  max-width: 34em;
+  font-size: clamp(16px, 1.6vw, 19px);
+  line-height: 1.5;
+  color: #5b6a5f;
+}
+.lp-crowd,
+.lp-final {
+  background:
+    radial-gradient(
+      70% 55% at 50% 112%,
+      rgb(227 164 58 / 0.32),
+      transparent 72%
+    ),
+    var(--space);
+}
+.lp-final h2 {
+  filter: drop-shadow(0 0 30px rgb(227 164 58 / 0.35));
+}
+@media (max-width: 620px) {
+  .lp-photo {
+    object-position: 60% 80%;
+  }
+}
+
+/* The words sit in the morning sky; the field rises from the bottom as its
+   own band, fading into the haze, so text never sits on busy grass. */
+.lp-hero {
+  min-height: 0;
+  padding-bottom: 0;
+  background:
+    radial-gradient(50% 45% at 80% 0%, rgb(255 233 190 / 0.7), transparent 70%),
+    linear-gradient(180deg, #f8f6ee 0%, #eef0e8 70%, #e7ebe2 100%);
+}
+.lp-hero::before {
+  display: none;
+}
+.lp-hero .lp-photo {
+  position: relative;
+  inset: auto;
+  z-index: 0;
+  width: calc(100% + 2 * clamp(16px, 5vw, 64px));
+  max-width: none;
+  height: clamp(280px, 46vh, 520px);
+  margin: clamp(32px, 5vw, 56px) calc(-1 * clamp(16px, 5vw, 64px)) 0;
+  object-fit: cover;
+  object-position: 50% 72%;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 34%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 34%);
 }

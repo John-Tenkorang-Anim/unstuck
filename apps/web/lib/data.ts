@@ -18,6 +18,21 @@ function picture(
     credit,
   };
 }
+/** The landing page photograph: new growth, first light, dew. */
+export const landingPicture: Picture = {
+  src: "/landing/morning-seedlings-1920.jpg",
+  small: "/landing/morning-seedlings-960.jpg",
+  width: 1920,
+  height: 1074,
+  alt: "Young rice seedlings beaded with dew on a misty morning, with the sun low over the field.",
+  credit: {
+    author: "Aqsis Bey",
+    license: "CC BY-SA 4.0",
+    source: commons(
+      "The_Rice_Seedlings_are_Wet_with_Dew_in_a_Winter_Morning.jpg",
+    ),
+  },
+};
 export const samplePictures = {
   pots: picture(
     "pots",

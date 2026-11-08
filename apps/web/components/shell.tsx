@@ -123,6 +123,17 @@ export function Shell({ children }: { children: ReactNode }) {
       if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, [open]);
+  // Notes, sessions and the composer belong to wherever someone came from:
+  // a community link carries ?from= (or ?community= for the composer).
+  const [fromCommunity, setFromCommunity] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setFromCommunity(!!(params.get("from") || params.get("community")));
+  }, [path]);
+  const inside =
+    path.startsWith("/entries") ||
+    path.startsWith("/sessions") ||
+    path === "/new";
   // Three places: find (search lives inside Discover), people, and your own.
   const navigation = [
     {
@@ -131,13 +142,12 @@ export function Shell({ children }: { children: ReactNode }) {
       active:
         path === "/discover" ||
         path === "/search" ||
-        path.startsWith("/entries") ||
-        path.startsWith("/sessions"),
+        (inside && !fromCommunity && path !== "/new"),
     },
     {
       label: "Communities",
       href: "/communities",
-      active: path.startsWith("/communities"),
+      active: path.startsWith("/communities") || (inside && fromCommunity),
     },
     { label: "Notebook", href: "/notebook", active: path === "/notebook" },
   ];

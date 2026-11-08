@@ -239,3 +239,91 @@ export async function listMembers(slug: string, page = 1, size = 50) {
     pages: Math.max(1, Math.ceil(n / size)),
   };
 }
+
+export type CommunitySort = "members" | "newest" | "name";
+/**
+ * The directory, for any number of communities: search, field filter, sort
+ * and paging happen in one query. Sample communities are passed in as rows so
+ * they sort alongside everyone else's.
+ */
+export async function searchCommunities({
+  q = "",
+  field = "",
+  sort = "members",
+  page = 1,
+  size = 30,
+}: {
+  q?: string;
+  field?: string;
+  sort?: CommunitySort;
+  page?: number;
+  size?: number;
+}) {
+  const text = q.trim().slice(0, 100);
+  if (!hasDatabase()) {
+    const terms = text.toLowerCase().split(/\s+/).filter(Boolean);
+    const items = sampleCommunities
+      .filter(
+        (c) =>
+          (!field || c.topic === field) &&
+          terms.every((t) => `${c.name} ${c.about}`.toLowerCase().includes(t)),
+      )
+      .sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name) : 0));
+    return {
+      items: items
+        .slice((page - 1) * size, page * size)
+        .map((c) => ({ ...c, members: 0 })),
+      total: items.length,
+      pages: Math.max(1, Math.ceil(items.length / size)),
+    };
+  }
+  const order =
+    sort === "name"
+      ? "lower(name) ASC"
+      : sort === "newest"
+        ? "created DESC, lower(name) ASC"
+        : "members DESC, lower(name) ASC";
+  const rows = await query<{
+    slug: string;
+    name: string;
+    about: string;
+    topic: Community["topic"];
+    rules: string[] | null;
+    sample: boolean;
+    id: string | null;
+    members: number;
+    total: number;
+  }>(
+    `WITH everyone AS (
+       SELECT s.slug, s.name, s.about, s.topic, s.rules, true AS sample, NULL::uuid AS id,
+              'epoch'::timestamptz AS created
+       FROM jsonb_to_recordset($1::jsonb) AS s(slug text, name text, about text, topic text, rules jsonb)
+       UNION ALL
+       SELECT c.slug, c.data->>'name', c.data->>'about', c.data->>'topic', c.data->'rules', false, c.id, c.created
+       FROM web.communities c WHERE NOT c.hidden
+     ), matched AS (
+       SELECT e.*, coalesce((SELECT count(*) FROM web.community_members m WHERE m.community = e.slug), 0)::int AS members
+       FROM everyone e
+       WHERE ($2 = '' OR e.topic = $2)
+         AND ($3 = '' OR to_tsvector('simple', e.name || ' ' || e.about) @@ websearch_to_tsquery('simple', $3)
+              OR e.name ILIKE '%' || $3 || '%')
+     )
+     SELECT slug, name, about, topic, rules, sample, id, members, count(*) OVER ()::int AS total
+     FROM matched ORDER BY ${order} LIMIT $4 OFFSET $5`,
+    [JSON.stringify(sampleCommunities), field, text, size, (page - 1) * size],
+  );
+  const total = rows[0]?.total ?? 0;
+  return {
+    items: rows.map((r): Community & { members: number } => ({
+      slug: r.slug,
+      name: r.name,
+      about: r.about,
+      topic: r.topic,
+      rules: (r.rules as string[] | null) ?? [],
+      ...(r.sample ? { sample: true } : { id: r.id ?? undefined }),
+      members: r.members,
+    })),
+    total,
+    pages: Math.max(1, Math.ceil(total / size)),
+  };
+}

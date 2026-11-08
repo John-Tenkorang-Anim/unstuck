@@ -23,8 +23,15 @@ export const viewport: Viewport = {
 /**
  * Runs before first paint so a saved theme never flashes, and so light reading
  * never downloads the web fonts.
+ *
+ * It also guards view transitions. When a tab is hidden (a background tab, or
+ * a reload during development) the browser skips the animation and rejects the
+ * transition's promises with InvalidStateError or AbortError. The page still
+ * updates; only the animation is dropped. Those expected rejections are marked
+ * handled here, and any other error is rethrown so real bugs stay visible.
  */
-const bootstrap = `try{var d=document.documentElement,t=localStorage.getItem("unstuck:theme");if(t==="light"||t==="dark")d.dataset.theme=t;var c=navigator.connection;if(/unstuck-reading=lite/.test(document.cookie)||(!/unstuck-reading=full/.test(document.cookie)&&c&&c.saveData))d.dataset.lite="true"}catch(e){}`;
+const bootstrap = `try{var d=document.documentElement,t=localStorage.getItem("unstuck:theme");if(t==="light"||t==="dark")d.dataset.theme=t;var c=navigator.connection;if(/unstuck-reading=lite/.test(document.cookie)||(!/unstuck-reading=full/.test(document.cookie)&&c&&c.saveData))d.dataset.lite="true"}catch(e){}
+try{var o=document.startViewTransition;if(o){document.startViewTransition=function(){var v=o.apply(document,arguments);[v.ready,v.finished,v.updateCallbackDone].forEach(function(p){p&&p.catch(function(e){if(!e||(e.name!=="InvalidStateError"&&e.name!=="AbortError"))setTimeout(function(){throw e})})});return v}}}catch(e){}`;
 export default function RootLayout({
   children,
 }: {
