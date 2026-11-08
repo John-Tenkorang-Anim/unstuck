@@ -69,8 +69,10 @@ The fake blob upload tickets are test objects, not network-accessible upload URL
 
 ## Run the frontend
 
-Requires Node.js 24. The frontend has a custom responsive interface, searchable
-field notes, open questions, saved entries, and a private draft composer.
+Requires Node.js 24. The frontend has three places: Discover (one search box
+with suggestions, and results with open questions and critiques), Communities,
+and a Notebook for your posts, critiques and saved notes. One Ask composer
+handles questions and shared experiences.
 
 ```sh
 cd apps/web

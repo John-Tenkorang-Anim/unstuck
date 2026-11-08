@@ -251,7 +251,7 @@ export function Composer({
       } catch {
         /* The published note is safe either way. */
       }
-      notice("Published. Your field note is live.");
+      notice("Published. It’s in your notebook too.");
       router.push(`/entries/${data.id}`);
     } catch (failure) {
       setPublishError(
@@ -538,7 +538,11 @@ export function Composer({
             <ArrowLeft size={14} /> Discover
           </Link>
         )}
-        {draft.kind === "problem" ? (
+        {step === 0 ? (
+          <h1>
+            Ask or share. <span className="tint-brand">Either helps.</span>
+          </h1>
+        ) : draft.kind === "problem" ? (
           <>
             <h1>
               Ask it plainly.{" "}
@@ -563,7 +567,7 @@ export function Composer({
         )}
       </header>
       <ol className="composer-steps" aria-label="Field note progress">
-        {["Choose a type", "Tell the story", "Review"].map((label, i) => (
+        {["Choose", "Write", "Review"].map((label, i) => (
           <li
             key={label}
             className={
@@ -591,36 +595,73 @@ export function Composer({
         <div className="composer-main">
           {step === 0 ? (
             <>
-              <h2>What are you bringing?</h2>
-              <p className="composer-lede">
-                <strong>Successes</strong>, <strong>wrong turns</strong>, and{" "}
-                <strong>unfinished ideas</strong>. They all belong.
-              </p>
-              <Link className="critique-cta" href="/sessions/new">
-                <strong>Want feedback on a piece of work?</strong>
-                <span>
-                  Paste a photo or video, pin what went wrong, and open a
-                  critique session.
-                </span>
-                <ArrowRight size={18} />
-              </Link>
-              <div className="kind-list">
-                {kinds.map((item) => (
+              <h2>What would you like to do?</h2>
+              <div className="intent-list">
+                {(
+                  [
+                    [
+                      "problem",
+                      "Ask for help",
+                      "Say where you’re stuck and what you’ve tried. People who’ve been there answer.",
+                      HelpCircle,
+                    ],
+                    [
+                      "experience",
+                      "Share what happened",
+                      "Something you tried, and whether it worked. The next person starts further along.",
+                      BookOpen,
+                    ],
+                  ] as const
+                ).map(([kind, label, detail, Icon]) => (
                   <button
-                    key={item.kind}
-                    onClick={() => update("kind", item.kind)}
-                    aria-pressed={draft.kind === item.kind}
-                    className="kind-option"
+                    key={kind}
+                    onClick={() => update("kind", kind)}
+                    aria-pressed={draft.kind === kind}
+                    className="intent-option"
                   >
-                    <item.icon size={18} aria-hidden="true" />
-                    <strong>{item.label}</strong>
-                    <span>{item.description}</span>
-                    <span className="kind-check" aria-hidden="true">
-                      {draft.kind === item.kind && <Check size={12} />}
-                    </span>
+                    <Icon size={20} aria-hidden="true" />
+                    <strong>{label}</strong>
+                    <span>{detail}</span>
                   </button>
                 ))}
+                <Link
+                  className="intent-option intent-link"
+                  href="/sessions/new"
+                >
+                  <ScanEye size={20} aria-hidden="true" />
+                  <strong>Get feedback on your work</strong>
+                  <span>
+                    Share a photo, PDF, video or your working, and people pin
+                    what to fix.
+                  </span>
+                  <ArrowRight size={16} className="intent-arrow" />
+                </Link>
               </div>
+              <details
+                className="intent-more"
+                open={!["problem", "experience"].includes(draft.kind)}
+              >
+                <summary>Something else</summary>
+                <div className="kind-list">
+                  {kinds
+                    .filter((k) => !["problem", "experience"].includes(k.kind))
+                    .map((item) => (
+                      <button
+                        key={item.kind}
+                        onClick={() => update("kind", item.kind)}
+                        aria-pressed={draft.kind === item.kind}
+                        className="kind-option"
+                      >
+                        <item.icon size={18} aria-hidden="true" />
+                        <strong>{item.label}</strong>
+                        <span>{item.description}</span>
+                        <span className="kind-check" aria-hidden="true">
+                          {draft.kind === item.kind && <Check size={12} />}
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              </details>
             </>
           ) : step === 1 ? (
             <>
@@ -889,7 +930,7 @@ export function Composer({
               }
             >
               {step === 0
-                ? "Let’s tell the story"
+                ? "Continue"
                 : step === 1
                   ? "Review your note"
                   : "Save finished draft"}
@@ -901,56 +942,61 @@ export function Composer({
             {savedAt || "Your words, your pace."}
           </div>
         </div>
-        <aside className="composer-aside">
-          <div className="signal">
-            <div className="signal-head">
-              <span className="label">Note completeness</span>
-              <span className="signal-count">
-                {doneCount}/{checks.length}
-              </span>
+        {step > 0 && (
+          <aside className="composer-aside">
+            <div className="signal">
+              <div className="signal-head">
+                <span className="label">Note completeness</span>
+                <span className="signal-count">
+                  {doneCount}/{checks.length}
+                </span>
+              </div>
+              <div className="signal-meter" aria-hidden="true">
+                {checks.map((check) => (
+                  <i
+                    key={check.label}
+                    className={check.done ? "is-done" : ""}
+                  />
+                ))}
+              </div>
+              <ul>
+                {checks.map((check) => (
+                  <li key={check.label} className={check.done ? "is-done" : ""}>
+                    {check.done ? <Check size={12} /> : <i />}
+                    {check.label}
+                    <span className="sr-only">
+                      {check.done ? ", done" : ", not yet"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="signal-meter" aria-hidden="true">
-              {checks.map((check) => (
-                <i key={check.label} className={check.done ? "is-done" : ""} />
-              ))}
+            <div className="writing-tip">
+              <strong>Context is a gift.</strong>
+              <p>
+                Place, tools, budget, timing. A small detail can make all the
+                difference to someone else.
+              </p>
             </div>
-            <ul>
-              {checks.map((check) => (
-                <li key={check.label} className={check.done ? "is-done" : ""}>
-                  {check.done ? <Check size={12} /> : <i />}
-                  {check.label}
-                  <span className="sr-only">
-                    {check.done ? ", done" : ", not yet"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="writing-tip">
-            <strong>Context is a gift.</strong>
-            <p>
-              Place, tools, budget, timing. A small detail can make all the
-              difference to someone else.
-            </p>
-          </div>
-          <div className="writing-tip">
-            <strong>Keep people private.</strong>
-            <p>
-              Leave out names, emails, faces, and other details someone hasn’t
-              agreed to share.
-            </p>
-          </div>
-          <div className="writing-tip">
-            <strong>
-              <LockKeyhole size={13} aria-hidden="true" /> Your draft stays
-              here.
-            </strong>
-            <p>It is stored on this device. You decide what to share.</p>
-          </div>
-          <button className="discard-button" onClick={discard}>
-            <Trash2 size={13} /> Clear this draft
-          </button>
-        </aside>
+            <div className="writing-tip">
+              <strong>Keep people private.</strong>
+              <p>
+                Leave out names, emails, faces, and other details someone hasn’t
+                agreed to share.
+              </p>
+            </div>
+            <div className="writing-tip">
+              <strong>
+                <LockKeyhole size={13} aria-hidden="true" /> Your draft stays
+                here.
+              </strong>
+              <p>It is stored on this device. You decide what to share.</p>
+            </div>
+            <button className="discard-button" onClick={discard}>
+              <Trash2 size={13} /> Clear this draft
+            </button>
+          </aside>
+        )}
       </div>
     </div>
   );

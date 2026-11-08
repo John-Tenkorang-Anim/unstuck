@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowUpRight, Play, Search } from "lucide-react";
+import { Play, Search } from "lucide-react";
 import { OutcomeGlyph } from "@/components/glyph";
 import { getCorpus } from "@/lib/search.server";
 import {
@@ -58,6 +59,8 @@ export default async function SearchPage({
       : "open";
   const where = one(params.where) === "mine" ? "mine" : "everyone";
   const page = Math.max(1, Number(one(params.page)) || 1);
+  // An empty search is the home page: one box, nothing else.
+  if (!q && type === "all" && !field) redirect("/discover");
   const account = hasDatabase() ? await currentAccount() : undefined;
   const [{ docs, mode }, communities, mine] = await Promise.all([
     getCorpus(),
@@ -105,10 +108,6 @@ export default async function SearchPage({
         )
         .slice(0, 6)
     : [];
-  const landing = !q && type === "all" && !field;
-  const waiting = landing
-    ? await questionItems({ show: "open", size: 6 }).catch(() => undefined)
-    : undefined;
   const questions =
     type === "questions"
       ? await questionItems({
@@ -121,17 +120,6 @@ export default async function SearchPage({
       : undefined;
   return (
     <div className="serp frame">
-      {landing && (
-        <header className="serp-hero">
-          <h1>
-            Has anyone been <span className="tint-brand">stuck on this?</span>
-          </h1>
-          <p>
-            Search what people tried and how it went. If nobody has, ask, and
-            the people who’ve been there will help.
-          </p>
-        </header>
-      )}
       <form className="serp-bar" action="/search" role="search">
         <Search size={20} aria-hidden="true" />
         <input
@@ -144,6 +132,8 @@ export default async function SearchPage({
         />
         {type !== "all" && <input type="hidden" name="type" value={type} />}
         {field && <input type="hidden" name="field" value={field.slug} />}
+        {/* Search comes first so pressing Enter searches. */}
+        <button className="button button-dark">Search</button>
         <button
           className="button button-outline serp-ask"
           formAction="/new"
@@ -153,7 +143,6 @@ export default async function SearchPage({
         >
           Ask
         </button>
-        <button className="button button-dark">Search</button>
       </form>
       <nav className="serp-tabs" aria-label="Result types">
         {resultTypes.map((t) => (
@@ -274,21 +263,6 @@ export default async function SearchPage({
               suggested={suggested}
             />
           </aside>
-        </div>
-      ) : landing ? (
-        <div className="serp-landing">
-          {waiting && waiting.items.length > 0 && (
-            <section aria-labelledby="waiting-title">
-              <div className="feature-head">
-                <h2 id="waiting-title">Waiting for an answer</h2>
-                <Link className="text-link" href="/search?type=questions">
-                  All open questions <ArrowUpRight size={14} />
-                </Link>
-              </div>
-              <QuestionList items={waiting.items} />
-            </section>
-          )}
-          <Directory />
         </div>
       ) : (
         <div className="serp-grid">
@@ -578,31 +552,5 @@ function Suggest() {
         </li>
       ))}
     </ul>
-  );
-}
-function Directory() {
-  return (
-    <section className="directory" aria-labelledby="directory-title">
-      <h2 id="directory-title" className="directory-title">
-        Browse by field
-      </h2>
-      <div className="directory-grid">
-        {fields.map((f) => (
-          <Link
-            key={f.slug}
-            className="directory-card"
-            href={`/search?field=${f.slug}`}
-          >
-            <strong>
-              {f.name} <ArrowUpRight size={15} />
-            </strong>
-            <span>{f.summary}</span>
-            <span className="directory-specialties">
-              {f.specialties.map((s) => s.name).join(" · ")}
-            </span>
-          </Link>
-        ))}
-      </div>
-    </section>
   );
 }

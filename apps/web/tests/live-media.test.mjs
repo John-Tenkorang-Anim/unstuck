@@ -66,16 +66,19 @@ test("unapproved and malformed attachments never expose their source paths", asy
   );
 });
 
-test("discovery sends only summaries to the interactive feed", async () => {
+test("the home page sends no entry bodies or media", async () => {
   const { response, html, document } = await read("/discover");
   assert.equal(response.status, 200);
-  assert.equal(document.querySelectorAll("main article").length, 1);
+  assert.equal(document.querySelectorAll("main article").length, 0);
   assert.ok(
     !html.includes(
       "The transcript preserves the details even without playback.",
     ),
   );
-  assert.equal(document.querySelectorAll(".media-gallery").length, 0);
+  assert.equal(
+    document.querySelectorAll(".media-gallery, img, video").length,
+    0,
+  );
 });
 
 test("an upstream outage produces a server error instead of claiming an entry is missing", async () => {

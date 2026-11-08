@@ -9,14 +9,16 @@ import { currentAccount } from "@/lib/auth.server";
 import { communityStats, myCommunities } from "@/lib/communities.server";
 import { hasDatabase } from "@/lib/db.server";
 import { repliesToMe } from "@/lib/discussion.server";
+import { myCritiques } from "@/lib/critique.server";
 
 export const metadata: Metadata = { title: "Your notebook" };
 const number = (n: number) => n.toLocaleString("en");
-type Tab = "posts" | "saved" | "communities";
+type Tab = "posts" | "critiques" | "saved" | "communities";
 
 /**
  * Everything that is yours: what you posted, what you saved, your draft and
- * your communities. Other people's open problems are under Questions.
+ * your critiques and your communities. Other people's problems are found
+ * from Discover.
  */
 export default async function Notebook({
   searchParams,
@@ -26,7 +28,9 @@ export default async function Notebook({
   const params = await searchParams;
   const account = hasDatabase() ? await currentAccount() : undefined;
   const tab: Tab =
-    params.tab === "saved" || params.tab === "communities"
+    params.tab === "saved" ||
+    params.tab === "communities" ||
+    params.tab === "critiques"
       ? params.tab
       : params.tab === "posts" || account
         ? "posts"
@@ -35,6 +39,8 @@ export default async function Notebook({
   const page = Math.max(1, Number(params.page) || 1);
   const joined = tab === "communities" ? await myCommunities(account) : [];
   const replies = tab === "posts" && account ? await repliesToMe(account) : [];
+  const critiques =
+    tab === "critiques" && account ? await myCritiques(account) : undefined;
   const stats = joined.length
     ? await communityStats(
         joined.map((c) => c.slug),
@@ -43,6 +49,7 @@ export default async function Notebook({
     : {};
   const tabs: [Tab, string][] = [
     ["posts", "Your posts"],
+    ["critiques", "Critiques"],
     ["saved", "Saved"],
     ["communities", "Your communities"],
   ];
@@ -54,12 +61,7 @@ export default async function Notebook({
           Everything that’s <span className="tint-brand">yours.</span>
         </h1>
         <p className="page-lede">
-          What you asked and shared, what you saved, and your communities.
-          Looking for other people’s problems to help with? See{" "}
-          <Link className="text-link" href="/search?type=questions">
-            open questions
-          </Link>
-          .
+          What you asked, shared, critiqued and saved.
         </p>
       </header>
       <nav className="community-tabs" aria-label="In your notebook">
@@ -144,6 +146,89 @@ export default async function Notebook({
       {tab === "saved" && (
         <Discovery notebook={await getNotebook()} savedOnly embedded />
       )}
+
+      {tab === "critiques" &&
+        (account && critiques ? (
+          <div className="critiques">
+            <section aria-labelledby="given-title">
+              <div className="critiques-head">
+                <h2 id="given-title" className="section-title">
+                  Feedback you gave
+                </h2>
+                <Link className="text-link" href="/sessions">
+                  Find work to critique
+                </Link>
+              </div>
+              {critiques.given.length ? (
+                <ul className="critique-list">
+                  {critiques.given.map((n) => (
+                    <li key={n.id}>
+                      <Link href={`/sessions/${n.sessionId}#note-${n.id}`}>
+                        <span className="critique-meta">
+                          On <b>{n.title}</b>
+                          {n.resolved && (
+                            <span className="critique-done">
+                              Marked as resolved
+                            </span>
+                          )}
+                        </span>
+                        <span className="critique-body">{n.body}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="quiet-notice">
+                  Feedback you leave on someone’s work will collect here.
+                </p>
+              )}
+            </section>
+            <section aria-labelledby="shared-title">
+              <div className="critiques-head">
+                <h2 id="shared-title" className="section-title">
+                  Your work up for critique
+                </h2>
+                <Link className="text-link" href="/sessions/new">
+                  Share a piece of work
+                </Link>
+              </div>
+              {critiques.shared.length ? (
+                <ul className="critique-list">
+                  {critiques.shared.map((s) => (
+                    <li key={s.id}>
+                      <Link href={`/sessions/${s.id}`}>
+                        <span className="critique-meta">
+                          {s.statusLabel} · {number(s.notes)}{" "}
+                          {s.notes === 1 ? "note" : "notes"}
+                          {s.open > 0 && (
+                            <span className="you-new">
+                              {number(s.open)} open
+                            </span>
+                          )}
+                        </span>
+                        <span className="critique-title">{s.title}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="quiet-notice">
+                  Share a photo, PDF, video or your working and people will pin
+                  feedback on it.
+                </p>
+              )}
+            </section>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h3>Sign in to see your critiques.</h3>
+            <p>
+              <Link className="text-link" href="/account">
+                Choose a name or use your recovery code
+              </Link>
+            </p>
+          </div>
+        ))}
 
       {tab === "communities" &&
         (joined.length ? (

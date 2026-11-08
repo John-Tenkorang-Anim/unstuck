@@ -5,7 +5,7 @@ import { joinedSlugs, listCommunities } from "@/lib/communities.server";
 import { hasDatabase } from "@/lib/db.server";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Leave a field note" };
+export const metadata: Metadata = { title: "Ask or share" };
 export default async function New({
   searchParams,
 }: {

@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CornerDownLeft, Search } from "lucide-react";
-import { topics } from "@/lib/data";
+import { fields } from "@/lib/taxonomy";
 import type { Outcome } from "@/lib/types";
 import { OutcomeGlyph } from "./glyph";
 
@@ -23,39 +23,37 @@ type Command = {
 };
 const fixed: Command[] = [
   { id: "discover", group: "Go to", label: "Discover", href: "/discover" },
-  { id: "search", group: "Go to", label: "Search everything", href: "/search" },
-  {
-    id: "critique",
-    group: "Go to",
-    label: "Critique sessions",
-    href: "/sessions",
-  },
   {
     id: "questions",
     group: "Go to",
     label: "Open questions",
     href: "/search?type=questions",
   },
+  {
+    id: "critique",
+    group: "Go to",
+    label: "Work waiting for critique",
+    href: "/sessions",
+  },
   { id: "notebook", group: "Go to", label: "Your notebook", href: "/notebook" },
   { id: "about", group: "Go to", label: "How Unstuck works", href: "/about" },
-  { id: "new", group: "Create", label: "Leave a field note", href: "/new" },
   {
     id: "ask",
     group: "Create",
-    label: "Ask a question",
-    href: "/new?kind=problem",
+    label: "Ask or share what you tried",
+    href: "/new",
   },
   {
     id: "critique-new",
     group: "Create",
-    label: "Ask for critique",
+    label: "Get feedback on your work",
     href: "/sessions/new",
   },
-  ...topics.map((topic) => ({
-    id: `field-${topic}`,
+  ...fields.map((field) => ({
+    id: `field-${field.slug}`,
     group: "Fields",
-    label: topic,
-    href: `/discover?topic=${encodeURIComponent(topic)}#discover`,
+    label: field.name,
+    href: `/search?field=${field.slug}`,
   })),
 ];
 let cached: IndexEntry[] | undefined;

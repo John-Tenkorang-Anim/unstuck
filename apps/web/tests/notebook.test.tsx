@@ -138,9 +138,7 @@ describe("private contribution", () => {
         <Composer />
       </NotebookProvider>,
     );
-    await user.click(
-      screen.getByRole("button", { name: "Let’s tell the story" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Review your note" }));
     expect(
       screen.getByLabelText("Give your note a useful title"),
@@ -179,9 +177,7 @@ describe("private contribution", () => {
         <Composer />
       </NotebookProvider>,
     );
-    await user.click(
-      screen.getByRole("button", { name: "Let’s tell the story" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByLabelText("Give your note a useful title")).toHaveValue(
       "Ventilation made a difference",
     );
@@ -193,9 +189,7 @@ describe("private contribution", () => {
         <Composer initialKind="problem" />
       </NotebookProvider>,
     );
-    await user.click(
-      screen.getByRole("button", { name: "Let’s tell the story" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByLabelText("Where are you stuck?")).toBeVisible();
     expect(
       screen.queryByRole("group", {
@@ -211,9 +205,7 @@ describe("private contribution", () => {
         <Composer />
       </NotebookProvider>,
     );
-    await user.click(
-      screen.getByRole("button", { name: "Let’s tell the story" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByLabelText("Give your note a useful title")).toHaveValue(
       "",
     );

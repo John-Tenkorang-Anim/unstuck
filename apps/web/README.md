@@ -42,9 +42,11 @@ npm run start -- --port 3100
   the platform at `/discover` and "Sign in" leading to `/account`. The sign-in
   form will move onto the landing page later.
 
-- Responsive discovery with an outcome atlas that filters the ledger, search,
-  outcome filters, field filters, sorting, empty states, shareable filter
-  addresses, a `/` keyboard shortcut, and a `⌘K` search palette.
+- Three places in the menu: Discover, Communities and Notebook, plus one Ask
+  button. Discover is a single box. Suggestions appear as you type, using the
+  same forgiving search, and Enter shows full results at `/search`, which
+  counts as part of Discover. An empty `/search` goes back to Discover. A `⌘K`
+  palette opens search from any other page.
 - Light and dark themes that follow the system, with a remembered override.
 - A search page that ranks across text, video moments, photo descriptions,
   explanations and session feedback, links to the exact second or spot, and
@@ -74,16 +76,19 @@ npm run start -- --port 3100
 - When posting, people choose where it appears: everyone, one or more
   communities, or both. Community-only posts stay out of the public feed and
   search.
-- Search and ask are one place, at `/search`. People search first and see how
-  others got unstuck. If nothing fits, the ask card beside the results keeps
+- From the results people open a note to respond, or ask. The ask card keeps
   the words typed and suggests the community where similar problems were
-  posted. Open questions are a tab of the same page, and `/questions`
-  redirects there. Search forgives misspellings and says "Showing results
-  for …". It knows common synonyms, and supports `"exact phrases"` and
-  `-excluded` words.
+  posted. Open questions, videos and critiques are tabs of the results, and
+  `/questions` redirects there. Search forgives misspellings and says
+  "Showing results for …". It knows common synonyms, and supports
+  `"exact phrases"` and `-excluded` words.
+- Ask and the old "New note" are one composer at `/new`. People choose to ask
+  for help or share what happened, or to get feedback on a piece of work. What
+  they post appears in their notebook.
 - The notebook at `/notebook` holds what is yours: your posts with new and
-  unanswered counts, replies to you, saved notes and your communities. `/you`
-  redirects there.
+  unanswered counts, replies to you, your critiques, saved notes and your
+  communities. The critiques tab lists the feedback you gave on other
+  people's work and the work you shared for critique. `/you` redirects there.
 - Maths anywhere people write: responses, field notes, critique notes and
   worked steps. A Σ palette inserts fractions, powers, roots, integrals, Greek
   letters and operators. ⌘/Ctrl+M starts an equation, and a live preview
@@ -91,8 +96,6 @@ npm run start -- --port 3100
   `$$…$$`. Prices such as "$20 and $30" stay plain text.
 - Replies work like YouTube or X. Reply on any reply and the new one is
   labelled "Replying to …", so nobody has to type a name to tag someone.
-- Discover lets people search or ask from one bar, then offers doors to ask,
-  help, get feedback or find a community.
 
 ## Shared data
 

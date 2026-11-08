@@ -10,7 +10,7 @@ import {
   ViewTransition,
   type ReactNode,
 } from "react";
-import { topics } from "@/lib/data";
+import { fields } from "@/lib/taxonomy";
 import { AccountChip } from "./account-chip";
 import { RecoveryDialog } from "./recovery-dialog";
 import { LogoMark } from "./glyph";
@@ -123,26 +123,21 @@ export function Shell({ children }: { children: ReactNode }) {
       if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, [open]);
+  // Three places: find (search lives inside Discover), people, and your own.
   const navigation = [
     {
       label: "Discover",
       href: "/discover",
-      active: path === "/discover" || path.startsWith("/entries"),
-    },
-    {
-      label: "Search & ask",
-      href: "/search",
-      active: path === "/search",
+      active:
+        path === "/discover" ||
+        path === "/search" ||
+        path.startsWith("/entries") ||
+        path.startsWith("/sessions"),
     },
     {
       label: "Communities",
       href: "/communities",
       active: path.startsWith("/communities"),
-    },
-    {
-      label: "Critique",
-      href: "/sessions",
-      active: path.startsWith("/sessions"),
     },
     { label: "Notebook", href: "/notebook", active: path === "/notebook" },
   ];
@@ -176,7 +171,11 @@ export function Shell({ children }: { children: ReactNode }) {
             {links}
           </nav>
         )}
-        <button className="palette-trigger" onClick={showPalette}>
+        <button
+          className="palette-trigger"
+          onClick={showPalette}
+          hidden={path === "/discover"}
+        >
           <Search size={15} aria-hidden="true" />
           <span className="palette-trigger-label">Search everything</span>
           <span className="sr-only">, command palette</span>
@@ -201,11 +200,11 @@ export function Shell({ children }: { children: ReactNode }) {
           <Link
             href="/new"
             className="button button-dark topbar-share"
-            aria-label="Share what you learned"
-            title="Share what you learned"
+            aria-label="Ask a question or share what you tried"
+            title="Ask a question or share what you tried"
           >
             <Plus size={15} />
-            <span className="share-label">New note</span>
+            <span className="share-label">Ask</span>
           </Link>
           <button
             ref={menu}
@@ -251,13 +250,13 @@ export function Shell({ children }: { children: ReactNode }) {
             </nav>
             <span className="label">Fields</span>
             <nav aria-label="Fields of knowledge" className="sidebar-fields">
-              {topics.map((topic) => (
+              {fields.map((field) => (
                 <Link
-                  key={topic}
-                  href={`/discover?topic=${encodeURIComponent(topic)}#discover`}
+                  key={field.slug}
+                  href={`/search?field=${field.slug}`}
                   onClick={() => setOpen(false)}
                 >
-                  {topic}
+                  {field.name}
                 </Link>
               ))}
             </nav>
@@ -278,7 +277,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <nav aria-label="Footer">
             <Link href="/about">About</Link>
             <Link href="/about#principles">Principles</Link>
-            <Link href="/new">Contribute</Link>
+            <Link href="/new">Ask or share</Link>
           </nav>
         </div>
       </footer>

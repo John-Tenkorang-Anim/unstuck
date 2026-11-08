@@ -10,19 +10,35 @@ async function documentAt(path) {
   return { response, document };
 }
 
-test("discovery content is present in the HTML without running JavaScript", async () => {
+test("the home page is one box: search, or ask, with nothing else in the way", async () => {
   const { response, document } = await documentAt("/discover");
   assert.equal(response.status, 200);
   assert.match(
     document.querySelector("main h1").textContent,
     /Learn from what failed/,
   );
-  assert.ok(document.querySelectorAll("main article").length >= 7);
-  assert.match(
-    document.querySelector(".example-notice").textContent,
-    /Fictional stories/,
+  const form = document.querySelector(
+    'main form[role="search"][action="/search"]',
   );
+  assert.ok(form.querySelector('input[name="q"]'));
+  // Enter searches: Search is the form's first button; Ask sends the words to the composer.
+  const buttons = [...form.querySelectorAll("button")];
+  assert.equal(buttons[0].textContent, "Search");
+  assert.ok(
+    form.querySelector(
+      'button[formaction="/new"][name="kind"][value="problem"]',
+    ),
+  );
+  assert.equal(document.querySelectorAll("main article").length, 0);
   assert.ok(document.querySelector('a.skip-link[href="#main"]'));
+  const suggest = await (
+    await fetch(new URL("/api/suggest?q=pendulam", base))
+  ).json();
+  assert.equal(suggest.corrected, "pendulum");
+  assert.match(suggest.items[0].title, /pendulum/i);
+  const bare = await fetch(new URL("/search", base), { redirect: "manual" });
+  assert.equal(bare.status, 307);
+  assert.match(bare.headers.get("location"), /\/discover$/);
 });
 
 test("the complete field note and its context are readable without JavaScript", async () => {
@@ -441,11 +457,6 @@ test("field notes can be published with a photo and appear in the feed and searc
   );
   assert.equal(document.querySelectorAll(".story-body > section").length, 4);
   assert.ok(document.querySelector(".story-photo img, #photo img"));
-  const { document: home } = await documentAt("/discover");
-  assert.match(
-    home.querySelector(".feed-list").textContent,
-    /Shade cloth saved my seedlings/,
-  );
   const { document: found } = await documentAt(
     "/search?q=shade+cloth+seedlings",
   );
@@ -786,14 +797,7 @@ test("search and questions are one place: search first, then ask a community", a
   const nav = [...document.querySelectorAll(".topnav a")].map((a) =>
     a.getAttribute("href"),
   );
-  for (const href of [
-    "/discover",
-    "/search",
-    "/communities",
-    "/sessions",
-    "/notebook",
-  ])
-    assert.ok(nav.includes(href), href);
+  assert.deepEqual(nav, ["/discover", "/communities", "/notebook"]);
   for (const href of nav) {
     const r = await fetch(new URL(href, base));
     assert.equal(r.status, 200, href);

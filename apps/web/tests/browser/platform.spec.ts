@@ -118,7 +118,7 @@ test("phone layout stays within the viewport and navigation opens with an access
   ).toBeFocused();
 });
 
-test("home discovery does not load media files and omits full entry bodies", async ({
+test("the home page loads no media files and omits full entry bodies", async ({
   page,
 }) => {
   const requests: string[] = [];
@@ -127,7 +127,10 @@ test("home discovery does not load media files and omits full entry bodies", asy
       requests.push(request.url());
   });
   await page.goto("/discover");
-  await expect(page.getByRole("article")).toHaveCount(1);
+  await expect(
+    page.getByRole("combobox", { name: "Search, or describe your problem" }),
+  ).toBeVisible();
+  await expect(page.getByRole("article")).toHaveCount(0);
   expect(requests).toEqual([]);
   expect(await page.content()).not.toContain(
     "The transcript preserves the details even without playback.",

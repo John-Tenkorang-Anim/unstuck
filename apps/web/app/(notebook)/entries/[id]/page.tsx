@@ -17,6 +17,7 @@ import { ReportButton } from "@/components/report-button";
 import { Discussion } from "@/components/discussion";
 import { EntryLayout } from "@/components/entry-layout";
 import { MathText } from "@/components/work-blocks";
+import { fields } from "@/lib/taxonomy";
 import { listCommunities } from "@/lib/communities.server";
 import { sampleCommunities, type Community } from "@/lib/communities";
 import { currentAccount, publicAccount } from "@/lib/auth.server";
@@ -108,7 +109,7 @@ export default async function EntryPage({
           )}
           <span aria-hidden="true">/</span>
           <Link
-            href={`/discover?topic=${encodeURIComponent(entry.topic)}#discover`}
+            href={`/search?field=${fields.find((f) => f.name === entry.topic)?.slug ?? ""}`}
           >
             {entry.topic}
           </Link>
