@@ -77,7 +77,8 @@ function FollowAction({
   const [on, setOn] = useState(following);
   const [busy, setBusy] = useState(false);
   async function toggle() {
-    if (!enabled) return notice("Following needs a database.");
+    if (!enabled)
+      return notice("Following is switched off on this copy of Unstuck.");
     if (!viewer) {
       notice("Choose a name first to follow updates.");
       return router.push(signInHref());

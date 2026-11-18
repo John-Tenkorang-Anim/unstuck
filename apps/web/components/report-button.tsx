@@ -31,7 +31,11 @@ export function ReportButton({
     | "improvement"
     | "problem"
     | "test"
-    | "workspace";
+    | "workspace"
+    | "concern"
+    | "concern_event"
+    | "help_request"
+    | "help_offer";
   id: string;
 }) {
   const { viewer } = useAccount();

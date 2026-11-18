@@ -239,8 +239,11 @@ export default async function Account({
         )}
       {!hasDatabase() && (
         <div className="empty-state">
-          <h3>Accounts need a database.</h3>
-          <p>Run npm run db:start and set DATABASE_URL to turn on sharing.</p>
+          <h3>Accounts aren’t available here yet.</h3>
+          <p>
+            Sharing is switched off on this copy of Unstuck. You can still read
+            everything.
+          </p>
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Play, Search } from "lucide-react";
+import { ArrowRight, Play, Search } from "lucide-react";
 import { OutcomeGlyph } from "@/components/glyph";
 import { getCorpus } from "@/lib/search.server";
 import {
@@ -144,12 +144,10 @@ export default async function SearchPage({
         <button className="button button-dark">Search</button>
         <button
           className="button button-outline serp-ask"
-          formAction="/new"
-          name="kind"
-          value="problem"
-          title="Post it as a question"
+          formAction="/help/new"
+          title="Ask people who’ve faced it"
         >
-          Ask
+          Get help
         </button>
       </form>
       <nav className="serp-tabs" aria-label="Result types">
@@ -280,6 +278,16 @@ export default async function SearchPage({
                 ? `${results.length} ${results.length === 1 ? "result" : "results"}${q ? ` for “${corrected && !exact ? corrected : q}”` : ""}`
                 : `Nothing found${q ? ` for “${q}”` : ""}`}
             </h1>
+            {q && results.length > 0 && (
+              <Link
+                className="serp-help"
+                href={`/help/new?q=${encodeURIComponent(q)}`}
+              >
+                <strong>Not quite your problem?</strong>
+                <span>Ask people who’ve faced it. Takes a minute.</span>
+                <ArrowRight size={15} aria-hidden="true" />
+              </Link>
+            )}
             {moments.length > 0 && (
               <section className="serp-moments" aria-labelledby="moments-title">
                 <h2 id="moments-title">Moments in video</h2>

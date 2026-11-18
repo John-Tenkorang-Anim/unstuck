@@ -68,7 +68,11 @@ export type TargetType =
   | "improvement"
   | "problem"
   | "test"
-  | "workspace";
+  | "workspace"
+  | "concern"
+  | "concern_event"
+  | "help_request"
+  | "help_offer";
 
 export const newId = () => randomUUID();
 export const hashToken = (token: string) =>
@@ -382,6 +386,8 @@ export const limits = {
   community: { max: 5, seconds: 86400 },
   join: { max: 120, seconds: 3600 },
   improvement: { max: 20, seconds: 3600 },
+  help: { max: 10, seconds: 3600 },
+  offer: { max: 30, seconds: 3600 },
   problem: { max: 10, seconds: 3600 },
   test: { max: 20, seconds: 3600 },
   workspace: { max: 5, seconds: 3600 },
@@ -785,6 +791,10 @@ const tables: Record<TargetType, string> = {
   problem: "web.problems",
   test: "web.tests",
   workspace: "web.workspaces",
+  concern: "web.workspace_concerns",
+  concern_event: "web.concern_events",
+  help_request: "web.help_requests",
+  help_offer: "web.help_offers",
 };
 /**
  * File a report. Each person can report a thing once. When enough different
@@ -913,15 +923,21 @@ export async function moderationQueue() {
 export async function preview(type: TargetType, id: string) {
   // Comments and explanations keep their text in columns; the rest in `data`.
   const select =
-    type === "comment"
-      ? "left(t.body, 200) AS title, '' AS body, t.entry_id"
-      : type === "explanation"
-        ? "t.title, t.detail AS body, t.entry_id"
-        : type === "community"
-          ? "t.data->>'name' AS title, t.data->>'about' AS body, NULL AS entry_id"
-          : type === "improvement"
-            ? "coalesce(t.details->>'title', left(t.change, 200)) AS title, t.reasoning AS body, t.entry_id"
-            : "coalesce(t.data->>'title', left(t.data->>'body', 200)) AS title, coalesce(t.data->>'wentWrong', t.data->>'excerpt', '') AS body, NULL AS entry_id";
+    type === "concern" || type === "help_request"
+      ? "t.title, t.body, NULL AS entry_id"
+      : type === "help_offer"
+        ? "left(t.body, 200) AS title, '' AS body, t.request::text AS entry_id"
+        : type === "concern_event"
+          ? "t.kind AS title, t.body, NULL AS entry_id"
+          : type === "comment"
+            ? "left(t.body, 200) AS title, '' AS body, t.entry_id"
+            : type === "explanation"
+              ? "t.title, t.detail AS body, t.entry_id"
+              : type === "community"
+                ? "t.data->>'name' AS title, t.data->>'about' AS body, NULL AS entry_id"
+                : type === "improvement"
+                  ? "coalesce(t.details->>'title', left(t.change, 200)) AS title, t.reasoning AS body, t.entry_id"
+                  : "coalesce(t.data->>'title', left(t.data->>'body', 200)) AS title, coalesce(t.data->>'wentWrong', t.data->>'excerpt', '') AS body, NULL AS entry_id";
   const [row] = await query<{
     title: string;
     body: string;
@@ -930,7 +946,7 @@ export async function preview(type: TargetType, id: string) {
     hidden: boolean;
     name: string;
   }>(
-    `SELECT ${select}, t.owner, t.hidden, a.name FROM ${tables[type]} t JOIN web.accounts a ON a.id = t.owner WHERE t.id = $1`,
+    `SELECT ${select}, ${type === "concern_event" ? "t.actor" : "t.owner"} AS owner, t.hidden, a.name FROM ${tables[type]} t JOIN web.accounts a ON a.id = ${type === "concern_event" ? "t.actor" : "t.owner"} WHERE t.id = $1`,
     [id],
   );
   if (!row) return undefined;

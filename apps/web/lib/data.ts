@@ -1,24 +1,8 @@
 import { sampleProblemFor } from "./problems";
-import type { Credit, Entry, Lesson, Picture } from "./types";
+import type { Entry, Lesson, Picture } from "./types";
 
 const commons = (file: string) =>
   `https://commons.wikimedia.org/wiki/File:${file}`;
-function picture(
-  name: string,
-  width: number,
-  height: number,
-  alt: string,
-  credit: Credit,
-): Picture {
-  return {
-    src: `/samples/${name}-1200.jpg`,
-    small: `/samples/${name}-640.jpg`,
-    width,
-    height,
-    alt,
-    credit,
-  };
-}
 /** The landing page photograph: new growth, first light, dew. */
 export const landingPicture: Picture = {
   src: "/landing/morning-seedlings-1920.jpg",
@@ -35,207 +19,33 @@ export const landingPicture: Picture = {
   },
 };
 /**
- * The work shared in sample critique sessions. Reviewers' pins sit at exact
- * spots on these photos, so they stay with the sessions.
+ * The work shared in sample critique sessions, drawn as simple illustrations.
+ * Reviewers' pins sit at exact spots, so each drawing puts the failure where
+ * the pins point: the print’s solid base, failing middle and loose strands,
+ * and the one dull solder joint in the centre.
  */
-export const sessionPictures = {
-  print: picture(
-    "print",
-    1200,
-    1600,
-    "A failed 3D print: the lower layers are solid, then the part collapses into a loose tangle of plastic strands.",
-    {
-      author: "EwkaC",
-      license: "CC BY-SA 4.0",
-      source: commons("Nieudany_wydruk_3D_01.jpg"),
-    },
-  ),
-  solder: picture(
-    "solder",
-    1200,
-    891,
-    "Close-up of a circuit board where a solder joint has a dull, lumpy surface around a component lead.",
-    {
-      author: "Coronium",
-      license: "CC BY-SA 3.0",
-      source: commons("Cold_solder_joint.jpg"),
-    },
-  ),
+const illustration = {
+  author: "Unstuck illustration",
+  license: "Made for Unstuck",
+  source: "",
 };
-export const samplePictures = {
-  tacoma: picture(
-    "tacoma",
-    1200,
-    794,
-    "Looking up at a suspension bridge tower, its main cables running against a clear blue sky.",
-    {
-      author: "mattbuck",
-      license: "CC BY-SA 3.0",
-      source: commons("Bristol_MMB_\u00abB8_Clifton_Suspension_Bridge.jpg"),
-    },
-  ),
-  pots: picture(
-    "pots",
-    1200,
-    900,
-    "Ripe red cherry tomatoes on the vine, piled high at a market stall.",
-    {
-      author: "Grendelkhan",
-      license: "CC BY-SA 3.0",
-      source: commons("Cocktail_tomatoes_at_Campbell_farmer's_market.jpg"),
-    },
-  ),
-  cache: picture(
-    "cache",
-    1200,
-    869,
-    "Hands typing on a laptop showing lines of code, on a pale wooden desk.",
-    {
-      author: "Crew crew",
-      license: "CC0",
-      source: commons("Programmer_at_work_(Unsplash).jpg"),
-    },
-  ),
-  chair: picture(
-    "chair",
-    1200,
-    802,
-    "A chisel, two angle gauges and a carpenter's pencil laid out on a white surface.",
-    {
-      author: "CEphoto, Uwe Aranas",
-      license: "CC BY-SA 3.0",
-      source: commons(
-        "Carpenter-tools_Beveled-edge-chisel-two-angle-gauges-and-carpenters-pencil-01.jpg",
-      ),
-    },
-  ),
-  seeds: picture(
-    "seeds",
-    1200,
-    901,
-    "Garden beds with young plants in front of a small wooden shed.",
-    {
-      author: "Touam (Hervé Agnoux)",
-      license: "CC BY-SA 4.0",
-      source: commons("Cabane_de_jardin_et_crassier_de_l'\u00c9pare.jpg"),
-    },
-  ),
-  room: picture(
-    "room",
-    1200,
-    785,
-    "A white window with red wooden shutters on a dark timber wall.",
-    {
-      author: "Radomianin",
-      license: "CC BY-SA 4.0",
-      source: commons("Fischerkirche_(window),_Born_a._Dar\u00df.jpg"),
-    },
-  ),
-  classroom: picture(
-    "classroom",
-    1200,
-    797,
-    "An old lecture room with wooden benches facing a long chalkboard.",
-    {
-      author: "Marie-Lan Nguyen",
-      license: "CC BY 2.5",
-      source: commons("Grande_salle_ENC_n1.jpg"),
-    },
-  ),
-  maize: picture(
-    "maize",
-    1200,
-    800,
-    "Tall green maize plants filling a field.",
-    {
-      author: "John Samuel",
-      license: "CC BY-SA 4.0",
-      source: commons("Field_in_Dr\u00f4me_01.jpg"),
-    },
-  ),
-  build: picture(
-    "build",
-    1200,
-    801,
-    "A long, bright corridor of white server racks in a data centre.",
-    {
-      author: "PiDatacenters",
-      license: "CC BY-SA 4.0",
-      source: commons("Racks_Amravati_Data_Center.jpg"),
-    },
-  ),
-  pendulum: picture(
-    "pendulum",
-    1200,
-    675,
-    "Flasks of pink and blue liquid on a laboratory bench.",
-    {
-      author: "ElNokko",
-      license: "CC BY-SA 4.0",
-      source: commons("Analytics.jpg"),
-    },
-  ),
-  solar: picture(
-    "solar",
-    1200,
-    800,
-    "A house with solar panels on its roof, below green hills.",
-    {
-      author: "Mike Peel",
-      license: "CC BY-SA 4.0",
-      source: commons("At_Paraty_2023_441.jpg"),
-    },
-  ),
-  delivery: picture(
-    "delivery",
-    1200,
-    900,
-    "A red parcel locker standing in a residential courtyard.",
-    {
-      author: "Nikolai Bulykin",
-      license: "CC BY-SA 4.0",
-      source: commons(
-        "\u0410\u043b\u043c\u0430\u0442\u044b,_\u043f\u043e\u0441\u0442\u043e\u043c\u0430\u0442_\u0432\u043e_\u0434\u0432\u043e\u0440\u0435_\u0422\u043e\u043b\u0435_\u0431\u0438_64_(1).jpg",
-      ),
-    },
-  ),
-  recycling: picture(
-    "recycling",
-    1200,
-    834,
-    "Green, blue and yellow recycling bins for glass, paper and plastic.",
-    {
-      author: "Jacek Halicki",
-      license: "CC BY-SA 4.0",
-      source: commons("2017_Pojemniki_na_\u015bmieci_w_Smreczynie.jpg"),
-    },
-  ),
-  maths: picture(
-    "maths",
-    1200,
-    861,
-    "A green chalkboard with a large protractor in a bright classroom.",
-    {
-      author: "PantheraLeo1359531",
-      license: "CC BY 4.0",
-      source: commons(
-        "JCRG_\u2013_Klassenzimmer_20240830_HOF0294_RAW-Export.jpg",
-      ),
-    },
-  ),
-  lab: picture(
-    "lab",
-    1200,
-    800,
-    "Bottles of brightly coloured reagents on a laboratory shelf.",
-    {
-      author: "Robert Kowalewski",
-      license: "CC BY-SA 4.0",
-      source: commons(
-        "Laboratorium_chemiczne,_Centrum_Nauki_Kopernik._fot._Robert_Kowalewski.jpg",
-      ),
-    },
-  ),
+export const sessionPictures: Record<"print" | "solder", Picture> = {
+  print: {
+    src: "/samples/print.svg",
+    small: "/samples/print.svg",
+    width: 1200,
+    height: 1600,
+    alt: "Illustration of a failed 3D print: the lower layers are solid, the middle layers shift, and the top collapses into loose strands of plastic.",
+    credit: illustration,
+  },
+  solder: {
+    src: "/samples/solder.svg",
+    small: "/samples/solder.svg",
+    width: 1200,
+    height: 891,
+    alt: "Illustration of a circuit board: three shiny solder joints, and one in the centre that is dull, grey and lumpy around its component lead.",
+    credit: illustration,
+  },
 };
 
 // Fictional examples demonstrate the product. They are not real research or advice.
@@ -252,7 +62,6 @@ const sampleEntries: Entry[] = [
     alias: "archive-case-1940",
     date: "2026-11-06",
     illustration: "water",
-    cover: samplePictures.tacoma,
     readingMinutes: 4,
     tried: 0,
     helped: 41,
@@ -309,7 +118,6 @@ const sampleEntries: Entry[] = [
     alias: "quiet-baobab-24",
     date: "2026-11-05",
     illustration: "pots",
-    cover: samplePictures.pots,
     readingMinutes: 4,
     tried: 24,
     helped: 86,
@@ -364,7 +172,6 @@ const sampleEntries: Entry[] = [
     alias: "patient-otter-17",
     date: "2026-11-04",
     illustration: "code",
-    cover: samplePictures.cache,
     readingMinutes: 3,
     tried: 18,
     helped: 52,
@@ -414,7 +221,6 @@ const sampleEntries: Entry[] = [
     alias: "steady-weaver-09",
     date: "2026-11-03",
     illustration: "chair",
-    cover: samplePictures.chair,
     readingMinutes: 5,
     tried: 9,
     helped: 31,
@@ -460,7 +266,6 @@ const sampleEntries: Entry[] = [
     alias: "curious-sunbird-32",
     date: "2026-11-02",
     illustration: "garden",
-    cover: samplePictures.seeds,
     readingMinutes: 3,
     tried: 7,
     helped: 23,
@@ -501,7 +306,6 @@ const sampleEntries: Entry[] = [
     alias: "open-window-11",
     date: "2026-11-01",
     illustration: "light",
-    cover: samplePictures.room,
     readingMinutes: 2,
     tried: 0,
     helped: 14,
@@ -543,7 +347,6 @@ const sampleEntries: Entry[] = [
     alias: "thoughtful-ibis-07",
     date: "2026-10-31",
     illustration: "water",
-    cover: samplePictures.classroom,
     readingMinutes: 6,
     tried: 6,
     helped: 19,
@@ -589,7 +392,6 @@ const sampleEntries: Entry[] = [
     alias: "dry-season-04",
     date: "2026-11-05",
     illustration: "garden",
-    cover: samplePictures.maize,
     readingMinutes: 2,
     tried: 0,
     helped: 3,
@@ -624,7 +426,6 @@ const sampleEntries: Entry[] = [
     alias: "quiet-compiler-19",
     date: "2026-11-04",
     illustration: "code",
-    cover: samplePictures.build,
     readingMinutes: 2,
     tried: 0,
     helped: 5,
@@ -659,7 +460,6 @@ const sampleEntries: Entry[] = [
     alias: "first-year-22",
     date: "2026-11-03",
     illustration: "water",
-    cover: samplePictures.pendulum,
     readingMinutes: 2,
     tried: 0,
     helped: 2,
@@ -694,7 +494,6 @@ const sampleEntries: Entry[] = [
     alias: "sunny-workbench-09",
     date: "2026-11-02",
     illustration: "light",
-    cover: samplePictures.solar,
     readingMinutes: 3,
     tried: 3,
     helped: 21,
@@ -739,7 +538,6 @@ const sampleEntries: Entry[] = [
     alias: "market-lane-02",
     date: "2026-11-02",
     illustration: "code",
-    cover: samplePictures.delivery,
     readingMinutes: 2,
     tried: 9,
     helped: 33,
@@ -778,7 +576,6 @@ const sampleEntries: Entry[] = [
     alias: "corner-shop-18",
     date: "2026-11-05",
     illustration: "water",
-    cover: samplePictures.recycling,
     readingMinutes: 2,
     tried: 0,
     helped: 6,
@@ -813,7 +610,6 @@ const sampleEntries: Entry[] = [
     alias: "chalk-and-board-11",
     date: "2026-11-01",
     illustration: "water",
-    cover: samplePictures.maths,
     readingMinutes: 3,
     tried: 14,
     helped: 41,
@@ -858,7 +654,6 @@ const sampleEntries: Entry[] = [
     alias: "bench-notes-15",
     date: "2026-10-19",
     illustration: "water",
-    cover: samplePictures.lab,
     readingMinutes: 4,
     tried: 5,
     helped: 27,

@@ -10,6 +10,7 @@ import {
 import { RecordActions } from "@/components/record-actions";
 import { getNotebook } from "@/lib/api";
 import { currentAccount } from "@/lib/auth.server";
+import { helpedCount } from "@/lib/help.server";
 import { hasDatabase } from "@/lib/db.server";
 import { isFollowing } from "@/lib/follows.server";
 import { allImprovements } from "@/lib/improvements.server";
@@ -61,6 +62,7 @@ export default async function Person({
       currentAccount(),
     ]);
   const name = profile?.name ?? handle;
+  const peopleHelped = await helpedCount(name);
   const attempts = notebook.entries.filter(
     (e) =>
       (profile ? e.owner === profile.id : e.example && e.alias === name) &&
@@ -217,6 +219,7 @@ export default async function Person({
           <dl className="stat-row">
             {(
               [
+                ["People helped", peopleHelped],
                 ["Attempts others built on", builtOn.length],
                 [
                   "Improvements tested",

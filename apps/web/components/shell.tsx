@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  Bookmark,
   Compass,
   Menu,
   Moon,
@@ -78,7 +79,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const paletteReturn = useRef<HTMLElement | null>(null);
   const drawer = useRef<HTMLElement>(null);
   const menu = useRef<HTMLButtonElement>(null);
-  const { lite, toggleLite } = useNotebook();
+  const { lite, toggleLite, saved } = useNotebook();
   function showPalette() {
     paletteReturn.current = document.activeElement as HTMLElement | null;
     setPaletteUsed(true);
@@ -152,12 +153,14 @@ export function Shell({ children }: { children: ReactNode }) {
         "/tests",
         "/analyze",
         "/questions",
+        "/help",
+        "/for",
       ),
     },
     {
       label: "Workspaces",
       href: "/workspaces",
-      active: under("/workspaces", "/sessions"),
+      active: under("/workspaces", "/sessions", "/organizations"),
     },
     { label: "Lessons", href: "/lessons", active: under("/lessons") },
   ];
@@ -190,7 +193,7 @@ export function Shell({ children }: { children: ReactNode }) {
             className="button button-dark contribute-button"
             aria-current={path === "/new" ? "page" : undefined}
           >
-            <Plus size={15} aria-hidden="true" /> Contribute
+            <Plus size={15} aria-hidden="true" /> Ask or share
           </Link>
           <button
             className="icon-button"
@@ -200,6 +203,19 @@ export function Shell({ children }: { children: ReactNode }) {
           >
             <Search size={17} />
           </button>
+          <Link
+            href="/notebook?tab=saved"
+            className="icon-button saved-link"
+            aria-label={saved.length ? `Saved, ${saved.length} items` : "Saved"}
+            title="Saved"
+          >
+            <Bookmark size={17} aria-hidden="true" />
+            {saved.length > 0 && (
+              <span className="bell-count" aria-hidden="true">
+                {saved.length > 9 ? "9+" : saved.length}
+              </span>
+            )}
+          </Link>
           <Notifications />
           <ThemeButton />
           <AccountChip />
@@ -284,7 +300,7 @@ export function Shell({ children }: { children: ReactNode }) {
               Target,
               under("/problems", "/improvements", "/tests", "/analyze"),
             ],
-            ["/new", "Contribute", Plus, path === "/new"],
+            ["/new", "Ask or share", Plus, path === "/new"],
             ["/activity", "Activity", Bell, under("/activity")],
             [
               "/notebook",
@@ -319,6 +335,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <Link href="/about#principles">Principles</Link>
             <Link href="/lessons">Lessons</Link>
             <Link href="/workspaces">Workspaces</Link>
+            <Link href="/organizations">Organisations</Link>
             <Link href="/new">Contribute</Link>
           </nav>
         </div>

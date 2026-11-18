@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  LifeBuoy,
   ArrowLeft,
   FlaskConical,
   GitBranch,
@@ -33,6 +34,8 @@ import {
   problemKey,
 } from "@/lib/discussion.server";
 import { isFollowing } from "@/lib/follows.server";
+import { helpLabel } from "@/lib/help";
+import { listHelp } from "@/lib/help.server";
 import { evidenceOf, outcomeOf, type OutcomeKind } from "@/lib/outcome";
 import { knowledgeLabel } from "@/lib/problems";
 import { problemWork } from "@/lib/problems.server";
@@ -97,7 +100,7 @@ export default async function ProblemPage({
   ).filter((e): e is Entry => !!e);
   const branches = branchesFor(w.attempts, w.improvements, w.tests);
   const key = problemKey(p.id);
-  const [following, summary, firstPage] = await Promise.all([
+  const [following, summary, firstPage, asking] = await Promise.all([
     isFollowing(viewer, "problem", p.id),
     tab === "discussion"
       ? discussionSummary({ id: key, evidence: [] } as unknown as Entry)
@@ -109,6 +112,7 @@ export default async function ProblemPage({
           count: 0,
         }))
       : undefined,
+    listHelp({ problemId: p.id, status: "open", size: 5 }, viewer),
   ]);
   // Every reference resolves to the record it came from.
   const refs = new Map<string, { label: string; href: string }>([
@@ -233,6 +237,12 @@ export default async function ProblemPage({
             href={`/improvements/new?problem=${p.id}`}
           >
             <GitBranch size={15} /> Propose an improvement
+          </Link>
+          <Link
+            className="button button-outline"
+            href={`/help/new?problem=${p.id}`}
+          >
+            <LifeBuoy size={15} /> Ask for help
           </Link>
           <RecordActions
             save={`problem:${p.id}`}
@@ -721,6 +731,18 @@ export default async function ProblemPage({
                   : " Mostly personal accounts so far."}
             </p>
           </RailBlock>
+          {asking.length > 0 && (
+            <RailBlock title="Asking for help">
+              <ul className="row-list compact">
+                {asking.map((h) => (
+                  <li key={h.id}>
+                    <Link href={`/help/${h.id}`}>{h.title}</Link>
+                    <span className="record-meta">{helpLabel[h.kind]}</span>
+                  </li>
+                ))}
+              </ul>
+            </RailBlock>
+          )}
           {p.needs.length > 0 && (
             <RailBlock title="Current needs">
               <ul className="need-list">

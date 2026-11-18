@@ -23,12 +23,17 @@ export async function getCorpus(): Promise<{ docs: Doc[]; mode: string }> {
     docs: [
       ...notebook.entries
         .filter((entry) => !shared.some((doc) => doc.id === entry.id))
-        .map((entry) => entryDoc((entry.example && examples.find((e) => e.id === entry.id)) || ({
-            ...entry,
-            sections: [],
-            context: {},
-            evidence: [],
-          } as Entry))),
+        .map((entry) =>
+          entryDoc(
+            (entry.example && examples.find((e) => e.id === entry.id)) ||
+              ({
+                ...entry,
+                sections: [],
+                context: {},
+                evidence: [],
+              } as Entry),
+          ),
+        ),
       ...shared,
       ...(showExamples() ? sampleSessions.map(sessionDoc) : []),
     ],

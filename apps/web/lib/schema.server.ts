@@ -358,4 +358,107 @@ ALTER TABLE web.reports ADD CONSTRAINT reports_target_type_check
 ALTER TABLE web.appeals DROP CONSTRAINT IF EXISTS appeals_target_type_check;
 ALTER TABLE web.appeals ADD CONSTRAINT appeals_target_type_check
   CHECK (target_type IN ('session', 'note', 'entry', 'comment', 'explanation', 'community', 'improvement', 'problem', 'test', 'workspace', 'account'));
+
+-- Durable community concerns: the record and its journal are separate.
+ALTER TABLE web.workspaces ADD COLUMN IF NOT EXISTS concern_sequence bigint NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS web.workspace_concerns (
+  id uuid PRIMARY KEY,
+  workspace uuid NOT NULL REFERENCES web.workspaces(id),
+  number integer NOT NULL,
+  owner uuid NOT NULL REFERENCES web.accounts(id),
+  title text NOT NULL,
+  body text NOT NULL,
+  place text NOT NULL DEFAULT '',
+  topic text NOT NULL DEFAULT 'Other',
+  requested_action text NOT NULL,
+  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open','acknowledged','in_progress','resolved')),
+  version integer NOT NULL DEFAULT 1,
+  hidden boolean NOT NULL DEFAULT false,
+  created timestamptz NOT NULL DEFAULT now(),
+  updated timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (workspace, number)
+);
+CREATE INDEX IF NOT EXISTS concern_workspace ON web.workspace_concerns(workspace, created DESC, id) WHERE NOT hidden;
+CREATE INDEX IF NOT EXISTS concern_status ON web.workspace_concerns(status, created, id) WHERE NOT hidden;
+CREATE INDEX IF NOT EXISTS concern_search ON web.workspace_concerns USING gin (to_tsvector('simple', title || ' ' || body || ' ' || place)) WHERE NOT hidden;
+CREATE TABLE IF NOT EXISTS web.concern_support (
+  concern uuid NOT NULL REFERENCES web.workspace_concerns(id) ON DELETE CASCADE,
+  account uuid NOT NULL REFERENCES web.accounts(id),
+  created timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (concern, account)
+);
+CREATE INDEX IF NOT EXISTS concern_support_account ON web.concern_support(account, created);
+CREATE TABLE IF NOT EXISTS web.concern_events (
+  sequence bigserial PRIMARY KEY,
+  id uuid NOT NULL UNIQUE,
+  concern uuid NOT NULL REFERENCES web.workspace_concerns(id),
+  actor uuid NOT NULL REFERENCES web.accounts(id),
+  kind text NOT NULL CHECK (kind IN ('raised','note','evidence','response','progress','status','commitment','completion')),
+  body text NOT NULL,
+  data jsonb NOT NULL DEFAULT '{}',
+  hidden boolean NOT NULL DEFAULT false,
+  created timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS concern_journal ON web.concern_events(concern, sequence DESC) WHERE NOT hidden;
+CREATE TABLE IF NOT EXISTS web.concern_commitments (
+  id uuid PRIMARY KEY,
+  concern uuid NOT NULL REFERENCES web.workspace_concerns(id),
+  event uuid NOT NULL REFERENCES web.concern_events(id),
+  owner uuid NOT NULL REFERENCES web.accounts(id),
+  title text NOT NULL,
+  responsible text NOT NULL,
+  due date NOT NULL,
+  completed timestamptz,
+  completion_event uuid REFERENCES web.concern_events(id),
+  created timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS concern_commitments_due ON web.concern_commitments(concern, due) WHERE completed IS NULL;
+-- Help requests: what kind of help someone needs, offers to help, and why
+-- each request reached each person. Helpers are credited when it helped.
+CREATE TABLE IF NOT EXISTS web.help_requests (
+  id uuid PRIMARY KEY,
+  owner uuid NOT NULL REFERENCES web.accounts(id),
+  problem_id text,
+  entry_id text,
+  kind text NOT NULL CHECK (kind IN ('hints','explain','review','tried','partner','expertise','equipment')),
+  audience text NOT NULL DEFAULT 'other' CHECK (audience IN ('student','researcher','engineer','community','other')),
+  title text NOT NULL,
+  body text NOT NULL,
+  graded boolean NOT NULL DEFAULT false,
+  category text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open','helped','closed')),
+  hidden boolean NOT NULL DEFAULT false,
+  created timestamptz NOT NULL DEFAULT now(),
+  updated timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS help_open ON web.help_requests (status, created DESC) WHERE NOT hidden;
+CREATE INDEX IF NOT EXISTS help_problem ON web.help_requests (problem_id) WHERE NOT hidden;
+CREATE INDEX IF NOT EXISTS help_owner ON web.help_requests (owner, created DESC);
+CREATE TABLE IF NOT EXISTS web.help_offers (
+  id uuid PRIMARY KEY,
+  request uuid NOT NULL REFERENCES web.help_requests(id) ON DELETE CASCADE,
+  owner uuid NOT NULL REFERENCES web.accounts(id),
+  body text NOT NULL,
+  status text NOT NULL DEFAULT 'offered' CHECK (status IN ('offered','accepted','declined')),
+  helped boolean NOT NULL DEFAULT false,
+  hidden boolean NOT NULL DEFAULT false,
+  created timestamptz NOT NULL DEFAULT now(),
+  updated timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (request, owner)
+);
+CREATE INDEX IF NOT EXISTS help_offers_owner ON web.help_offers (owner, created DESC);
+CREATE TABLE IF NOT EXISTS web.help_routes (
+  request uuid NOT NULL REFERENCES web.help_requests(id) ON DELETE CASCADE,
+  account uuid NOT NULL REFERENCES web.accounts(id) ON DELETE CASCADE,
+  reason text NOT NULL CHECK (reason IN ('category','problem','similar')),
+  created timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (request, account)
+);
+CREATE INDEX IF NOT EXISTS help_routes_account ON web.help_routes (account, created DESC);
+ALTER TABLE web.reports DROP CONSTRAINT IF EXISTS reports_target_type_check;
+ALTER TABLE web.reports ADD CONSTRAINT reports_target_type_check CHECK (target_type IN
+ ('session','note','entry','comment','explanation','community','improvement','problem','test','workspace','concern','concern_event','help_request','help_offer'));
+ALTER TABLE web.appeals DROP CONSTRAINT IF EXISTS appeals_target_type_check;
+ALTER TABLE web.appeals ADD CONSTRAINT appeals_target_type_check CHECK (target_type IN
+ ('session','note','entry','comment','explanation','community','improvement','problem','test','workspace','concern','concern_event','help_request','help_offer','account'));
 `;

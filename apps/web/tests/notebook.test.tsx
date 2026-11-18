@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { Contribute } from "@/components/contribute";
+import { HelpForm } from "@/components/help-actions";
 import { branchesFor, ProgressTrail } from "@/components/knowledge";
 import { NotebookProvider } from "@/components/notebook-provider";
 import { Shell } from "@/components/shell";
@@ -37,7 +38,10 @@ const problems = sampleProblems.map((p) => ({
 }));
 /** Choosing moves focus to the new heading a frame later, for screen readers. */
 async function choose(user: ReturnType<typeof userEvent.setup>, name: RegExp) {
-  await user.click(screen.getByRole("button", { name }));
+  await user.click(
+    screen.queryByRole("button", { name }) ??
+      screen.getByRole("link", { name }),
+  );
   await waitFor(() =>
     expect(screen.getByRole("heading", { level: 1 })).toHaveFocus(),
   );
@@ -62,15 +66,15 @@ describe("contributing", () => {
   it("starts by asking what someone wants to share", () => {
     contribute();
     expect(
-      screen.getByRole("heading", { name: "What would you like to share?" }),
+      screen.getByRole("heading", { name: "What would you like to do?" }),
     ).toBeVisible();
     for (const name of [
       /Something I tried/,
-      /A problem I need help with/,
+      /I need help/,
       /An idea for improvement/,
       /A test or result/,
     ])
-      expect(screen.getByRole("button", { name })).toBeVisible();
+      expect(screen.getByRole("link", { name })).toBeVisible();
   });
   it("guides an attempt through four stages, checking only what is required", async () => {
     const user = userEvent.setup();
@@ -149,10 +153,17 @@ describe("contributing", () => {
       screen.getByRole("textbox", { name: /Give your experience a title/ }),
     ).toHaveValue("Coating cracked outdoors");
   });
+  it("sends people who need help to the help form", () => {
+    contribute();
+    expect(screen.getByRole("link", { name: /I need help/ })).toHaveAttribute(
+      "href",
+      "/help/new",
+    );
+  });
   it("suggests an existing problem instead of a duplicate", async () => {
     const user = userEvent.setup();
     contribute();
-    await choose(user, /A problem I need help with/);
+    await choose(user, /Describe a problem/);
     await user.type(
       screen.getByRole("textbox", { name: /The problem/ }),
       "Community plastic collection keeps failing in small communities",
@@ -182,7 +193,7 @@ describe("contributing", () => {
     localStorage.setItem("unstuck:contribute:v2", "{nope");
     contribute();
     expect(
-      screen.getByRole("heading", { name: "What would you like to share?" }),
+      screen.getByRole("heading", { name: "What would you like to do?" }),
     ).toBeVisible();
   });
 });
@@ -302,7 +313,7 @@ describe("accessible navigation", () => {
       </NotebookProvider>,
     );
   }
-  it("offers four destinations and a prominent Contribute action", () => {
+  it("offers four destinations and a prominent way to ask or share", () => {
     shell();
     const nav = screen.getAllByRole("navigation", {
       name: "Main navigation",
@@ -317,14 +328,14 @@ describe("accessible navigation", () => {
       "page",
     );
     expect(
-      screen.getAllByRole("link", { name: /Contribute/ })[0],
+      screen.getAllByRole("link", { name: /Ask or share/ })[0],
     ).toHaveAttribute("href", "/new");
     const quick = screen.getByRole("navigation", { name: "Quick navigation" });
     expect(
       within(quick)
         .getAllByRole("link")
         .map((a) => a.textContent),
-    ).toEqual(["Discover", "Problems", "Contribute", "Activity", "My Space"]);
+    ).toEqual(["Discover", "Problems", "Ask or share", "Activity", "My Space"]);
   });
   it("opens search with the keyboard, finds an entry, and returns focus on close", async () => {
     vi.stubGlobal(
@@ -399,5 +410,39 @@ describe("accessible navigation", () => {
     expect(result.violations.map((v) => `${v.id}: ${v.description}`)).toEqual(
       [],
     );
+  });
+});
+
+describe("asking for help as a student", () => {
+  const form = () =>
+    render(
+      <NotebookProvider>
+        <HelpForm initial={{}} problems={[]} categories={[]} enabled={false} />
+      </NotebookProvider>,
+    );
+  it("asks what you’re stuck on before anything else", () => {
+    form();
+    const fields = screen.getAllByRole("textbox");
+    expect(fields[0]).toHaveAccessibleName(/What are you stuck on/);
+    expect(fields[1]).toHaveAccessibleName(/What have you tried/);
+    // Students see three suggestions, with the rest one tap away.
+    expect(
+      screen.getByRole("radio", { name: "Hints, not answers" }),
+    ).toBeChecked();
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+  });
+  it("keeps what was typed on this device", async () => {
+    const user = userEvent.setup();
+    const view = form();
+    await user.type(
+      screen.getAllByRole("textbox")[0],
+      "Why is my value of g too high?",
+    );
+    await new Promise((r) => setTimeout(r, 50));
+    view.unmount();
+    form();
+    expect(
+      await screen.findByDisplayValue("Why is my value of g too high?"),
+    ).toBeVisible();
   });
 });

@@ -15,10 +15,14 @@ const types: TargetType[] = [
   "comment",
   "explanation",
   "community",
+  "concern",
+  "concern_event",
   "improvement",
   "problem",
   "test",
   "workspace",
+  "help_request",
+  "help_offer",
 ];
 
 /** Report a session, note or field note. Enough reports hide it until reviewed. */

@@ -82,8 +82,11 @@ export default async function NewProposal({
         </div>
       ) : !hasDatabase() ? (
         <div className="empty-state">
-          <h3>Proposals need a database.</h3>
-          <p>Run npm run db:start and set DATABASE_URL to turn on sharing.</p>
+          <h3>Proposals can’t be saved here yet.</h3>
+          <p>
+            Sharing is switched off on this copy of Unstuck. You can still read
+            everything.
+          </p>
         </div>
       ) : (
         <PostForm

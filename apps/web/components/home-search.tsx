@@ -62,7 +62,7 @@ export function HomeSearch({
     ? [
         { href: `/search?q=${encodeURIComponent(text)}`, label: "search" },
         {
-          href: `/new?kind=problem&q=${encodeURIComponent(text)}`,
+          href: `/help/new?q=${encodeURIComponent(text)}`,
           label: "ask",
         },
       ]
@@ -129,11 +129,9 @@ export function HomeSearch({
         <button className="button button-dark">Search</button>
         <button
           className="button button-outline home-ask"
-          formAction="/new"
-          name="kind"
-          value="problem"
+          formAction="/help/new"
         >
-          Ask
+          Get help
         </button>
       </div>
       {showList && (

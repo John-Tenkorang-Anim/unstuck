@@ -154,28 +154,24 @@ test("discussion is a shareable tab and preserves navigation back to the note", 
 });
 
 for (const width of [390, 1440]) {
-  test(`journey previews stay compact and readable at ${width}px`, async ({
+  test(`the front page stays short and readable at ${width}px`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/discover");
-    const journeys = page.locator(".dv-journeys");
-    await journeys.scrollIntoViewIfNeeded();
-    await expect(journeys.locator(":scope > li")).toHaveCount(3);
-    for (const image of await journeys.locator("img").all()) {
-      const box = (await image.boundingBox())!;
-      expect(box.height).toBeLessThanOrEqual(72);
-      expect(box.width).toBeLessThanOrEqual(112);
-      expect(box.width).toBeGreaterThan(box.height);
+    // One featured story and six picture tiles: no long feed on the front tab.
+    await expect(page.locator(".dv-feature")).toHaveCount(1);
+    const tiles = page.locator(".dv-tiles > li");
+    await expect(tiles).toHaveCount(6);
+    for (const tile of await tiles.all()) {
+      await expect(tile.locator("h3")).toBeVisible();
+      await expect(tile.locator(".discovery-excerpt")).toHaveCount(0);
     }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await expect(
-      journeys.getByText("Improve oxygen transfer during microbial scale-up"),
-    ).toBeVisible();
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     await page.screenshot({
       path: testInfo.outputPath(`discovery-${width}.png`),

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { LogoMark, OutcomeGlyph } from "@/components/glyph";
-import { landingPicture, samplePictures } from "@/lib/data";
+import { landingPicture } from "@/lib/data";
+import { RecordArt } from "@/components/record-art";
 import { Sankofa } from "@/components/sankofa";
 
 export const metadata: Metadata = {
@@ -42,8 +43,8 @@ export default function Landing() {
           <Link href="/account" className="lp-signin">
             Sign in
           </Link>
-          <Link href="/discover" className="lp-cta lp-cta-small">
-            Get started
+          <Link href="/help/new" className="lp-cta lp-cta-small">
+            Get help
           </Link>
         </nav>
       </header>
@@ -57,20 +58,20 @@ export default function Landing() {
             Unstuck
           </h1>
           <p className="lp-tagline">
-            Learn from what didn’t work.{" "}
+            Learn from what <span className="lp-red">didn’t work</span>.{" "}
             <span className="lp-fail">Build what works next.</span>
           </p>
           <p className="lp-lede">
-            Unstuck is where people post the attempts that didn’t work, mark the
-            exact moment they broke, and work out why together. So the next
-            person doesn’t start from zero.
+            Stuck on a lab, a project or a problem where you live? Ask people
+            who’ve faced it, and see what others tried before you, including
+            what didn’t work.
           </p>
           <div className="lp-actions">
-            <Link href="/discover" className="lp-cta">
-              Get started <ArrowRight size={18} />
+            <Link href="/help/new" className="lp-cta">
+              I’m stuck: get help <ArrowRight size={18} />
             </Link>
-            <Link href="/account" className="lp-ghost">
-              Sign in
+            <Link href="/discover" className="lp-ghost">
+              See what others tried
             </Link>
           </div>
           <img
@@ -115,13 +116,7 @@ export default function Landing() {
           <ol>
             <li className="lp-step lp-reveal">
               <div className="lp-visual lp-visual-photo">
-                <img
-                  src={samplePictures.solar.small}
-                  alt=""
-                  width={640}
-                  height={427}
-                  loading="lazy"
-                />
+                <RecordArt seed="landing-share" outcome="failed" />
                 <span className="lp-pin" style={{ left: "52%", top: "40%" }}>
                   1
                 </span>
@@ -138,13 +133,7 @@ export default function Landing() {
             </li>
             <li className="lp-step lp-reveal">
               <div className="lp-visual lp-visual-photo">
-                <img
-                  src={samplePictures.lab.small}
-                  alt=""
-                  width={640}
-                  height={427}
-                  loading="lazy"
-                />
+                <RecordArt seed="landing-evidence" outcome="partial" />
                 <span className="lp-tag" style={{ left: "8%", top: "70%" }}>
                   Verified · oxygen fell below 5% by day 6
                 </span>
@@ -245,11 +234,11 @@ export default function Landing() {
             went.
           </p>
           <div className="lp-actions lp-reveal">
-            <Link href="/discover" className="lp-cta">
-              Get started <ArrowRight size={18} />
+            <Link href="/help/new" className="lp-cta">
+              I’m stuck: get help <ArrowRight size={18} />
             </Link>
-            <Link href="/account" className="lp-ghost">
-              Sign in
+            <Link href="/discover" className="lp-ghost">
+              See what others tried
             </Link>
           </div>
         </section>

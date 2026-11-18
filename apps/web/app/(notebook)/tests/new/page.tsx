@@ -78,7 +78,11 @@ export default async function NewTest({
         </div>
       ) : !hasDatabase() ? (
         <div className="empty-state">
-          <h3>Tests need a database.</h3>
+          <h3>Tests can’t be saved here yet.</h3>
+          <p>
+            Sharing is switched off on this copy of Unstuck. You can still read
+            everything.
+          </p>
         </div>
       ) : (
         <PostForm

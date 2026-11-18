@@ -64,11 +64,15 @@ export default async function Moderation() {
               ? `/tests/${id}`
               : type === "workspace"
                 ? `/workspaces/${id}`
-                : type === "session"
-                  ? `/sessions/${id}`
-                  : type === "entry"
-                    ? `/entries/${id}`
-                    : `/sessions/${sessionId}#note-${id}`;
+                : type === "help_request"
+                  ? `/help/${id}`
+                  : type === "help_offer"
+                    ? `/help/${entryId}#offer-${id}`
+                    : type === "session"
+                      ? `/sessions/${id}`
+                      : type === "entry"
+                        ? `/entries/${id}`
+                        : `/sessions/${sessionId}#note-${id}`;
   return (
     <div className="frame moderation">
       <header className="page-bar">
@@ -157,6 +161,10 @@ export default async function Moderation() {
                         problem: "Hidden problem",
                         test: "Hidden test",
                         workspace: "Hidden workspace",
+                        concern: "Hidden concern",
+                        concern_event: "Hidden concern update",
+                        help_request: "Hidden help request",
+                        help_offer: "Hidden help offer",
                       }[appeal.target_type]
                     }
                   </span>
@@ -225,6 +233,10 @@ export default async function Moderation() {
                         problem: "Problem",
                         test: "Test",
                         workspace: "Workspace",
+                        concern: "Concern",
+                        concern_event: "Concern update",
+                        help_request: "Help request",
+                        help_offer: "Help offer",
                       }[item.target_type]
                     }
                   </span>

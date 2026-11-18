@@ -1,7 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Lock, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  HandHeart,
+  Lock,
+  MapPin,
+  Megaphone,
+  Plus,
+} from "lucide-react";
+import {
+  concernHref,
+  concernReference,
+  concernStatus,
+  concernTone,
+  concernTopics,
+  type ConcernStatus,
+} from "@/lib/concerns";
+import { listConcerns } from "@/lib/concerns.server";
+import { hostsOf } from "@/lib/organizations";
 import {
   branchesFor,
   Pill,
@@ -25,6 +42,7 @@ import {
 import {
   atLeast,
   getWorkspace,
+  workspaceConcernStats,
   workspacePreview,
 } from "@/lib/workspaces.server";
 
@@ -39,6 +57,7 @@ export async function generateMetadata({
 }
 const tabs = [
   ["overview", "Overview"],
+  ["concerns", "Concerns"],
   ["ideas", "Ideas"],
   ["tasks", "Tasks"],
   ["tests", "Tests"],
@@ -111,6 +130,29 @@ export default async function WorkspacePage({
   const canAdd = !w.sample && atLeast(role, "contributor");
   const canEdit = !w.sample && atLeast(role, "editor");
   const kind = kindForTab[tab];
+  const filter = (
+    ["open", "acknowledged", "in_progress", "resolved"] as ConcernStatus[]
+  ).find((s) => s === query.status);
+  const attention = query.show === "waiting";
+  const concernPage = Math.max(1, Number(query.page) || 1);
+  const concerns =
+    tab === "overview" || tab === "concerns"
+      ? await listConcerns(
+          {
+            workspace: w.id,
+            status: tab === "concerns" ? filter : undefined,
+            attention: tab === "concerns" && attention,
+            page: tab === "concerns" ? concernPage : 1,
+            size: tab === "concerns" ? 20 : 4,
+          },
+          viewer,
+        )
+      : undefined;
+  const stats = w.concerns ?? (await workspaceConcernStats([w.id])).get(w.id);
+  const hub = !!(w.place || stats?.total || concerns?.total);
+  // Signed-in people can raise a concern in a public workspace; doing so joins it.
+  const canRaise =
+    !w.sample && !!viewer && (canAdd || w.visibility === "public");
   const activity = [...w.items].sort((a, b) =>
     b.updated.localeCompare(a.updated),
   );
@@ -294,9 +336,25 @@ export default async function WorkspacePage({
         </p>
       )}
       <header className="record-head studio-head">
-        <p className="record-kicker">Workspace</p>
+        <p className="record-kicker">
+          {w.place ? (
+            <>
+              <MapPin size={12} aria-hidden="true" /> {w.place}
+              {w.topic && ` · ${w.topic}`}
+            </>
+          ) : (
+            "Workspace"
+          )}
+        </p>
         <h1>{w.title}</h1>
         <p className="record-links">
+          {hostsOf(w.id).map((o) => (
+            <span key={o.id} className="hosted-by">
+              <span>Hosted by</span>
+              <Link href={`/organizations/${o.id}`}>{o.name}</Link>
+              <span aria-hidden="true">·</span>
+            </span>
+          ))}
           {work && (
             <>
               <span>Linked problem</span>
@@ -306,7 +364,7 @@ export default async function WorkspacePage({
               <span aria-hidden="true">·</span>
             </>
           )}
-          <span>{w.members.length} members</span>
+          <span>{w.memberCount ?? w.members.length} members</span>
           <span aria-hidden="true">·</span>
           <Pill tone={w.visibility === "public" ? "ongoing" : "quiet"}>
             {w.visibility !== "public" && <Lock size={11} aria-hidden="true" />}
@@ -316,9 +374,19 @@ export default async function WorkspacePage({
           <span>Active {w.updated.slice(0, 10)}</span>
         </p>
         <div className="record-actions-row">
+          {hub && (
+            <Link
+              className="button button-dark"
+              href={`${href("concerns")}#raise`}
+            >
+              <Megaphone size={15} aria-hidden="true" /> Raise a concern
+            </Link>
+          )}
           {canAdd ? (
             <details className="pick add-menu">
-              <summary className="button button-dark">
+              <summary
+                className={hub ? "button button-outline" : "button button-dark"}
+              >
                 <Plus size={15} aria-hidden="true" /> Add to workspace
               </summary>
               <div className="pick-menu">
@@ -370,7 +438,11 @@ export default async function WorkspacePage({
             [
               k,
               l,
-              kindForTab[k] ? items(kindForTab[k]!).length : undefined,
+              k === "concerns"
+                ? (stats?.open ?? concerns?.total)
+                : kindForTab[k]
+                  ? items(kindForTab[k]!).length
+                  : undefined,
             ] as const,
         )}
       />
@@ -385,6 +457,43 @@ export default async function WorkspacePage({
         <div className="knowledge-main">
           {tab === "overview" && (
             <>
+              {hub && concerns && (
+                <section className="hub-card" aria-labelledby="hub-title">
+                  <div className="hub-head">
+                    <h2 id="hub-title">What neighbours are raising</h2>
+                    <Link className="text-link" href={href("concerns")}>
+                      All concerns
+                    </Link>
+                  </div>
+                  {stats && (
+                    <dl className="hub-stats">
+                      <div>
+                        <dt>Open</dt>
+                        <dd>{stats.open}</dd>
+                      </div>
+                      <div>
+                        <dt>Resolved</dt>
+                        <dd>{stats.resolved}</dd>
+                      </div>
+                      <div data-alert={stats.overdue > 0 || undefined}>
+                        <dt>Overdue promises</dt>
+                        <dd>{stats.overdue}</dd>
+                      </div>
+                    </dl>
+                  )}
+                  {concerns.items.length ? (
+                    <ul className="concern-list">
+                      {concerns.items.map((c) => (
+                        <ConcernRow key={c.id} c={c} />
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="quiet-line">
+                      Nothing raised yet. Is something holding your street back?
+                    </p>
+                  )}
+                </section>
+              )}
               <section className="ws-summary">
                 <div>
                   <h2 className="rail-title">Goal</h2>
@@ -403,33 +512,97 @@ export default async function WorkspacePage({
                   </div>
                 )}
               </section>
-              <div className="ws-two">
-                <section className="prose-block">
-                  <h2>Next actions</h2>
-                  <ul className="dash-list">
-                    {(w.next.length
-                      ? w.next
-                      : items("task")
-                          .filter((t) => t.status !== "done")
-                          .map((t) => t.title)
-                    ).map((n) => (
-                      <li key={n}>{n}</li>
-                    ))}
-                  </ul>
-                </section>
-                <section className="prose-block">
-                  <h2>Unresolved questions</h2>
-                  {w.questions.length ? (
+              {canEdit && (
+                <details className="disclosure">
+                  <summary>Edit the community brief</summary>
+                  <PostForm
+                    endpoint={`/api/workspaces/${w.id}`}
+                    extra={{ action: "brief" }}
+                    submit="Save brief"
+                    done="Brief updated."
+                  >
+                    <div className="field-row">
+                      <label className="field">
+                        <span>Place</span>
+                        <input
+                          name="place"
+                          defaultValue={w.place}
+                          placeholder="A street, village or district"
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Focus</span>
+                        <input
+                          name="topic"
+                          defaultValue={w.topic}
+                          placeholder="Neighbourhood, schools, water…"
+                        />
+                      </label>
+                    </div>
+                    <label className="field">
+                      <span>Goal</span>
+                      <textarea
+                        name="goal"
+                        rows={2}
+                        defaultValue={w.goal}
+                        required
+                        minLength={10}
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Current strategy</span>
+                      <textarea
+                        name="strategy"
+                        rows={2}
+                        defaultValue={w.strategy}
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Recent progress</span>
+                      <textarea
+                        name="progress"
+                        rows={2}
+                        defaultValue={w.progress}
+                      />
+                    </label>
+                    <label className="field">
+                      <span>House rules</span>
+                      <textarea name="rules" rows={2} defaultValue={w.rules} />
+                    </label>
+                  </PostForm>
+                </details>
+              )}
+              {(w.next.length > 0 ||
+                w.questions.length > 0 ||
+                items("task").length > 0) && (
+                <div className="ws-two">
+                  <section className="prose-block">
+                    <h2>Next actions</h2>
                     <ul className="dash-list">
-                      {w.questions.map((q) => (
-                        <li key={q}>{q}</li>
+                      {(w.next.length
+                        ? w.next
+                        : items("task")
+                            .filter((t) => t.status !== "done")
+                            .map((t) => t.title)
+                      ).map((n) => (
+                        <li key={n}>{n}</li>
                       ))}
                     </ul>
-                  ) : (
-                    <p className="quiet-line">None recorded.</p>
-                  )}
-                </section>
-              </div>
+                  </section>
+                  <section className="prose-block">
+                    <h2>Unresolved questions</h2>
+                    {w.questions.length ? (
+                      <ul className="dash-list">
+                        {w.questions.map((q) => (
+                          <li key={q}>{q}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="quiet-line">None recorded.</p>
+                    )}
+                  </section>
+                </div>
+              )}
               {work && (
                 <section className="prose-block">
                   <h2>Where this sits</h2>
@@ -445,6 +618,158 @@ export default async function WorkspacePage({
                 </section>
               )}
             </>
+          )}
+          {tab === "concerns" && concerns && (
+            <section className="prose-block">
+              <div className="block-head">
+                <h2>Concerns</h2>
+                <nav className="seg" aria-label="Show">
+                  {(
+                    [
+                      ["", "", "Everything"],
+                      ["waiting", "", "Awaiting a response"],
+                      ["", "in_progress", "In progress"],
+                      ["", "resolved", "Resolved"],
+                    ] as const
+                  ).map(([show, status, label]) => (
+                    <Link
+                      key={label}
+                      href={href(
+                        "concerns",
+                        [show && `show=${show}`, status && `status=${status}`]
+                          .filter(Boolean)
+                          .join("&"),
+                      )}
+                      aria-current={
+                        (show ? attention : !attention) &&
+                        (filter ?? "") === status
+                          ? "true"
+                          : undefined
+                      }
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+              {concerns.items.length ? (
+                <ul className="concern-list">
+                  {concerns.items.map((c) => (
+                    <ConcernRow key={c.id} c={c} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="quiet-line">No concerns here.</p>
+              )}
+              {concerns.pages > 1 && (
+                <nav className="seg" aria-label="Pages">
+                  {Array.from({ length: concerns.pages }, (_, n) => n + 1).map(
+                    (n) => (
+                      <Link
+                        key={n}
+                        href={href(
+                          "concerns",
+                          [
+                            attention && "show=waiting",
+                            filter && `status=${filter}`,
+                            `page=${n}`,
+                          ]
+                            .filter(Boolean)
+                            .join("&"),
+                        )}
+                        aria-current={n === concerns.page ? "page" : undefined}
+                      >
+                        {n}
+                      </Link>
+                    ),
+                  )}
+                </nav>
+              )}
+              <div id="raise" className="raise">
+                <h3>
+                  <Megaphone size={16} aria-hidden="true" /> Raise a concern
+                </h3>
+                {w.sample ? (
+                  <p className="quiet-line">
+                    This is sample data. Start or join a real workspace to raise
+                    a concern.
+                  </p>
+                ) : !viewer ? (
+                  <p className="quiet-line">
+                    <Link
+                      className="text-link"
+                      href={`/account?next=${encodeURIComponent(href("concerns"))}`}
+                    >
+                      Choose a name
+                    </Link>{" "}
+                    to raise a concern. Reading needs no account.
+                  </p>
+                ) : canRaise ? (
+                  <PostForm
+                    endpoint={`/api/workspaces/${w.id}/concerns`}
+                    submit="Raise concern"
+                    goTo={`/workspaces/${w.id}/concerns/:id`}
+                    className="post-form long-form"
+                  >
+                    <label className="field">
+                      <span>In a sentence, what’s wrong?</span>
+                      <input
+                        name="title"
+                        required
+                        minLength={8}
+                        maxLength={180}
+                        placeholder="For example: The drains overflow every time it rains"
+                      />
+                    </label>
+                    <div className="field-row">
+                      <label className="field">
+                        <span>Where exactly?</span>
+                        <input
+                          name="place"
+                          maxLength={160}
+                          defaultValue={w.place}
+                        />
+                      </label>
+                      <label className="field">
+                        <span>Topic</span>
+                        <select name="topic" defaultValue="Other">
+                          {concernTopics.map((t) => (
+                            <option key={t}>{t}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <label className="field">
+                      <span>What is happening?</span>
+                      <small>
+                        When, how often, and who it affects. Leave out private
+                        details.
+                      </small>
+                      <textarea name="body" rows={4} required minLength={20} />
+                    </label>
+                    <label className="field">
+                      <span>What change are you asking for?</span>
+                      <textarea
+                        name="requestedAction"
+                        rows={2}
+                        required
+                        minLength={10}
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Photo, document or record link (optional)</span>
+                      <input name="source" placeholder="https://…" />
+                    </label>
+                    {w.rules && <p className="aside-note">{w.rules}</p>}
+                  </PostForm>
+                ) : (
+                  <p className="quiet-line">
+                    Ask the workspace owner for contributor access to raise a
+                    concern here.
+                  </p>
+                )}
+              </div>
+            </section>
           )}
           {tab === "ideas" && (
             <section className="prose-block">{board("idea")}</section>
@@ -544,15 +869,62 @@ export default async function WorkspacePage({
               </PostForm>
             </RailBlock>
           )}
-          <RailBlock title="Publishing">
+          {w.rules && (
+            <RailBlock title="House rules">
+              <p className="rail-text">{w.rules}</p>
+            </RailBlock>
+          )}
+          <RailBlock title={hub ? "Who sees what" : "Publishing"}>
             <p className="rail-text">
-              The problem page stays the public record. Work here becomes public
-              only when its contributors publish it as an attempt, proposal or
-              test.
+              {hub
+                ? w.visibility === "public"
+                  ? "Anyone can read this workspace and its concerns, without an account. Leave out private details."
+                  : "Only members can see inside. Concerns stay with the workspace."
+                : "The problem page stays the public record. Work here becomes public only when its contributors publish it as an attempt, proposal or test."}
             </p>
           </RailBlock>
         </aside>
       </div>
     </div>
+  );
+}
+
+/** A concern in a list: reference, title, where, how many are affected. */
+function ConcernRow({
+  c,
+}: {
+  c: Awaited<ReturnType<typeof listConcerns>>["items"][number];
+}) {
+  return (
+    <li className="concern-row">
+      <Link href={concernHref(c)}>
+        <span className="concern-ref">{concernReference(c.number)}</span>
+        <span className="concern-main">
+          <strong>{c.title}</strong>
+          <small>
+            {c.topic}
+            {c.place && ` · ${c.place}`}
+            {c.responses > 0
+              ? ` · ${c.responses} ${c.responses === 1 ? "response" : "responses"}`
+              : " · no response yet"}
+          </small>
+        </span>
+        <span className="concern-side">
+          <span className="pill" data-tone={concernTone[c.status]}>
+            <i aria-hidden="true" />
+            {concernStatus[c.status]}
+          </span>
+          {c.overdue > 0 && (
+            <span className="pill" data-tone="failed">
+              <i aria-hidden="true" />
+              Overdue
+            </span>
+          )}
+          <span className="concern-support" title="Neighbours affected">
+            <HandHeart size={14} aria-hidden="true" /> {c.supporters}
+          </span>
+        </span>
+      </Link>
+    </li>
   );
 }

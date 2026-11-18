@@ -4,6 +4,7 @@ import {
   joinWorkspace,
   moveItem,
   setMemberRole,
+  updateWorkspace,
 } from "@/lib/workspaces.server";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,8 @@ export const POST = async (request: Request, { params }: Params) => {
   const { id } = await params;
   return write(request, "workspaceItem", async (account, body) => {
     switch (body.action) {
+      case "brief":
+        return updateWorkspace(account, id, body);
       case "join":
         return { role: await joinWorkspace(account, id) };
       case "move":

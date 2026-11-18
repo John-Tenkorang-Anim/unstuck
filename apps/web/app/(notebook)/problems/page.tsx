@@ -88,9 +88,14 @@ export default async function Problems({
             the most difference.
           </p>
         </div>
-        <Link className="button button-dark" href="/new?type=problem">
-          <Plus size={15} aria-hidden="true" /> Describe a problem
-        </Link>
+        <span className="hub-tools">
+          <Link className="button button-outline" href="/help">
+            Get help
+          </Link>
+          <Link className="button button-dark" href="/new?type=problem">
+            <Plus size={15} aria-hidden="true" /> Describe a problem
+          </Link>
+        </span>
       </header>
 
       <form className="directory-search" action="/problems" role="search">

@@ -3,13 +3,10 @@ import Link from "next/link";
 import { ArrowRight, Plus, ShieldCheck } from "lucide-react";
 import { CardActions, CompareTray } from "@/components/compare-tray";
 import { HomeSearch } from "@/components/home-search";
+import { RecordArt } from "@/components/record-art";
+import { RisingTiles } from "@/components/rising-tiles";
 import { RecordImage } from "@/components/record-image";
-import {
-  branchesFor,
-  MiniTrail,
-  ProblemStatePill,
-  Tabs,
-} from "@/components/knowledge";
+import { ProblemStatePill, Tabs } from "@/components/knowledge";
 import { getNotebook } from "@/lib/api";
 import { currentAccount } from "@/lib/auth.server";
 import { listCommunities } from "@/lib/communities.server";
@@ -24,6 +21,8 @@ import {
 import { problemsWithWork } from "@/lib/problems.server";
 import { profileById } from "@/lib/profile.server";
 import { lessonLabel, type EntrySummary } from "@/lib/types";
+import { concernHref, concernReference } from "@/lib/concerns";
+import { listConcerns } from "@/lib/concerns.server";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Discover" };
@@ -60,6 +59,13 @@ export default async function Discover({
   const outcome = outcomes.find(([k]) => k && k === one("outcome"))?.[0] ?? "";
 
   const viewer = await currentAccount();
+  const waiting =
+    tab === "help"
+      ? await listConcerns(
+          { attention: true, size: 4, publicOnly: true },
+          viewer,
+        )
+      : { items: [] as Awaited<ReturnType<typeof listConcerns>>["items"] };
   const [notebook, categories, work, profile] = await Promise.all([
     getNotebook(),
     listCommunities(),
@@ -93,9 +99,7 @@ export default async function Discover({
   const inJourneys = new Set(
     work.flatMap((w) => w.improvements.map((i) => i.entryId)),
   );
-  const featured =
-    ranked.find((e) => e.cover && !inJourneys.has(e.id)) ??
-    ranked.find((e) => e.cover);
+  const featured = ranked.find((e) => !inJourneys.has(e.id)) ?? ranked[0];
   const used = categories
     .map((c) => ({
       c,
@@ -111,16 +115,6 @@ export default async function Discover({
         (!category || w.problem.categorySlug === category),
     )
     .sort((a, b) => b.updated.localeCompare(a.updated));
-  const journeys = active
-    .flatMap((w) =>
-      branchesFor(w.attempts, w.improvements, w.tests)
-        .filter((b) => b.attempt && b.improvement)
-        .map((b) => ({ b, w })),
-    )
-    .slice(0, 3);
-  const lessons = attempts
-    .flatMap((e) => (e.lessons ?? []).map((l) => ({ l, e })))
-    .filter(({ l }) => l.kind === "recommendation");
   const help = active.filter(
     (w) => w.state === "open" || w.problem.needs.length,
   );
@@ -156,8 +150,13 @@ export default async function Discover({
   return (
     <div className="discover frame">
       <section className="dv-hero" aria-labelledby="hero-title">
-        <h1 id="hero-title">Discover what we’ve learned.</h1>
-        <HomeSearch placeholder="Search a problem, a failed attempt, or something you’re trying to improve…" />
+        <RisingTiles />
+        <h1 id="hero-title">What are you stuck on?</h1>
+        <HomeSearch placeholder="Describe it in a few words: “pendulum lab gives the wrong g”" />
+        <p className="dv-hint">
+          Search what others tried, or press <b>Get help</b> to ask people
+          who’ve faced it.
+        </p>
       </section>
 
       <nav className="dv-categories" aria-label="Categories">
@@ -167,7 +166,7 @@ export default async function Discover({
         >
           All
         </Link>
-        {used.map((c) => (
+        {used.slice(0, 6).map((c) => (
           <Link
             key={c.slug}
             href={link({ category: c.slug })}
@@ -229,7 +228,14 @@ export default async function Discover({
                   className="dv-feature-link"
                 >
                   <span className="dv-feature-image">
-                    <RecordImage picture={featured.cover!} featured />
+                    {featured.cover ? (
+                      <RecordImage picture={featured.cover} featured />
+                    ) : (
+                      <RecordArt
+                        seed={featured.id}
+                        outcome={outcomeOf(featured, validated(featured))}
+                      />
+                    )}
                   </span>
                   <span className="dv-feature-text">
                     <span className="record-kicker">
@@ -288,57 +294,23 @@ export default async function Discover({
             </section>
           </div>
 
-          {journeys.length > 0 && (
-            <section className="dv-section" aria-labelledby="journeys-title">
-              <div className="dv-section-head">
-                <h2 id="journeys-title">From failure to improvement</h2>
-              </div>
-              <ul className="dv-journeys">
-                {journeys.map(({ b, w }) => (
-                  <li key={b.improvement!.id}>
-                    <Link href={`/problems/${w.problem.id}?tab=progress`}>
-                      <span className="dv-journey-image">
-                        {b.attempt!.cover && (
-                          <RecordImage picture={b.attempt!.cover} />
-                        )}
-                      </span>
-                      <div className="dv-journey-copy">
-                        <strong>{b.improvement!.title}</strong>
-                        <MiniTrail branch={b} />
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {lessons.length > 0 && (
-            <section className="dv-section" aria-labelledby="lessons-title">
-              <div className="dv-section-head">
-                <h2 id="lessons-title">Lessons worth sharing</h2>
-                <Link className="text-link" href={link({ tab: "lessons" })}>
-                  More <ArrowRight size={13} />
-                </Link>
-              </div>
-              <ul className="dv-lessons">
-                {lessons.slice(0, 3).map(({ l, e }) => (
-                  <li key={`${e.id}-${l.text}`}>
-                    <Link href={`/entries/${e.id}?tab=lessons`}>
-                      <q>{l.text}</q>
-                      <small>{e.title}</small>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
           <section className="dv-section" aria-labelledby="more-title">
             <div className="dv-section-head">
               <h2 id="more-title">More to explore</h2>
             </div>
-            {grid(ranked.filter((e) => e.id !== featured?.id).slice(0, 8))}
+            <ul className="dv-tiles">
+              {ranked
+                .filter((e) => e.id !== featured?.id)
+                .slice(0, 6)
+                .map((e) => (
+                  <li key={e.id}>
+                    <Tile entry={e} validated={validated(e)} />
+                  </li>
+                ))}
+            </ul>
+            <Link className="text-link dv-all" href={link({ tab: "latest" })}>
+              Everything, newest first <ArrowRight size={13} />
+            </Link>
           </section>
         </>
       )}
@@ -400,6 +372,40 @@ export default async function Discover({
 
       {tab === "help" && (
         <section className="dv-section">
+          {waiting.items.length > 0 && (
+            <div className="dv-neighbours">
+              <div className="dv-section-head">
+                <h2>Neighbourhoods waiting for a response</h2>
+                <Link className="text-link" href="/workspaces">
+                  All workspaces <ArrowRight size={13} />
+                </Link>
+              </div>
+              <ul className="dv-help">
+                {waiting.items.map((c) => (
+                  <li key={`${c.workspace}-${c.id}`}>
+                    <div>
+                      <span className="concern-ref">
+                        {concernReference(c.number)}
+                      </span>
+                      <Link href={concernHref(c)}>
+                        <strong>{c.title}</strong>
+                      </Link>
+                      <small>
+                        {c.place || c.workspaceTitle} · {c.supporters} affected
+                      </small>
+                    </div>
+                    <Link
+                      className="button button-outline"
+                      href={concernHref(c)}
+                    >
+                      I’m affected too
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <h2 className="sub-head">Problems that need help</h2>
+            </div>
+          )}
           {!help.length && (
             <p className="empty-state">
               No open requests in this selection.{" "}
@@ -459,9 +465,7 @@ function Card({
         {picture ? (
           <RecordImage picture={picture} />
         ) : (
-          <span className="discovery-monogram">
-            {(category ?? e.topic).slice(0, 1)}
-          </span>
+          <RecordArt seed={e.id} outcome={kind} />
         )}
       </Link>
       <div className="discovery-copy">
@@ -493,6 +497,36 @@ function Card({
         </p>
       </div>
       <CardActions id={e.id} title={e.title} />
+    </article>
+  );
+}
+/** The front page’s card: a picture, how it turned out, and the title. Nothing more. */
+function Tile({
+  entry: e,
+  validated,
+}: {
+  entry: EntrySummary;
+  validated: number;
+}) {
+  const kind = outcomeOf(e, validated);
+  const picture = e.clip?.poster ?? e.cover;
+  return (
+    <article className="dv-tile">
+      <span className="dv-tile-image" aria-hidden="true">
+        {picture ? (
+          <RecordImage picture={picture} />
+        ) : (
+          <RecordArt seed={e.id} outcome={kind} />
+        )}
+      </span>
+      <span className="discovery-result" data-tone={outcomeTone[kind]}>
+        {outcomeText[kind]}
+      </span>
+      <h3>
+        <Link className="dv-link" href={`/entries/${e.id}`}>
+          {e.title}
+        </Link>
+      </h3>
     </article>
   );
 }

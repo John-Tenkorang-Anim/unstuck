@@ -306,8 +306,7 @@ export function CreateCommunity({ enabled }: { enabled: boolean }) {
   if (!enabled)
     return (
       <p className="quiet-notice">
-        Creating communities needs the shared database. Run npm run db:start and
-        set DATABASE_URL.
+        Creating categories is switched off on this copy of Unstuck.
       </p>
     );
   async function submit(event: FormEvent) {

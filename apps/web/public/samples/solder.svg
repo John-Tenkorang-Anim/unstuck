@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 891" width="1200" height="891">
+<title>Illustration of a circuit board: three shiny solder joints, and one in the centre that is dull, grey and lumpy around its component lead.</title>
+<rect width="1200" height="891" fill="#2f6b3a"/>
+<g stroke="#4f8a57" stroke-width="18" stroke-linecap="round" fill="none" opacity=".75">
+<path d="M250 445 H420"/><path d="M710 445 H950"/><path d="M564 190 V320"/><path d="M564 570 V700"/>
+</g>
+<circle cx="250" cy="445" r="58" fill="#e8b23a"/><circle cx="250" cy="445" r="22" fill="#2a3a2c"/><circle cx="950" cy="445" r="58" fill="#e8b23a"/><circle cx="950" cy="445" r="22" fill="#2a3a2c"/><circle cx="564" cy="190" r="58" fill="#e8b23a"/><circle cx="564" cy="190" r="22" fill="#2a3a2c"/><circle cx="564" cy="700" r="58" fill="#e8b23a"/><circle cx="564" cy="700" r="22" fill="#2a3a2c"/>
+<g>
+<circle cx="250" cy="445" r="40" fill="#f3cf6a"/><circle cx="950" cy="445" r="40" fill="#f3cf6a"/><circle cx="564" cy="190" r="40" fill="#f3cf6a"/><circle cx="564" cy="700" r="40" fill="#f3cf6a"/>
+<ellipse cx="236" cy="430" rx="14" ry="9" fill="#fff6d8" opacity=".9"/><ellipse cx="936" cy="430" rx="14" ry="9" fill="#fff6d8" opacity=".9"/><ellipse cx="550" cy="175" rx="14" ry="9" fill="#fff6d8" opacity=".9"/><ellipse cx="550" cy="685" rx="14" ry="9" fill="#fff6d8" opacity=".9"/>
+</g>
+<circle cx="564" cy="445" r="70" fill="#e8b23a"/>
+<path d="M500 470 C470 420 520 370 560 385 C600 360 650 400 630 445 C660 480 610 525 570 512 C530 535 480 510 500 470Z" fill="#9a9a92"/>
+<path d="M520 455 C515 430 545 410 565 420 C585 405 610 425 600 448" fill="none" stroke="#b9b9b1" stroke-width="10" stroke-linecap="round"/>
+<rect x="556" y="300" width="16" height="150" rx="6" fill="#d9d9d2"/>
+<circle cx="580" cy="470" r="9" fill="#7c7c75"/><circle cx="530" cy="440" r="7" fill="#7c7c75"/>
+</svg>

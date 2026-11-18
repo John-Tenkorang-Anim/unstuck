@@ -6,6 +6,10 @@ import { following } from "./follows.server";
 import { allImprovements } from "./improvements.server";
 import { needsAnswer, statusLabel } from "./improvements";
 import { allTests } from "./tests.server";
+import { concernActivity } from "./concerns.server";
+import { helpActivity } from "./help.server";
+import { helpLabel, routeReason } from "./help";
+import { concernReference, eventLabel as concernEventLabel } from "./concerns";
 import type { Account } from "./store.server";
 
 export type ActivityKind = "mention" | "update" | "review";
@@ -28,7 +32,7 @@ const recent = (at: string, days = 45) =>
  * is here just because a discussion is popular.
  */
 export async function activityFor(account: Account): Promise<ActivityItem[]> {
-  const [replies, posts, follows, improvements, tests, notebook] =
+  const [replies, posts, follows, improvements, tests, notebook, concerns] =
     await Promise.all([
       repliesToMe(account, 30, false),
       myPosts(account, { filter: "attention" }),
@@ -36,8 +40,61 @@ export async function activityFor(account: Account): Promise<ActivityItem[]> {
       allImprovements(300),
       allTests(),
       getNotebook(),
+      concernActivity(account),
     ]);
-  const items: ActivityItem[] = [];
+  const help = await helpActivity(account);
+  const week = (d: Date) => Date.now() - d.getTime() < 7 * 864e5;
+  const helpItems: ActivityItem[] = [
+    ...help.offers.map((o) => ({
+      kind: "mention" as const,
+      href: `/help/${o.request}`,
+      title: `${o.author} offered to help`,
+      detail: o.body.slice(0, 140),
+      group: o.title,
+      at: o.created.toISOString(),
+      fresh: week(o.created),
+    })),
+    ...help.routed.map((r) => ({
+      kind: "review" as const,
+      href: `/help/${r.request}`,
+      title: `Someone is asking for ${helpLabel[r.kind].toLowerCase()}`,
+      detail: `${r.title} · ${routeReason[r.reason]}`,
+      group: r.title,
+      at: r.created.toISOString(),
+      fresh: week(r.created),
+    })),
+    ...help.outcomes.map((o) => ({
+      kind: "update" as const,
+      href: `/help/${o.request}`,
+      title: o.helped
+        ? "Your help was marked as helpful"
+        : "Your offer of help was accepted",
+      detail: o.title,
+      group: o.title,
+      at: o.updated.toISOString(),
+      fresh: week(o.updated),
+    })),
+  ];
+  const items: ActivityItem[] = [...helpItems];
+  for (const u of concerns.updates)
+    items.push({
+      kind: "update",
+      href: `/workspaces/${u.workspace}/concerns/${u.concern}`,
+      title: `${concernEventLabel[u.kind]} by ${u.actor}`,
+      detail: u.body.slice(0, 140),
+      group: `${concernReference(u.number)} · ${u.title}`,
+      at: u.created.toISOString(),
+      fresh: Date.now() - u.created.getTime() < 7 * 864e5,
+    });
+  for (const o of concerns.overdue)
+    items.push({
+      kind: "review",
+      href: `/workspaces/${o.workspace}/concerns/${o.concern}`,
+      title: `A commitment is overdue (due ${o.due})`,
+      detail: o.commitment,
+      group: `${concernReference(o.number)} · ${o.title}`,
+      at: `${o.due}T00:00:00.000Z`,
+    });
   for (const r of replies) {
     const onProblem = r.entryId.startsWith("problem~");
     items.push({

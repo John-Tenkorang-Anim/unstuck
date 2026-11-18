@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
 import { Credit } from "@/components/picture";
-import { examples, landingPicture, samplePictures } from "@/lib/data";
+import { examples, landingPicture, sessionPictures } from "@/lib/data";
 export const metadata: Metadata = { title: "A little more about Unstuck" };
 const loop = [
   [
@@ -121,7 +121,7 @@ export default function About() {
             <span>{landingPicture.alt}</span>
             <Credit credit={landingPicture.credit} />
           </li>
-          {Object.values(samplePictures).map((picture) => (
+          {Object.values(sessionPictures).map((picture) => (
             <li key={picture.src}>
               <span>{picture.alt}</span>
               <Credit credit={picture.credit} />

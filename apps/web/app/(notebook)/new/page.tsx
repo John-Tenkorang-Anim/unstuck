@@ -37,12 +37,8 @@ export default async function New({
     listProblems(),
     allImprovements(200),
   ]);
-  const repeat = one("repeat")
-    ? await getEntry(one("repeat")!)
-    : undefined;
-  const relates = one("relates")
-    ? await getEntry(one("relates")!)
-    : undefined;
+  const repeat = one("repeat") ? await getEntry(one("repeat")!) : undefined;
+  const relates = one("relates") ? await getEntry(one("relates")!) : undefined;
   const problemId = one("problem") ?? repeat?.problem ?? relates?.problem;
   const problem = problemId ? await getProblem(problemId) : undefined;
   const draft =
@@ -53,6 +49,7 @@ export default async function New({
   const community = communities.find((c) => c.slug === one("community"));
   return (
     <Contribute
+      key={`${type ?? one("kind") ?? ""}-${problem?.id ?? ""}-${one("draft") ?? ""}`}
       database={hasDatabase()}
       problems={problems
         .filter((p) => !p.archived)

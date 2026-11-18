@@ -15,20 +15,16 @@ test("discovery has a clear search entry point and readable records", async () =
   assert.equal(response.status, 200);
   assert.match(
     document.querySelector("main h1").textContent,
-    /Discover what we’ve learned/,
+    /What are you stuck on\?/,
   );
   const form = document.querySelector(
     'main form[role="search"][action="/search"]',
   );
   assert.ok(form.querySelector('input[name="q"]'));
-  // Enter searches: Search is the form's first button; Ask sends the words to the composer.
+  // Enter searches: Search is the form's first button; Ask sends the words to the help form.
   const buttons = [...form.querySelectorAll("button")];
   assert.equal(buttons[0].textContent, "Search");
-  assert.ok(
-    form.querySelector(
-      'button[formaction="/new"][name="kind"][value="problem"]',
-    ),
-  );
+  assert.ok(form.querySelector('button[formaction="/help/new"]'));
   assert.equal(document.querySelectorAll("main article.dv-feature").length, 1);
   assert.ok(document.querySelector('a.skip-link[href="#main"]'));
   const suggest = await (
@@ -472,7 +468,7 @@ test("field notes can be published with a photo and appear in the feed and searc
 test("an upload matching the hash list is refused, its uploader suspended, and moderators alerted", async () => {
   const { readFile } = await import("node:fs/promises");
   const photo = await readFile(
-    new URL("../public/samples/solder-640.jpg", import.meta.url),
+    new URL("./fixtures/solder-640.jpg", import.meta.url),
   );
   const uploader = cookieOf(
     await post("/api/account", { name: "Matched uploader" }),
@@ -758,9 +754,7 @@ test("search and questions are one place: search first, then ask a community", a
   assert.ok(document.querySelectorAll(".q-row").length >= 1);
   // The same bar searches or asks, and the ask card keeps the words typed.
   assert.ok(
-    document.querySelector(
-      'form.serp-bar button[formaction="/new"][name="kind"][value="problem"]',
-    ),
+    document.querySelector('form.serp-bar button[formaction="/help/new"]'),
   );
   const old = await fetch(new URL("/questions?show=all", base), {
     redirect: "manual",
@@ -851,4 +845,562 @@ test("the landing page is a morning field with Sankofa, and credits its photo", 
   );
   assert.match(document.querySelector(".lp-proverb").textContent, /wosankofa/);
   assert.equal(document.querySelectorAll(".lp-stars, .lp-orbit").length, 0);
+});
+
+async function pageFor(path, cookie) {
+  const response = await fetch(new URL(path, base), {
+    headers: cookie ? { Cookie: cookie } : {},
+  });
+  return {
+    response,
+    document: new JSDOM(await response.text()).window.document,
+  };
+}
+
+test("neighbours raise a concern, follow every promise and resolve it with proof", async () => {
+  const owner = cookieOf(await post("/api/account", { name: "Adwoa Hub" }));
+  const neighbour = cookieOf(await post("/api/account", { name: "Yaw Hub" }));
+  const outsider = cookieOf(await post("/api/account", { name: "Ato Hub" }));
+  const created = await post(
+    "/api/workspaces",
+    {
+      title: "Station Road neighbours",
+      goal: "Keep the station road safe and clean for everyone.",
+      place: "Station Road · Tamale",
+      topic: "Neighbourhood",
+      rules: "Say where and when. No private contact details.",
+      visibility: "public",
+    },
+    owner,
+  );
+  assert.equal(created.status, 201);
+  const { id: hub } = await created.json();
+
+  // Anyone signed in can raise a concern in a public workspace; it joins them.
+  assert.equal(
+    (
+      await post(
+        `/api/workspaces/${hub}/concerns`,
+        { title: "Too short" },
+        neighbour,
+      )
+    ).status,
+    400,
+  );
+  const raised = await post(
+    `/api/workspaces/${hub}/concerns`,
+    {
+      title: "The footbridge handrail is broken",
+      body: "The handrail on the station footbridge has been loose since the storm on Monday.",
+      requestedAction: "Fix the handrail and fence off the gap until then.",
+      place: "Station footbridge",
+      topic: "Safety",
+    },
+    neighbour,
+  );
+  assert.equal(raised.status, 201);
+  const { id: concern } = await raised.json();
+  const path = `/api/workspaces/${hub}/concerns/${concern}`;
+
+  const support = await post(path, { action: "support", on: true }, owner);
+  assert.deepEqual(await support.json(), { supporters: 2, supporting: true });
+
+  // Someone else’s words need a source; a commitment needs a real date.
+  assert.equal(
+    (
+      await post(
+        path,
+        {
+          kind: "response",
+          mode: "recorded",
+          body: "We will look at it next week.",
+        },
+        neighbour,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await post(
+        path,
+        {
+          kind: "response",
+          mode: "recorded",
+          body: "We will look at it next week.",
+          organization: "Municipal works",
+          source: "https://example.org/letter",
+        },
+        neighbour,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await post(
+        path,
+        {
+          kind: "commitment",
+          body: "Replace the handrail.",
+          responsible: "Municipal works",
+          due: "2026-02-30",
+          mode: "recorded",
+          source: "https://example.org/letter",
+        },
+        neighbour,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await post(
+        path,
+        {
+          kind: "commitment",
+          body: "Replace the handrail.",
+          responsible: "Municipal works",
+          due: "2020-01-15",
+          mode: "recorded",
+          source: "https://example.org/letter",
+        },
+        neighbour,
+      )
+    ).status,
+    200,
+  );
+
+  // Contributors can’t change status; editors must send the version they saw.
+  assert.equal(
+    (
+      await post(
+        path,
+        {
+          kind: "status",
+          status: "acknowledged",
+          body: "Works office replied.",
+          version: 1,
+        },
+        neighbour,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await post(
+        path,
+        {
+          kind: "status",
+          status: "acknowledged",
+          body: "Works office replied.",
+          version: 1,
+        },
+        owner,
+      )
+    ).status,
+    409,
+  );
+  const { document: before } = await pageFor(
+    `/workspaces/${hub}/concerns/${concern}`,
+    owner,
+  );
+  assert.match(before.querySelector("h1").textContent, /footbridge handrail/);
+  assert.match(before.querySelector(".commitments").textContent, /overdue/);
+  assert.equal(before.querySelectorAll(".journal > li").length, 3);
+  const version = 3;
+  assert.equal(
+    (
+      await post(
+        path,
+        {
+          kind: "status",
+          status: "resolved",
+          body: "Fixed.",
+          version,
+          source: "https://example.org/photo",
+        },
+        owner,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await post(
+        path,
+        {
+          kind: "status",
+          status: "acknowledged",
+          body: "Works office replied in writing.",
+          version,
+        },
+        owner,
+      )
+    ).status,
+    200,
+  );
+
+  // The neighbour hears about it, and the directory finds the hub by place.
+  const { document: activity } = await pageFor("/activity", neighbour);
+  assert.match(
+    activity.querySelector("main").textContent,
+    /Status changed by Adwoa Hub/,
+  );
+  assert.match(
+    activity.querySelector("main").textContent,
+    /commitment is overdue/,
+  );
+  const { document: found } = await pageFor("/workspaces?place=Tamale");
+  assert.match(
+    found.querySelector(".ws-grid").textContent,
+    /Station Road neighbours/,
+  );
+  assert.match(found.querySelector(".ws-grid").textContent, /1 open/);
+  const { document: tab } = await pageFor(`/workspaces/${hub}?tab=concerns`);
+  assert.match(tab.querySelector(".concern-list").textContent, /C0001/);
+
+  // A private workspace keeps its concerns from outsiders.
+  const hidden = await post(
+    "/api/workspaces",
+    {
+      title: "Private planning",
+      goal: "Plan the street fair quietly first.",
+      visibility: "private",
+    },
+    owner,
+  );
+  const { id: secret } = await hidden.json();
+  const inside = await post(
+    `/api/workspaces/${secret}/concerns`,
+    {
+      title: "Budget for the street fair",
+      body: "We need to agree a budget before telling everyone.",
+      requestedAction: "Agree a budget at the next meeting.",
+    },
+    owner,
+  );
+  const { id: secretConcern } = await inside.json();
+  assert.equal(
+    (await pageFor(`/workspaces/${secret}/concerns/${secretConcern}`, outsider))
+      .response.status,
+    404,
+  );
+  assert.equal(
+    (
+      await post(
+        `/api/workspaces/${secret}/concerns/${secretConcern}`,
+        { action: "support", on: true },
+        outsider,
+      )
+    ).status,
+    404,
+  );
+});
+
+test("a problem gathers attempts, a proposal moves through testing, and the trail shows it", async () => {
+  const asker = cookieOf(await post("/api/account", { name: "Problem Poser" }));
+  const tester = cookieOf(await post("/api/account", { name: "Field Tester" }));
+  const made = await post(
+    "/api/problems",
+    {
+      title: "How do we stop seedlings drying out in the dry season?",
+      summary:
+        "Nursery seedlings die within days of transplanting when the rains stop.",
+      category: "Smallholder growers",
+      needs: "Field tests\nExperiences from the north",
+    },
+    asker,
+  );
+  assert.equal(made.status, 201);
+  const { id: problem } = await made.json();
+
+  const form = new FormData();
+  form.set(
+    "entry",
+    JSON.stringify({
+      trying: "Keep transplanted seedlings alive through a dry spell.",
+      title: "Mulch alone didn’t save the seedlings",
+      classification: "failed",
+      approach: "Covered the beds with dry grass mulch.",
+      happened: "Half the seedlings still died within a week.",
+      expected: "Most would survive.",
+      lessons: [
+        {
+          kind: "observation",
+          text: "Mulch slowed drying but not enough in full sun.",
+        },
+      ],
+      license: "CC BY-NC 4.0",
+      problem,
+      category: "Smallholder growers",
+    }),
+  );
+  form.set("media", "[]");
+  const published = await post("/api/entries", form, tester);
+  assert.equal(published.status, 201);
+  const { id: attempt } = await published.json();
+  const { document: entry } = await pageFor(`/entries/${attempt}`);
+  assert.match(
+    entry.querySelector(".crumbs").textContent,
+    /seedlings drying out/,
+  );
+  assert.match(
+    entry.querySelector(".case").textContent,
+    /What did we expect\?/,
+  );
+  const { document: lessons } = await pageFor(
+    `/entries/${attempt}?tab=lessons`,
+  );
+  assert.match(lessons.querySelector(".lessons").textContent, /Observation/);
+
+  const proposed = await post(
+    "/api/improvements",
+    {
+      entryId: attempt,
+      title: "Add shade cloth over the mulch",
+      change: "Hang 50% shade cloth over the mulched beds for two weeks.",
+      reasoning: "Shade cuts evaporation where mulch alone can’t.",
+    },
+    tester,
+  );
+  assert.equal(proposed.status, 201);
+  const { id: proposal } = await proposed.json();
+  const steer = (body, who = tester) =>
+    post(`/api/improvements/${proposal}`, { action: "status", ...body }, who);
+  assert.equal((await steer({ status: "evaluated" })).status, 400);
+  assert.equal((await steer({ status: "ready" }, asker)).status, 403);
+  assert.equal((await steer({ status: "ready" })).status, 200);
+  assert.equal(
+    (
+      await post(
+        `/api/improvements/${proposal}`,
+        { kind: "question", body: "How long before you’d know?" },
+        asker,
+      )
+    ).status,
+    200,
+  );
+  const test = await post(
+    "/api/tests",
+    {
+      improvementId: proposal,
+      title: "Two beds for two weeks",
+      plan: { objective: "See whether shade halves losses." },
+    },
+    tester,
+  );
+  assert.equal(test.status, 201);
+  const { id: testId } = await test.json();
+  assert.equal(
+    (
+      await post(
+        `/api/tests/${testId}`,
+        {
+          action: "run",
+          measurement: "3 of 40 died under shade, 19 of 40 without.",
+        },
+        tester,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await post(
+        `/api/tests/${testId}`,
+        {
+          action: "findings",
+          happened: "Shade cut losses sharply.",
+          verdict: "supported",
+          confidence: "moderate",
+        },
+        tester,
+      )
+    ).status,
+    200,
+  );
+  assert.equal((await steer({ status: "testing" })).status, 200);
+  assert.equal(
+    (
+      await steer({
+        status: "evaluated",
+        verdict: "supported",
+        results: "Losses fell from about half to under a tenth.",
+      })
+    ).status,
+    200,
+  );
+
+  const { document: page } = await pageFor(`/problems/${problem}?tab=progress`);
+  const trail = page.querySelector(".trail").textContent;
+  assert.match(trail, /Mulch alone/);
+  assert.match(trail, /Add shade cloth/);
+  assert.match(trail, /Worked under tested conditions/);
+  const { document: issues } = await pageFor(
+    `/improvements/${proposal}?tab=discussion`,
+  );
+  assert.match(
+    issues.querySelector("#open-issues").textContent,
+    /How long before/,
+  );
+});
+
+test("help requests reach people who’ve been there, and helpers are credited", async () => {
+  const asker = cookieOf(await post("/api/account", { name: "Stuck Student" }));
+  const follower = cookieOf(
+    await post("/api/account", { name: "Physics Tutor" }),
+  );
+  const stranger = cookieOf(await post("/api/account", { name: "Passer By" }));
+  // The tutor follows the category, so the request should reach them.
+  assert.equal(
+    (
+      await post(
+        "/api/follows",
+        { type: "category", id: "maths-and-physics-help", on: true },
+        follower,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await post(
+        "/api/help",
+        {
+          kind: "nonsense",
+          title: "Help me please now",
+          body: "Twenty characters at least here.",
+        },
+        asker,
+      )
+    ).status,
+    400,
+  );
+  const asked = await post(
+    "/api/help",
+    {
+      kind: "hints",
+      audience: "student",
+      graded: true,
+      title: "Why does my spring constant come out negative?",
+      body: "I plotted force against extension and the slope is negative every time.",
+      category: "Maths and physics help",
+    },
+    asker,
+  );
+  assert.equal(asked.status, 201);
+  const { id } = await asked.json();
+
+  const { document: forTutor } = await pageFor("/help?tab=for-you", follower);
+  assert.match(
+    forTutor.querySelector(".help-list").textContent,
+    /spring constant/,
+  );
+  assert.match(
+    forTutor.querySelector(".help-list").textContent,
+    /You follow this category/,
+  );
+  const { document: tutorActivity } = await pageFor("/activity", follower);
+  assert.match(
+    tutorActivity.querySelector("main").textContent,
+    /asking for hints, not answers/i,
+  );
+  const { document: forStranger } = await pageFor(
+    "/help?tab=for-you",
+    stranger,
+  );
+  assert.equal(forStranger.querySelector(".help-list"), null);
+
+  // People can’t offer on their own request, or twice.
+  assert.equal(
+    (
+      await post(
+        `/api/help/${id}`,
+        { action: "offer", body: "I can help myself." },
+        asker,
+      )
+    ).status,
+    400,
+  );
+  const offered = await post(
+    `/api/help/${id}`,
+    {
+      action: "offer",
+      body: "Check the sign of your extension: is it measured from the right point?",
+    },
+    follower,
+  );
+  assert.equal(offered.status, 200);
+  const { id: offer } = await offered.json();
+  assert.equal(
+    (
+      await post(
+        `/api/help/${id}`,
+        { action: "offer", body: "Another hint from me again." },
+        follower,
+      )
+    ).status,
+    409,
+  );
+  const { document: askerActivity } = await pageFor("/activity", asker);
+  assert.match(
+    askerActivity.querySelector("main").textContent,
+    /Physics Tutor offered to help/,
+  );
+
+  // Only the asker decides what helped; then the helper is credited.
+  assert.equal(
+    (await post(`/api/help/${id}`, { action: "helped", offer }, stranger))
+      .status,
+    403,
+  );
+  assert.equal(
+    (await post(`/api/help/${id}`, { action: "helped", offer }, asker)).status,
+    200,
+  );
+  const { document: request } = await pageFor(`/help/${id}`);
+  assert.match(request.querySelector(".record-status").textContent, /Helped/);
+  assert.match(
+    request.querySelector(".graded-note").textContent,
+    /graded work/,
+  );
+  assert.ok(request.querySelector(".offers li[data-helped]"));
+  const { document: profile } = await pageFor(
+    "/people/Physics%20Tutor?tab=impact",
+  );
+  assert.match(
+    profile.querySelector(".stat-row").textContent,
+    /People helped\s*1/,
+  );
+  assert.equal(
+    (
+      await post(
+        `/api/help/${id}`,
+        { action: "offer", body: "Late offer after it closed." },
+        stranger,
+      )
+    ).status,
+    400,
+  );
+});
+
+test("organisation pages and guides for each group render without an account", async () => {
+  for (const path of [
+    "/organizations",
+    "/organizations/kumasi-materials-lab?tab=reports",
+    "/for/students",
+    "/for/researchers",
+    "/for/engineers",
+    "/for/communities",
+    "/help",
+    "/help/new",
+  ]) {
+    const { response, document } = await pageFor(path);
+    assert.equal(response.status, 200, path);
+    assert.ok(document.querySelector("main h1"), path);
+  }
+  assert.equal((await pageFor("/for/nobody")).response.status, 404);
+  assert.equal((await pageFor("/organizations/nobody")).response.status, 404);
 });

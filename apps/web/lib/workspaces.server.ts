@@ -25,7 +25,15 @@ const lines = (v: unknown) =>
     .slice(0, 10);
 type Head = Pick<
   Workspace,
-  "title" | "goal" | "strategy" | "progress" | "questions" | "next"
+  | "title"
+  | "goal"
+  | "strategy"
+  | "progress"
+  | "questions"
+  | "next"
+  | "place"
+  | "topic"
+  | "rules"
 >;
 type Row = {
   id: string;
@@ -92,15 +100,26 @@ export async function getWorkspace(id: string, viewer?: Account) {
   if (!row) return undefined;
   const members = await query<{
     account: string;
+    public_id: string;
     name: string;
     role: Role;
     focus: string;
   }>(
-    `SELECT m.account, a.name, m.role, m.focus FROM web.workspace_members m
-     JOIN web.accounts a ON a.id = m.account WHERE m.workspace = $1 ORDER BY m.joined`,
+    `SELECT m.account, a.public_id, a.name, m.role, m.focus FROM web.workspace_members m
+     JOIN web.accounts a ON a.id = m.account WHERE m.workspace = $1 ORDER BY m.joined LIMIT 30`,
     [id],
   );
-  const role = members.find((m) => m.account === viewer?.id)?.role;
+  const [membership] = viewer
+    ? await query<{ role: Role }>(
+        "SELECT role FROM web.workspace_members WHERE workspace = $1 AND account = $2",
+        [id, viewer.id],
+      )
+    : [];
+  const role = membership?.role;
+  const [{ n: memberCount }] = await query<{ n: number }>(
+    "SELECT count(*)::int AS n FROM web.workspace_members WHERE workspace = $1",
+    [id],
+  );
   if (row.visibility !== "public" && !role && !viewer?.moderator)
     return undefined;
   const items = await query<{
@@ -126,7 +145,9 @@ export async function getWorkspace(id: string, viewer?: Account) {
     problemId: row.problem_id ?? undefined,
     visibility: row.visibility,
     owner: row.owner,
+    memberCount,
     members: members.map<Member>((m) => ({
+      publicId: m.public_id,
       name: m.name,
       role: m.role,
       focus: m.focus,
@@ -177,6 +198,9 @@ export async function createWorkspace(
         {
           title,
           goal,
+          place: text(input.place, 160),
+          topic: text(input.topic, 80),
+          rules: text(input.rules, 2000),
           strategy: text(input.strategy),
           progress: "",
           questions: lines(input.questions),
@@ -401,4 +425,146 @@ export async function publicWorkspacesBy(accountId: string) {
      AND NOT w.hidden AND w.visibility = 'public' ORDER BY w.updated DESC LIMIT 100`,
     [accountId],
   );
+}
+
+export async function workspaceConcernStats(ids: string[]) {
+  const valid = ids.filter(isUuid);
+  if (!valid.length || !hasDatabase())
+    return new Map<string, NonNullable<Workspace["concerns"]>>();
+  const rows = await query<{
+    workspace: string;
+    total: number;
+    open: number;
+    resolved: number;
+    overdue: number;
+  }>(
+    `SELECT c.workspace, count(*)::int AS total, count(*) FILTER (WHERE c.status <> 'resolved')::int AS open,
+      count(*) FILTER (WHERE c.status = 'resolved')::int AS resolved,
+      (SELECT count(*)::int FROM web.concern_commitments k JOIN web.workspace_concerns x ON x.id = k.concern JOIN web.concern_events e ON e.id = k.event
+       WHERE x.workspace = c.workspace AND NOT x.hidden AND NOT e.hidden AND k.completed IS NULL AND k.due < (now() AT TIME ZONE 'UTC')::date) AS overdue
+     FROM web.workspace_concerns c WHERE c.workspace = ANY($1) AND NOT c.hidden GROUP BY c.workspace`,
+    [valid],
+  );
+  return new Map(
+    rows.map((r) => [
+      r.workspace,
+      {
+        total: r.total,
+        open: r.open,
+        resolved: r.resolved,
+        overdue: r.overdue,
+      },
+    ]),
+  );
+}
+/** The community index filters before pagination and never searches members-only metadata for an outsider. */
+export async function workspaceDirectory(
+  viewer?: Account,
+  input: { q?: string; place?: string; page?: number; mine?: boolean } = {},
+) {
+  const page = Math.max(1, Math.floor(Number(input.page) || 1)),
+    size = 20;
+  const q = text(input.q, 200),
+    place = text(input.place, 160);
+  if (!hasDatabase()) {
+    const items = (showExamples() ? sampleWorkspaces : []).filter(
+      (w) =>
+        (!q ||
+          `${w.title} ${w.goal}`.toLowerCase().includes(q.toLowerCase())) &&
+        (!place || w.place?.toLowerCase().includes(place.toLowerCase())) &&
+        !input.mine,
+    );
+    return {
+      items: items.slice((page - 1) * size, page * size),
+      total: items.length,
+      page,
+      pages: Math.max(1, Math.ceil(items.length / size)),
+      examples: [] as Workspace[],
+    };
+  }
+  const membership = `EXISTS (SELECT 1 FROM web.workspace_members m WHERE m.workspace = w.id AND m.account = $1)`;
+  const readable = `(w.visibility = 'public' OR ${membership})`;
+  const where = `NOT w.hidden AND (w.visibility <> 'private' OR ${membership}) AND ($4::boolean = false OR ${membership})
+    AND ($2 = '' OR to_tsvector('simple', (w.data->>'title') || ' ' || CASE WHEN ${readable} THEN coalesce(w.data->>'goal','') ELSE '' END) @@ websearch_to_tsquery('simple',$2))
+    AND ($3 = '' OR (${readable} AND coalesce(w.data->>'place','') ILIKE '%' || $3 || '%'))`;
+  const values = [viewer?.id ?? null, q, place, input.mine === true];
+  const [{ n }] = await query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM web.workspaces w WHERE ${where}`,
+    values,
+  );
+  const rows = await query<Row & { members: number; member: boolean }>(
+    `SELECT w.*,${membership} AS member,
+    (SELECT count(*)::int FROM web.workspace_members m WHERE m.workspace=w.id) AS members FROM web.workspaces w WHERE ${where}
+    ORDER BY lower(w.data->>'title'),w.id LIMIT $5 OFFSET $6`,
+    [...values, size, (page - 1) * size],
+  );
+  const stats = await workspaceConcernStats(
+    rows.filter((r) => r.visibility === "public" || r.member).map((r) => r.id),
+  );
+  const items: Workspace[] = rows.map((r) => ({
+    ...(r.visibility === "public" || r.member
+      ? r.data
+      : {
+          title: r.data.title,
+          goal: "",
+          strategy: "",
+          progress: "",
+          questions: [],
+          next: [],
+        }),
+    id: r.id,
+    visibility: r.visibility,
+    owner: r.owner,
+    members: [],
+    memberCount: r.members,
+    items: [],
+    created: r.created.toISOString(),
+    updated: r.updated.toISOString(),
+    concerns: stats.get(r.id),
+  }));
+  const examples = (showExamples() ? sampleWorkspaces : []).filter(
+    (w) =>
+      (!q || `${w.title} ${w.goal}`.toLowerCase().includes(q.toLowerCase())) &&
+      (!place || w.place?.toLowerCase().includes(place.toLowerCase())) &&
+      !input.mine,
+  );
+  return {
+    items,
+    total: n,
+    page,
+    pages: Math.max(1, Math.ceil(n / size)),
+    examples,
+  };
+}
+
+export async function updateWorkspace(
+  account: Account,
+  id: string,
+  input: Record<string, unknown>,
+) {
+  return transaction(async (client) => {
+    const { role } = await roleIn(account, id, client);
+    if (!atLeast(role ?? undefined, "editor"))
+      throw new StoreError(
+        "Only editors and owners manage the community brief.",
+        403,
+      );
+    const {
+      rows: [row],
+    } = await client.query<{ data: Head }>(
+      "SELECT data FROM web.workspaces WHERE id = $1",
+      [id],
+    );
+    const data = { ...row.data };
+    for (const key of ["goal", "strategy", "progress", "rules"] as const)
+      if (Object.hasOwn(input, key))
+        data[key] = clean.text(input[key], key === "goal" ? 10 : 0, 2000, key);
+    for (const key of ["place", "topic"] as const)
+      if (Object.hasOwn(input, key))
+        data[key] = text(input[key], key === "place" ? 160 : 80);
+    await client.query(
+      "UPDATE web.workspaces SET data = $2,updated=now() WHERE id=$1",
+      [id, data],
+    );
+  });
 }

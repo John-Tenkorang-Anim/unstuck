@@ -71,11 +71,18 @@ export async function getNotebook(): Promise<Notebook> {
     ...published,
     ...notebook.entries.filter((e) => !seen.has(e.id)),
   ];
-  if (showExamples()) for (const example of examples) if (!entries.some((e) => e.id === example.id)) entries.push(summarizeEntry(example));
+  if (showExamples())
+    for (const example of examples)
+      if (!entries.some((e) => e.id === example.id))
+        entries.push(summarizeEntry(example));
   return {
     entries,
     mode:
-      notebook.mode === 'unavailable' ? 'unavailable' : entries.some((e) => e.example) && entries.some((e) => !e.example) ? 'mixed' : notebook.mode,
+      notebook.mode === "unavailable"
+        ? "unavailable"
+        : entries.some((e) => e.example) && entries.some((e) => !e.example)
+          ? "mixed"
+          : notebook.mode,
   };
 }
 async function getFeed(): Promise<Notebook> {
@@ -102,7 +109,9 @@ async function getFeed(): Promise<Notebook> {
 export async function getEntry(id: string): Promise<Entry | undefined> {
   const published = await publishedEntry(id);
   if (published) return published;
-  const sample = showExamples() ? examples.find((entry) => entry.id === id) : undefined;
+  const sample = showExamples()
+    ? examples.find((entry) => entry.id === id)
+    : undefined;
   if (sample) return sample;
   const base = process.env.UNSTUCK_API_URL;
   if (!base) return undefined;

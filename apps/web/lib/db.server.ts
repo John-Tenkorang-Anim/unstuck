@@ -20,9 +20,10 @@ const shared = globalThis as typeof globalThis & {
 };
 export const databaseUrl = () => process.env.DATABASE_URL ?? "";
 export const hasDatabase = () => !!databaseUrl();
-export const showExamples = () => process.env.UNSTUCK_SHOW_EXAMPLES !== undefined
-  ? process.env.UNSTUCK_SHOW_EXAMPLES === 'true'
-  : !hasDatabase() && !process.env.UNSTUCK_API_URL;
+export const showExamples = () =>
+  process.env.UNSTUCK_SHOW_EXAMPLES !== undefined
+    ? process.env.UNSTUCK_SHOW_EXAMPLES === "true"
+    : !hasDatabase() && !process.env.UNSTUCK_API_URL;
 
 function connect() {
   const url = databaseUrl();

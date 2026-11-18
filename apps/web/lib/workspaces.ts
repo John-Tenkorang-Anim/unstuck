@@ -63,6 +63,7 @@ export interface WorkspaceItem {
   updated: string;
 }
 export interface Member {
+  publicId?: string;
   name: string;
   role: Role;
   focus?: string;
@@ -72,6 +73,10 @@ export interface Workspace {
   title: string;
   problemId?: string;
   goal: string;
+  place?: string;
+  topic?: string;
+  rules?: string;
+  concerns?: { total: number; open: number; resolved: number; overdue: number };
   strategy: string;
   progress: string;
   questions: string[];
@@ -90,6 +95,11 @@ export const sampleWorkspaces: Workspace[] = [
   {
     id: "community-plastic-collection",
     title: "Community plastic collection improvement",
+    place: "Mango Lane · Nairobi",
+    topic: "Environment",
+    rules:
+      "Keep contributions specific. Link evidence where you can. Do not share private contact details.",
+    concerns: { total: 1, open: 1, resolved: 0, overdue: 0 },
     problemId: "community-plastic-collection",
     goal: "Get two streets sorting plastic reliably enough that a collector keeps coming, and write up what made the difference.",
     strategy:
@@ -286,6 +296,50 @@ export const sampleWorkspaces: Workspace[] = [
     ],
     created: "2026-11-06",
     updated: "2026-11-13",
+    sample: true,
+  },
+  {
+    id: "market-road-neighbours",
+    title: "Market Road, together",
+    place: "Market Road · Accra",
+    topic: "Neighbourhood",
+    goal: "Make everyday life around the market safer, cleaner, and easier for everyone.",
+    strategy:
+      "Gather specific concerns, document conditions, and follow each action until residents can check the result.",
+    progress: "",
+    questions: [],
+    next: [],
+    rules:
+      "Describe the place and the change needed. Respect neighbours. Leave out private contact information.",
+    visibility: "public",
+    members: [
+      { name: "Akua Mensah", role: "owner" },
+      { name: "Kwame Boateng", role: "contributor" },
+    ],
+    memberCount: 42,
+    items: [],
+    created: "2026-10-24",
+    updated: "2026-11-07",
+    concerns: { total: 2, open: 2, resolved: 0, overdue: 1 },
+    sample: true,
+  },
+  {
+    id: "asokwa-community",
+    title: "Asokwa after dark",
+    place: "Asokwa · Kumasi",
+    topic: "Public spaces",
+    goal: "Work together on lighting, safer routes, and welcoming public spaces.",
+    strategy: "",
+    progress: "Residents checked the lighting after the repairs.",
+    questions: [],
+    next: [],
+    visibility: "public",
+    members: [{ name: "Efua Owusu", role: "owner" }],
+    memberCount: 24,
+    items: [],
+    created: "2026-10-19",
+    updated: "2026-11-05",
+    concerns: { total: 1, open: 0, resolved: 1, overdue: 0 },
     sample: true,
   },
 ];

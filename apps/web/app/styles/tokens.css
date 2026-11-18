@@ -1,56 +1,78 @@
-/* Native typography, neutral surfaces, and one action colour. */
+/* A humanist voice, warm morning surfaces, and one leaf-green action colour,
+   carried over from the landing page. Outcomes follow the company story (green worked, red
+   didn’t, gold partly) and always carry a shape as well as a colour, so
+   colour-blind readers can tell them apart. */
 :root {
   color-scheme: light;
-  --bg: #fff;
+  --bg: #ffffff;
   --canvas: var(--bg);
-  --surface: #f5f5f7;
-  --fill: rgb(29 29 31 / 0.045);
-  --fill-strong: rgb(29 29 31 / 0.085);
+  --surface: #f9f2e2;
+  --fill: rgb(27 38 30 / 0.05);
+  --fill-strong: rgb(27 38 30 / 0.09);
   --chrome: rgb(255 255 255 / 0.9);
   --popover: rgb(255 255 255 / 0.97);
-  --ink: #1d1d1f;
-  --ink-2: #424245;
-  --ink-3: #6e6e73;
-  --quiet: #86868b;
+  --ink: #18211b;
+  --ink-2: #3d4740;
+  --ink-3: #626b64;
+  --quiet: #858c86;
   --quiet-text: var(--ink-3);
-  --rule: rgb(29 29 31 / 0.14);
-  --line: rgb(29 29 31 / 0.12);
-  --invert-bg: #1d1d1f;
-  --invert-ink: #f5f5f7;
-  --invert-ink-2: #b7b7bc;
-  --focus: #0071e3;
-  --brand: #0071e3;
-  --brand-solid: #0071e3;
-  --brand-press: #0077ed;
-  --brand-wash: #f0f6fc;
-  --brand-bright: #0071e3;
-  --brand-text: #0066cc;
-  --brand-soft: #a8c8eb;
-  --link: #0066cc;
+  --rule: rgb(24 33 27 / 0.14);
+  --line: rgb(24 33 27 / 0.11);
+  --invert-bg: #11251b;
+  --invert-ink: #f6f4ea;
+  --invert-ink-2: #b8c4b3;
+  --focus: #2f6b3a;
+  --brand: #2f6b3a;
+  --brand-solid: #2f6b3a;
+  --brand-press: #24562f;
+  --brand-wash: #e9f3e3;
+  --brand-bright: #2f6b3a;
+  --brand-text: #2a6234;
+  /* Company colours: clay red (what didn’t work), harvest gold (what we
+     learned) and leaf green (what works next). Green is for actions; gold
+     highlights; red is a brand colour only, never a status. */
+  --ember: #b0392e;
+  --ember-text: #b0392e;
+  --ember-wash: #fbe7df;
+  --harvest: #e8b23a;
+  --harvest-text: #8a6410;
+  --harvest-wash: #fdf1d2;
+  --on-harvest: #18211b;
+  --glow: none;
+  --thread: linear-gradient(
+    90deg,
+    #b0392e 0%,
+    #d9622b 22%,
+    #e8b23a 46%,
+    #8fae3e 70%,
+    #2f6b3a 100%
+  );
+  --brand-soft: #a9c8ae;
+  --link: #2a6234;
   --thumb: #fff;
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.04);
   --shadow-card: none;
   --shadow-float: 0 0 0 1px rgb(0 0 0 / 0.06), 0 20px 64px rgb(0 0 0 / 0.16);
-  --worked: #24845c;
-  --failed: #b64436;
-  --mixed: #a67c16;
-  --ongoing: #0071e3;
-  --open: #6e6e73;
-  --worked-text: #20724f;
-  --failed-text: #a1352b;
-  --mixed-text: #886214;
-  --ongoing-text: #0066cc;
-  --open-text: #6e6e73;
-  --worked-solid: #20724f;
-  --failed-solid: #a1352b;
-  --mixed-solid: #886214;
-  --ongoing-solid: #0066cc;
+  --worked: #2e7d4f;
+  --failed: #c2452d;
+  --mixed: #b8860b;
+  --ongoing: #3f63b8;
+  --open: #626b64;
+  --worked-text: #256b41;
+  --failed-text: #a8382a;
+  --mixed-text: #855f00;
+  --ongoing-text: #33529e;
+  --open-text: #626b64;
+  --worked-solid: #256b41;
+  --failed-solid: #a8382a;
+  --mixed-solid: #855f00;
+  --ongoing-solid: #33529e;
   --open-solid: #515154;
   --invert-accent: #8ed7b3;
-  --accent: #515154;
-  --accent-solid: #515154;
-  --accent-wash: #f0f0f2;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --accent: #4d5a50;
+  --accent-solid: #4d5a50;
+  --accent-wash: #eef0ea;
+  --sans: "Source Sans 3 Variable", "Segoe UI", system-ui, sans-serif;
   --display: var(--sans);
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --bar: 60px;
@@ -65,40 +87,66 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #161617;
-    --surface: #232325;
-    --fill: rgb(255 255 255 / 0.06);
-    --fill-strong: rgb(255 255 255 / 0.1);
-    --chrome: rgb(22 22 23 / 0.92);
-    --popover: rgb(35 35 37 / 0.98);
-    --ink: #f5f5f7;
-    --ink-2: #c8c8cd;
-    --ink-3: #a1a1a6;
-    --quiet: #a1a1a6;
+    --bg: #131714;
+    --surface: #1d231f;
+    --fill: rgb(220 235 222 / 0.06);
+    --fill-strong: rgb(220 235 222 / 0.1);
+    --chrome: rgb(19 22 20 / 0.92);
+    --popover: rgb(28 33 30 / 0.98);
+    --ink: #f2f4ee;
+    --ink-2: #c9d0c8;
+    --ink-3: #9fa8a0;
+    --quiet: #9fa8a0;
     --rule: rgb(255 255 255 / 0.18);
     --line: rgb(255 255 255 / 0.14);
-    --invert-bg: #232325;
-    --invert-ink: #f5f5f7;
-    --invert-ink-2: #a1a1a6;
-    --focus: #7eb6ff;
-    --brand: #7eb6ff;
-    --brand-wash: rgb(0 113 227 / 0.14);
-    --brand-bright: #7eb6ff;
-    --brand-text: #7eb6ff;
-    --link: #7eb6ff;
+    --invert-bg: #1c211e;
+    --invert-ink: #f2f4ee;
+    --invert-ink-2: #9fa8a0;
+    --focus: #86c995;
+    --brand: #86c995;
+    --brand-wash: rgb(47 107 58 / 0.24);
+    --brand-bright: #86c995;
+    --brand-text: #86c995;
+    --link: #86c995;
+    --ember: #e2776b;
+    --ember-text: #e2776b;
+    --ember-wash: rgb(176 57 46 / 0.2);
+    --harvest: #e6b94a;
+    --harvest-text: #e6b94a;
+    --harvest-wash: rgb(232 178 58 / 0.14);
+    --glow:
+      radial-gradient(
+        900px 420px at 88% -120px,
+        rgb(232 178 58 / 0.12),
+        transparent 70%
+      ),
+      radial-gradient(
+        800px 380px at 4% -140px,
+        rgb(134 201 149 / 0.1),
+        transparent 70%
+      );
+    --thread: linear-gradient(
+      90deg,
+      #e2776b 0%,
+      #e88a4a 22%,
+      #e6b94a 46%,
+      #a9c766 70%,
+      #86c995 100%
+    );
+
     --thumb: #555558;
-    --worked: #70c79d;
-    --worked-text: #70c79d;
-    --failed: #f29086;
-    --failed-text: #f29086;
-    --mixed: #d4b46d;
-    --mixed-text: #d4b46d;
-    --ongoing: #7eb6ff;
-    --ongoing-text: #7eb6ff;
-    --open: #a1a1a6;
-    --open-text: #a1a1a6;
-    --accent: #c8c8cd;
-    --accent-wash: rgb(255 255 255 / 0.06);
+    --worked: #48a260;
+    --worked-text: #7cc98f;
+    --failed: #b54249;
+    --failed-text: #f08a86;
+    --mixed: #c38300;
+    --mixed-text: #e6b54a;
+    --ongoing: #528ed9;
+    --ongoing-text: #9ab8f0;
+    --open: #9fa8a0;
+    --open-text: #9fa8a0;
+    --accent: #c9d0c8;
+    --accent-wash: rgb(220 235 222 / 0.06);
     --shadow-float:
       0 0 0 1px rgb(255 255 255 / 0.1), 0 20px 64px rgb(0 0 0 / 0.4);
   }
@@ -106,40 +154,70 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #161617;
-  --surface: #232325;
-  --fill: rgb(255 255 255 / 0.06);
-  --fill-strong: rgb(255 255 255 / 0.1);
-  --chrome: rgb(22 22 23 / 0.92);
-  --popover: rgb(35 35 37 / 0.98);
-  --ink: #f5f5f7;
-  --ink-2: #c8c8cd;
-  --ink-3: #a1a1a6;
-  --quiet: #a1a1a6;
+  --bg: #131714;
+  --surface: #1d231f;
+  --fill: rgb(220 235 222 / 0.06);
+  --fill-strong: rgb(220 235 222 / 0.1);
+  --chrome: rgb(19 22 20 / 0.92);
+  --popover: rgb(28 33 30 / 0.98);
+  --ink: #f2f4ee;
+  --ink-2: #c9d0c8;
+  --ink-3: #9fa8a0;
+  --quiet: #9fa8a0;
   --rule: rgb(255 255 255 / 0.18);
   --line: rgb(255 255 255 / 0.14);
-  --invert-bg: #232325;
-  --invert-ink: #f5f5f7;
-  --invert-ink-2: #a1a1a6;
-  --focus: #7eb6ff;
-  --brand: #7eb6ff;
-  --brand-wash: rgb(0 113 227 / 0.14);
-  --brand-bright: #7eb6ff;
-  --brand-text: #7eb6ff;
-  --link: #7eb6ff;
+  --invert-bg: #1c211e;
+  --invert-ink: #f2f4ee;
+  --invert-ink-2: #9fa8a0;
+  --focus: #86c995;
+  --brand: #86c995;
+  --brand-wash: rgb(47 107 58 / 0.24);
+  --brand-bright: #86c995;
+  --brand-text: #86c995;
+  --link: #86c995;
+  --ember: #e2776b;
+  --ember-text: #e2776b;
+  --ember-wash: rgb(176 57 46 / 0.2);
+  --harvest: #e6b94a;
+  --harvest-text: #e6b94a;
+  --harvest-wash: rgb(232 178 58 / 0.14);
+  --glow:
+    radial-gradient(
+      900px 420px at 88% -120px,
+      rgb(232 178 58 / 0.12),
+      transparent 70%
+    ),
+    radial-gradient(
+      800px 380px at 4% -140px,
+      rgb(134 201 149 / 0.1),
+      transparent 70%
+    );
+  --thread: linear-gradient(
+    90deg,
+    #e2776b 0%,
+    #e88a4a 22%,
+    #e6b94a 46%,
+    #a9c766 70%,
+    #86c995 100%
+  );
+
   --thumb: #555558;
-  --worked: #70c79d;
-  --worked-text: #70c79d;
-  --failed: #f29086;
-  --failed-text: #f29086;
-  --mixed: #d4b46d;
-  --mixed-text: #d4b46d;
-  --ongoing: #7eb6ff;
-  --ongoing-text: #7eb6ff;
-  --open: #a1a1a6;
-  --open-text: #a1a1a6;
-  --accent: #c8c8cd;
-  --accent-wash: rgb(255 255 255 / 0.06);
+  --worked: #48a260;
+  --worked-text: #7cc98f;
+  --failed: #b54249;
+  --failed-text: #f08a86;
+  --mixed: #c38300;
+  --mixed-text: #e6b54a;
+  --ongoing: #528ed9;
+  --ongoing-text: #9ab8f0;
+  --open: #9fa8a0;
+  --open-text: #9fa8a0;
+  --accent: #c9d0c8;
+  --accent-wash: rgb(220 235 222 / 0.06);
   --shadow-float:
     0 0 0 1px rgb(255 255 255 / 0.1), 0 20px 64px rgb(0 0 0 / 0.4);
+}
+
+:root[data-lite="true"] {
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }

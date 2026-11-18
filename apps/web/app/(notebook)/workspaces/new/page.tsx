@@ -29,7 +29,7 @@ export default async function NewWorkspace({
       </nav>
       <header className="form-head">
         <p className="record-kicker">Start a workspace</p>
-        <h1>Organise the work</h1>
+        <h1>For a street, a school or a project</h1>
         <p>
           Ideas, tasks, tests, evidence and decisions in one place. Start
           privately, or choose who can read the workspace before creating it.
@@ -37,7 +37,11 @@ export default async function NewWorkspace({
       </header>
       {!hasDatabase() ? (
         <div className="empty-state">
-          <h3>Workspaces need a database.</h3>
+          <h3>Workspaces can’t be created here yet.</h3>
+          <p>
+            Sharing is switched off on this copy of Unstuck. You can still read
+            everything.
+          </p>
         </div>
       ) : (
         <PostForm
@@ -59,8 +63,26 @@ export default async function NewWorkspace({
               }
             />
           </label>
+          <div className="field-row">
+            <label className="field">
+              <span>Where (optional)</span>
+              <input
+                name="place"
+                maxLength={160}
+                placeholder="A street, village or district"
+              />
+            </label>
+            <label className="field">
+              <span>Focus (optional)</span>
+              <input
+                name="topic"
+                maxLength={80}
+                placeholder="Neighbourhood, school, water…"
+              />
+            </label>
+          </div>
           <label className="field">
-            <span>Problem</span>
+            <span>Problem (optional)</span>
             <select name="problemId" defaultValue={problem?.id ?? ""}>
               <option value="">Not linked to a problem</option>
               {problems.map((p) => (
@@ -77,6 +99,15 @@ export default async function NewWorkspace({
           <label className="field">
             <span>Current strategy (optional)</span>
             <textarea name="strategy" rows={2} />
+          </label>
+          <label className="field">
+            <span>House rules (optional)</span>
+            <small>Shown wherever people raise a concern or contribute.</small>
+            <textarea
+              name="rules"
+              rows={2}
+              placeholder="Be specific about place and time. Respect neighbours. No private contact details."
+            />
           </label>
           <fieldset className="licence-picker">
             <legend>Who can see it</legend>

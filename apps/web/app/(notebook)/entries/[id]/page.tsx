@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  LifeBuoy,
   ArrowLeft,
   ExternalLink,
   FlaskConical,
@@ -21,6 +22,7 @@ import {
 } from "@/components/knowledge";
 import { MediaGallery } from "@/components/media/media-gallery";
 import { MomentPlayer } from "@/components/moment-player";
+import { RecordArt } from "@/components/record-art";
 import { Picture } from "@/components/picture";
 import {
   CiteAction,
@@ -275,6 +277,20 @@ export default async function AttemptPage({
           <p>{entry.excerpt}</p>
         </div>
         <div className="record-actions-row">
+          <Link className="button button-dark" href={buildOn[0].href}>
+            <GitBranch size={15} aria-hidden="true" /> Propose an improvement
+          </Link>
+          <Link className="button button-outline" href={buildOn[1].href}>
+            <Repeat2 size={15} aria-hidden="true" /> I tried this too
+          </Link>
+          {entry.owner && viewer?.id === entry.owner && (
+            <Link
+              className="button button-outline"
+              href={`/help/new?entry=${entry.id}`}
+            >
+              <LifeBuoy size={15} aria-hidden="true" /> Ask for help
+            </Link>
+          )}
           <RecordActions
             save={entry.id}
             cite={{
@@ -319,15 +335,20 @@ export default async function AttemptPage({
               )}
               {entry.clip ? (
                 <MomentPlayer clip={entry.clip} start={start} />
+              ) : entry.cover ? (
+                <Picture
+                  id="photo"
+                  picture={entry.cover}
+                  className="story-photo"
+                  sizes="(max-width: 880px) 100vw, 720px"
+                />
               ) : (
-                entry.cover && (
-                  <Picture
-                    id="photo"
-                    picture={entry.cover}
-                    className="story-photo"
-                    sizes="(max-width: 880px) 100vw, 720px"
-                  />
-                )
+                <RecordArt
+                  seed={entry.id}
+                  outcome={outcomeOf(entry, validated)}
+                  className="record-art-banner"
+                  wide
+                />
               )}
               {entry.mediaState && entry.mediaState !== "ready" && (
                 <p className="review-notice" role="status">

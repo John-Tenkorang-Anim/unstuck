@@ -85,6 +85,10 @@ export function OutcomeGlyph({
  * little further and becoming more solid. Uncertainty unfolding into
  * understanding; a failed attempt becoming the next, better one.
  */
+/**
+ * Three tiles rising: clay red for what didn’t work, harvest gold for what was
+ * learned, leaf green for what works next. The company colours in one mark.
+ */
 export function LogoMark({ size = 22 }: { size?: number }) {
   return (
     <svg
@@ -100,8 +104,7 @@ export function LogoMark({ size = 22 }: { size?: number }) {
         width="10"
         height="10"
         rx="2.6"
-        fill="currentColor"
-        opacity="0.28"
+        fill="var(--ember)"
         transform="rotate(-10 7 16)"
       />
       <rect
@@ -110,8 +113,7 @@ export function LogoMark({ size = 22 }: { size?: number }) {
         width="10"
         height="10"
         rx="2.6"
-        fill="currentColor"
-        opacity="0.55"
+        fill="var(--harvest)"
         transform="rotate(4 11.5 12)"
       />
       <rect
@@ -120,7 +122,7 @@ export function LogoMark({ size = 22 }: { size?: number }) {
         width="10"
         height="10"
         rx="2.6"
-        fill="currentColor"
+        fill="var(--brand)"
         transform="rotate(16 16.5 7.5)"
       />
     </svg>

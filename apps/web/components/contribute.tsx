@@ -128,16 +128,16 @@ const choices: {
   icon: ReactNode;
 }[] = [
   {
+    key: "problem",
+    title: "I need help",
+    text: "Ask for hints, a review, a test partner or expertise. It reaches people who’ve faced something similar.",
+    icon: <HelpCircle size={20} />,
+  },
+  {
     key: "attempt",
     title: "Something I tried",
     text: "An experience, experiment, project or approach, and what happened.",
     icon: <NotebookPen size={20} />,
-  },
-  {
-    key: "problem",
-    title: "A problem I need help with",
-    text: "An unresolved challenge others might have faced or could help with.",
-    icon: <HelpCircle size={20} />,
   },
   {
     key: "idea",
@@ -551,26 +551,60 @@ export function Contribute({
       <div className="frame contribute">
         <header className="form-head">
           <h1 ref={heading} tabIndex={-1}>
-            What would you like to share?
+            What would you like to do?
           </h1>
-          <p>Everyone’s experience counts. No qualifications needed.</p>
+          <p>
+            Ask for help, or share what you tried. No qualifications needed.
+          </p>
         </header>
         <div className="choice-grid">
-          {choices.map((c) => (
-            <button
-              key={c.key}
-              className="choice-card"
-              onClick={() => choose(c.key)}
-            >
-              <span className="choice-icon" aria-hidden="true">
-                {c.icon}
-              </span>
-              <strong>{c.title}</strong>
-              <small>{c.text}</small>
-              <ArrowRight size={16} className="choice-go" aria-hidden="true" />
-            </button>
-          ))}
+          {choices.map((c) => {
+            const about = d.problem || initial.problem;
+            const q = about ? `problem=${encodeURIComponent(about)}` : "";
+            const href =
+              c.key === "problem"
+                ? `/help/new${q ? `?${q}` : ""}`
+                : c.key === "idea" && about
+                  ? `/improvements/new?${q}`
+                  : `/new?type=${c.key === "attempt" ? "attempt" : c.key}${q ? `&${q}` : ""}`;
+            return (
+              <Link
+                key={c.key}
+                className="choice-card"
+                data-choice={c.key}
+                href={href}
+                onClick={(e) => {
+                  // Same page, new step: switch without a round trip.
+                  if (
+                    c.key === "attempt" ||
+                    c.key === "test" ||
+                    (c.key === "idea" && !about)
+                  ) {
+                    e.preventDefault();
+                    choose(c.key);
+                  }
+                }}
+              >
+                <span className="choice-icon" aria-hidden="true">
+                  {c.icon}
+                </span>
+                <strong>{c.title}</strong>
+                <small>{c.text}</small>
+                <ArrowRight
+                  size={16}
+                  className="choice-go"
+                  aria-hidden="true"
+                />
+              </Link>
+            );
+          })}
         </div>
+        <p className="quiet-line choice-help">
+          Want to post an open challenge for others to work on?{" "}
+          <button className="text-link" onClick={() => choose("problem")}>
+            Describe a problem
+          </button>
+        </p>
         {linked && (
           <p className="quiet-line">
             You’re contributing to{" "}
@@ -818,7 +852,10 @@ export function Contribute({
               {busy ? "Publishing…" : "Publish problem"}
             </button>
             {!database && (
-              <span className="quiet-line">Publishing needs a database.</span>
+              <span className="quiet-line">
+                Publishing is switched off on this copy of Unstuck. Your draft
+                stays on this device.
+              </span>
             )}
           </div>
           {footer}
@@ -1437,7 +1474,10 @@ export function Contribute({
             </button>
           )}
           {!database && d.stage === 3 && (
-            <span className="quiet-line">Publishing needs a database.</span>
+            <span className="quiet-line">
+              Publishing is switched off on this copy of Unstuck. Your draft
+              stays on this device.
+            </span>
           )}
         </div>
         {footer}

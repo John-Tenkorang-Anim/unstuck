@@ -19,7 +19,7 @@ const admin =
 const name = `unstuck_v_${Date.now().toString(36)}`;
 let hashList = "";
 const sample = (file: string) =>
-  readFile(join(process.cwd(), "public", "samples", file));
+  readFile(join(process.cwd(), "tests", "fixtures", file));
 // Hashes from the reference `pdqhash` implementation, read most-significant bit first.
 const reference = {
   "garden-640.jpg":
